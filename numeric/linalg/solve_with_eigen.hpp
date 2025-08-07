@@ -2,7 +2,7 @@
 #define flick_linalg_solve_with_eigen
 
 #include "matrix.hpp"
-#include "Eigen/Dense"
+#include "../../external/Eigen/Dense"
 
 namespace flick {
   namespace linalg {  

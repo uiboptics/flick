@@ -1,3 +1,4 @@
-This module contains a copy of the excelent Eigen c++ linear algebra
-library, developed by Benoît Jacob and Gaël Guennebaud.
-https://eigen.tuxfamily.org/index.php?title=Main_Page
+This module contains the excellent Eigen c++ linear algebra library
+(copied here for convenience). Eigen is developed by Benoît Jacob and
+Gaël Guennebaud.
+https://eigen.tuxfamily.org
