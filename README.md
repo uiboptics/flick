@@ -1,32 +1,28 @@
 
-Flick is a general radiative transfer modeling framework  
+Flick is a general radiative transfer modeling framework. 
 
-Clone from GitHub with:  
+#### Clone from GitHub with
 
- git clone --recurse-submodules https://github.com/uiboptics/flick.git  
+ - *git clone --recurse-submodules https://github.com/uiboptics/flick.git*
 
+#### For macOS and Linux, install and run with 
 
-For macOS and Linux, install and run with:  
+ - *cd flick* - to enter the flick directory
 
- cd flick - to enter the flick directory  
+ - *make* - to compile and build
 
- make - to compile and build  
+ - *flick help* - for further documentation and usage examples.
 
- flick help - for further documentation and usage examples  
+You will need a C++ compiler (e.g. clang++ or g++) already installed.
 
-You will need to have a c++ compiler (e.g. clang++ or g++) already installed.  
-
-
-Dependencies:  
+#### Dependencies
  
-Note that linear algebra library
-[Eigen](https://gitlab.com/libeigen/eigen.git) (MPL 2.0) is
-automatically cloned as a Git submodule into flick/external  
- 
+The linear algebra library
+[*Eigen*](https://gitlab.com/libeigen/eigen.git) (MPL 2.0) is
+automatically cloned as a Git submodule into flick/external.
 
-Name and license:  
+#### Name and license
 
 Flick is named after the flickering of a flame and the unit
-occasionally used for spectral radiance, and it is distributed under
-the MIT license.  
-https://docs.openmc.org/en/stable/license.html
+occasionally used for spectral radiance. It is distributed under
+the MIT license, https://docs.openmc.org/en/stable/license.html.
