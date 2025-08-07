@@ -4,7 +4,7 @@
 
 all:	check-env build test
 
-with_python:	all python
+with-python:	all python
 
 build:
 	cd environment; make obj link
