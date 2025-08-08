@@ -98,7 +98,7 @@ EIGEN_REPO = https://gitlab.com/libeigen/eigen.git
 .PHONY: check-eigen
 
 check-eigen:
-	@if [ ! -d "$(EIGEN_DIR)/Eigen" ]; then \
+	@if [ ! -d "$(EIGEN_DIR)" ]; then \
 		echo "Eigen not found. Cloning from $(EIGEN_REPO)..."; \
 		git clone $(EIGEN_REPO) $(EIGEN_DIR); \
 	else \
