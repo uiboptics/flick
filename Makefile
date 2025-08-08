@@ -2,7 +2,7 @@
 # Read README.md for information on compilation and running
 
 
-all:	check-env build test
+all:	check-env check-eigen build test
 
 with-python:	all python
 
@@ -90,6 +90,22 @@ python:
 	cd Example/python_plots; python3 test_all.py
 	cd Example/accurt_calls/logo; python3 test_all.py
 	cd Example/accurt_calls/atmosphere_ocean; python3 test_all.py
+
+
+EIGEN_DIR = external/eigen
+EIGEN_REPO = https://gitlab.com/libeigen/eigen.git
+
+.PHONY: check-eigen
+
+check-eigen:
+	@if [ ! -d "$(EIGEN_DIR)/Eigen" ]; then \
+		echo "Eigen not found. Cloning from $(EIGEN_REPO)..."; \
+		git clone $(EIGEN_REPO) $(EIGEN_DIR); \
+	else \
+		echo "Eigen already exists in $(EIGEN_DIR)."; \
+	fi
+
+
 check-env:
 ifndef FLICK_PATH
 	./update_shell.sh
