@@ -19,7 +19,7 @@ For larger contributions or significant changes to existing functionality:
 1. Fork the repository.
 2. Create a new branch on your fork (e.g. `feature` or a descriptive name related to your changes).
 3. Make your changes on that branch.
-4. Submit a pull request to the `main` branch of this repository.
+4. Submit a pull request to the `dev` branch of this repository.
 5. Reference any relevant issue in the PR description.
 
 We appreciate your time and effort. Thank you for helping make **flick** better!
