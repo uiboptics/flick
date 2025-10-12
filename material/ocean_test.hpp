@@ -1,7 +1,8 @@
 #include "../numeric/units.hpp"
 #include "ocean.hpp"
 
-namespace flick { 
+namespace flick {
+  /*
     begin_test_case(ocean_test_A) {
     using namespace material;
     ocean::configuration c;
@@ -48,5 +49,33 @@ namespace flick {
     c.set<double>("mp_concentrations",1e-3);
     auto oc = std::make_shared<ocean>(c);
     oc->set_wavelength(760e-9);
+  } end_test_case()
+  */
+  begin_test_case(ocean_test_D) {
+    // Check sea ice
+    using namespace material;
+    ocean::configuration c;
+    double d = 1;
+    double vf_br = 0.9;
+    double vf_bu = 0.05;
+    double r = 10e-6;
+    double b_approx = 3./2*(vf_br+vf_bu)/r;
+    double od_approx = b_approx*d;
+    c.set<double>("bottom_depth",d);
+    c.set<int>("ice_presence",{1,1});
+    c.set<double>("ice_bubble_fraction",{vf_br,vf_br});
+    c.set<double>("ice_bubble_radius",r);
+    c.set<double>("ice_brine_fraction",{vf_bu,vf_bu});
+    c.set<double>("ice_brine_radius",r);
+    auto oce = ocean{c};
+    oce.set_wavelength(400e-9);
+    oce.set_position({0,0,-1e-5});
+    oce.set_direction({0,0,-1});
+    //std::cout << "scat coef: "<<oce.scattering_coefficient() << std::endl;
+    //std::cout << "abs coef: "<<oce.absorption_coefficient() << std::endl;
+    check(oce.absorption_coefficient() > 0);
+    check_close(oce.scattering_coefficient(), b_approx, 1_pct);
+    double od = oce.scattering_optical_depth(d);
+    check_close(od,od_approx,1_pct);
   } end_test_case()
 }

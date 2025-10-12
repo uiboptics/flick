@@ -55,7 +55,7 @@ material given in mp_names. Note that a concentration of e.g., 10.0
 g/m^3 may be written as 10.0e-3 kg/m^3 for clarity)");
 	
 	add<double>("mp_scattering_scaling_factors", 1, R"(Space-separated list of scaling factors [unitless] for manual scaling of the
-scattering coefficient marine particles, one scaling factor for each listed marine particles name.)");
+scattering coefficient of marine particles, one scaling factor for each listed marine particles name.)");
 	
 	add<double>("mp_bleaching_factors", 0, R"(Space-separated list of factors [unitless] for degree of particle
 bleaching, one scaling factor for each listed marine particles name. 0
@@ -71,6 +71,12 @@ directory material/marine_cdom/iop_tables)");
 absorption coefficients listed in separated ASCII files in the Flick
 directory material/marine_cdom/iop_table, one concentration value for
 each CDOM spectra given in mcdom_names.)");
+	
+	add<int>("ice_presence", {0,0}, R"(Space-separated list of zeros or ones)");
+	add<double>("ice_bubble_fraction", {0.01,0.01}, R"(Space-separated list of ..)");
+	add<double>("ice_bubble_radius", 1e-3, R"(radius)");
+	add<double>("ice_brine_fraction", {0.02,0.02}, R"(Space-separated list of ..)");
+	add<double>("ice_brine_radius", 1e-3, R"(radius)");
       }
     };
   private:
@@ -80,11 +86,12 @@ each CDOM spectra given in mcdom_names.)");
       : mixture(angle_range(c.get<size_t>("n_angles")),height_grid(c)) {
       c_ = c;    
       auto_update_iops(false);
+      add_sea_ice();
       add_pure_water();
       add_cdom();
       add_phytoplankton();
       add_nap();
-      add_bubbles();
+      add_ocean_bubbles();
       add_marine_particles();
       add_marine_cdom(); 
       auto_update_iops(true);
@@ -102,23 +109,83 @@ each CDOM spectra given in mcdom_names.)");
       return h;
     }
   private:
+    void add_sea_ice() {
+      std::vector<int> presence = c_.get_vector<int>("ice_presence");
+      stdvector bubble_fraction = c_.get_vector<double>("ice_bubble_fraction");
+      stdvector brine_fraction = c_.get_vector<double>("ice_brine_fraction");
+      if (ice_present(presence)) {
+	check_validity(presence);
+	ensure(presence.size()==bubble_fraction.size() and
+	       bubble_fraction.size()==brine_fraction.size(),
+	       "number of points in ice profile");
+	stdvector vf;
+	for (size_t i = 0; i < presence.size(); ++i) {
+	  if (presence.at(i)==1)
+	    vf.push_back(1.0); //-bubble_fraction.at(i)-brine_fraction.at(i));
+	  else
+	    vf.push_back(0);
+	}
+	auto m1 = std::make_shared<pure_ice>();
+	add_profile(m1, vf, "pure ice"); 
+
+	double width = 0.00000;
+	double r_bu = c_.get<double>("ice_bubble_radius");
+	using bubbles = bubbles_in_ice<parameterized_monodispersed_mie>;
+	//using bubbles = bubbles_in_ice<monodispersed_mie>;
+	auto m2 = std::make_shared<bubbles>(1,log(r_bu),width);
+	add_profile(m2, bubble_fraction, "ice bubbles");
+	
+	double r_br = c_.get<double>("ice_brine_radius");
+	using brines = brines_in_ice<parameterized_monodispersed_mie>;
+	//using brines = brines_in_ice<monodispersed_mie>;
+	double salinity = 100;
+	auto m3 = std::make_shared<brines>(1,log(r_br),width,salinity);
+	add_profile(m3, brine_fraction, "ice brines");
+      }
+    }
+    void check_validity(const std::vector<int>& ice_presence) {
+      stdvector r_depths = c_.get_vector<double>("concentration_relative_depths");
+      ensure(ice_presence.size()==r_depths.size(),"ice profile");
+      for (size_t i = 0; i < ice_presence.size(); ++i)
+	ensure(ice_presence.at(i) == 0 or ice_presence.at(i) == 1,"ice precence");
+    }
+    bool ice_present(const std::vector<int>& presence) {
+      return !(std::find(presence.begin(),presence.end(),1)==presence.end());
+    }
     void add_pure_water() {
-      add_material<pure_water>(c_.get<double>("water_salinity"),
-			       c_.get<double>("water_temperature"));
+      double S = c_.get<double>("water_salinity");
+      double T = c_.get<double>("water_temperature");
+      std::vector<int> ice_presence = c_.get_vector<int>("ice_presence");
+      if (ice_present(ice_presence)) {
+	check_validity(ice_presence);
+	stdvector vf;
+	for (size_t i = 0; i < ice_presence.size(); ++i) {
+	  vf.push_back(1.0-ice_presence.at(i));
+	}
+	auto m = std::make_shared<pure_water>(S,T);
+	add_profile(m,vf,"pure water");
+      } else {
+	add_material<pure_water>(S,T);
+      }
     }
     void add_cdom() {
       double a440 = c_.get<double>("cdom_440");
       if (a440 > 0) {
 	auto m = std::make_shared<cdom>(a440, c_.get<double>("cdom_slope"));
-	add_profile(m, "cdom");
+	add_concentration_profile(m, "cdom");
       }
     }
-    void add_profile(const std::shared_ptr<base>& m, const std::string& name) {
-      stdvector factor = c_.get_vector<double>("concentration_scaling_factors");
+    void add_profile(const std::shared_ptr<base>& m, stdvector factor,
+		     const std::string& name) {
       std::reverse(factor.begin(),factor.end());
       stdvector z = absolute_depth(c_);
       add_material(make_scaled_z_profile<pl_function>(m,z,factor),name);
     }
+    void add_concentration_profile(const std::shared_ptr<base>& m,
+				   const std::string& name) {
+      auto f = c_.get_vector<double>("concentration_scaling_factors");
+      add_profile(m,f,name);
+    }  
     static stdvector absolute_depth(const basic_configuration& c) {
       double bottom_depth = c.get<double>("bottom_depth");
       stdvector relative_depth = c.get_vector<double>("concentration_relative_depths");
@@ -128,16 +195,16 @@ each CDOM spectra given in mcdom_names.)");
     void add_phytoplankton() {
       double chl = c_.get<double>("chl_concentration");
       if (chl > 0) {
-	add_profile(std::make_shared<phytoplankton>(chl),"phytoplankton");
+	add_concentration_profile(std::make_shared<phytoplankton>(chl),"phytoplankton");
       }
     }
     void add_nap() {
       double con = c_.get<double>("nap_concentration");
       if (con > 0) {
-	add_profile(std::make_shared<nap>(con),"nap");
+	add_concentration_profile(std::make_shared<nap>(con),"nap");
       }
     }
-    void add_bubbles() {
+    void add_ocean_bubbles() {
       double volume_fraction = c_.get<double>("bubble_volume_fraction");
       if (volume_fraction > 0) {
 	double effective_radius = 50e-6;
@@ -145,7 +212,7 @@ each CDOM spectra given in mcdom_names.)");
 	double sigma = 0;
 	using bubbles = bubbles_in_water<parameterized_monodispersed_mie>;
 	auto b = bubbles(volume_fraction,mu,sigma);
-	add_profile(std::make_shared<bubbles>(volume_fraction,mu,sigma),"bubbles");
+	add_concentration_profile(std::make_shared<bubbles>(volume_fraction,mu,sigma),"bubbles");
       }
     }
     void add_marine_particles() {
@@ -160,19 +227,19 @@ each CDOM spectra given in mcdom_names.)");
 						      at_or_last(scattering_scaling_factors,i),
 						      at_or_last(bleaching_factors,i));
 	  auto name = "marine_particles_"+names[i];
-	  add_profile(m,name);
+	  add_concentration_profile(m,name);
 	}
       }
     }
     void add_marine_cdom() {
       std::vector<std::string> names = c_.get_vector<std::string>("mcdom_names");
-      std::vector<double> scaling_factors = c_.get_vector<double>("mcdom_scaling_factors");
+      stdvector scaling_factors = c_.get_vector<double>("mcdom_scaling_factors");
       ensure(names.size()==scaling_factors.size(), "marine cdom");
       for (size_t i = 0; i<names.size(); i++) {
 	if (scaling_factors.at(i) > 0) {
 	  auto m = std::make_shared<marine_cdom>(names[i], at_or_last(scaling_factors,i));
 	  auto name = "marine_cdom_"+names[i];
-	  add_profile(m,name);
+	  add_concentration_profile(m,name);
 	}
       }
     }

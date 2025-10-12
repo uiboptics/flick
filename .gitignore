@@ -2,6 +2,7 @@
 *.o
 *~
 test_all
+external
 .DS_Store
 __pycache__
 flick_tmp
