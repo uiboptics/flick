@@ -2,7 +2,6 @@
 #include "ocean.hpp"
 
 namespace flick {
-  /*
     begin_test_case(ocean_test_A) {
     using namespace material;
     ocean::configuration c;
@@ -50,9 +49,9 @@ namespace flick {
     auto oc = std::make_shared<ocean>(c);
     oc->set_wavelength(760e-9);
   } end_test_case()
-  */
+  
   begin_test_case(ocean_test_D) {
-    // Check sea ice
+    // Check sea ice sanity
     using namespace material;
     ocean::configuration c;
     double d = 1;
@@ -71,8 +70,6 @@ namespace flick {
     oce.set_wavelength(400e-9);
     oce.set_position({0,0,-1e-5});
     oce.set_direction({0,0,-1});
-    //std::cout << "scat coef: "<<oce.scattering_coefficient() << std::endl;
-    //std::cout << "abs coef: "<<oce.absorption_coefficient() << std::endl;
     check(oce.absorption_coefficient() > 0);
     check_close(oce.scattering_coefficient(), b_approx, 1_pct);
     double od = oce.scattering_optical_depth(d);

@@ -72,11 +72,21 @@ absorption coefficients listed in separated ASCII files in the Flick
 directory material/marine_cdom/iop_table, one concentration value for
 each CDOM spectra given in mcdom_names.)");
 	
-	add<int>("ice_presence", {0,0}, R"(Space-separated list of zeros or ones)");
-	add<double>("ice_bubble_fraction", {0.01,0.01}, R"(Space-separated list of ..)");
-	add<double>("ice_bubble_radius", 1e-3, R"(radius)");
-	add<double>("ice_brine_fraction", {0.02,0.02}, R"(Space-separated list of ..)");
-	add<double>("ice_brine_radius", 1e-3, R"(radius)");
+	add<int>("ice_presence", {0,0}, R"(Space-separated list of zeros and ones defining whether there is sea
+ice or not at each of the depths defined by the
+concentration_relative_depths variable.)");
+	
+	add<double>("ice_bubble_fraction", {0.01,0.01}, R"(Space-separated list of the volume fraction of bubble inclusions in the sea ice at
+each of the depths defined by the concentration_relative_depths
+variable.)");
+	
+	add<double>("ice_bubble_radius", 200e-6, R"(Radius of sea ice bubble inclusions [m])");
+	
+	add<double>("ice_brine_fraction", {0.02,0.02}, R"(Space-separated list of the volume fraction of saline brine pocket
+inclusions in the sea ice at each of the depths defined by the
+concentration_relative_depths variable.  )");
+	
+	add<double>("ice_brine_radius", 500e-3, R"(Radius of sea ice brine pocket inclusions [m])");
       }
     };
   private:
@@ -118,26 +128,17 @@ each CDOM spectra given in mcdom_names.)");
 	ensure(presence.size()==bubble_fraction.size() and
 	       bubble_fraction.size()==brine_fraction.size(),
 	       "number of points in ice profile");
-	stdvector vf;
-	for (size_t i = 0; i < presence.size(); ++i) {
-	  if (presence.at(i)==1)
-	    vf.push_back(1.0); //-bubble_fraction.at(i)-brine_fraction.at(i));
-	  else
-	    vf.push_back(0);
-	}
 	auto m1 = std::make_shared<pure_ice>();
-	add_profile(m1, vf, "pure ice"); 
+	add_profile(m1, stdvector(presence.begin(), presence.end()), "pure ice"); 
 
-	double width = 0.00000;
+	double width = 0;
 	double r_bu = c_.get<double>("ice_bubble_radius");
 	using bubbles = bubbles_in_ice<parameterized_monodispersed_mie>;
-	//using bubbles = bubbles_in_ice<monodispersed_mie>;
 	auto m2 = std::make_shared<bubbles>(1,log(r_bu),width);
 	add_profile(m2, bubble_fraction, "ice bubbles");
 	
 	double r_br = c_.get<double>("ice_brine_radius");
 	using brines = brines_in_ice<parameterized_monodispersed_mie>;
-	//using brines = brines_in_ice<monodispersed_mie>;
 	double salinity = 100;
 	auto m3 = std::make_shared<brines>(1,log(r_br),width,salinity);
 	add_profile(m3, brine_fraction, "ice brines");
