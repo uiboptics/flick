@@ -123,8 +123,9 @@ namespace flick {
     }
     void set_alpha_beta(size_t i) {
       auto [alpha, beta] = material::fitted_mueller_alpha_beta(*m_,n_terms_);
-      for (size_t n=0; n < alpha_.size(); n++)
+      for (size_t n=0; n < alpha_.size(); n++) {
 	alpha_[n][i] = alpha[n];
+      }
       for (size_t n=0; n < beta_.size(); n++)
 	beta_[n][i] = beta[n];
     }

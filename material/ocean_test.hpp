@@ -61,7 +61,7 @@ namespace flick {
     double b_approx = 3./2*(vf_br+vf_bu)/r;
     double od_approx = b_approx*d;
     c.set<double>("bottom_depth",d);
-    c.set<int>("ice_presence",{1,1});
+    c.set<int>("ice_depths",2);
     c.set<double>("ice_bubble_fraction",{vf_br,vf_br});
     c.set<double>("ice_bubble_radius",r);
     c.set<double>("ice_brine_fraction",{vf_bu,vf_bu});

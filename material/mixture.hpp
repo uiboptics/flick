@@ -172,6 +172,10 @@ namespace material {
 	  s1 = s_profile_.value(z);
 	material.set_position({0,0,z});
 	double s2 = material.scattering_coefficient();
+	if (s1 < 0)
+	  s1 = 0;
+	if (s2 < 0)
+	  s2 = 0;
 	if (s1+s2 > 0)
 	  weight = s2/(s1+s2);
 	if (not std::isfinite(weight))

@@ -72,9 +72,8 @@ absorption coefficients listed in separated ASCII files in the Flick
 directory material/marine_cdom/iop_table, one concentration value for
 each CDOM spectra given in mcdom_names.)");
 	
-	add<int>("ice_presence", {0,0}, R"(Space-separated list of zeros and ones defining whether there is sea
-ice or not at each of the depths defined by the
-concentration_relative_depths variable.)");
+	add<int>("ice_depths", 0, R"(Number of depths defined by the concentration_relative_depths variable
+that include sea ice.)");
 	
 	add<double>("ice_bubble_fraction", {0.01,0.01}, R"(Space-separated list of the volume fraction of bubble inclusions in the sea ice at
 each of the depths defined by the concentration_relative_depths
@@ -84,7 +83,7 @@ variable.)");
 	
 	add<double>("ice_brine_fraction", {0.02,0.02}, R"(Space-separated list of the volume fraction of saline brine pocket
 inclusions in the sea ice at each of the depths defined by the
-concentration_relative_depths variable.  )");
+concentration_relative_depths variable.)");
 	
 	add<double>("ice_brine_radius", 500e-3, R"(Radius of sea ice brine pocket inclusions [m])");
       }
@@ -120,16 +119,17 @@ concentration_relative_depths variable.  )");
     }
   private:
     void add_sea_ice() {
-      std::vector<int> presence = c_.get_vector<int>("ice_presence");
+      size_t n_ice_depths = c_.get<int>("ice_depths");
       stdvector bubble_fraction = c_.get_vector<double>("ice_bubble_fraction");
       stdvector brine_fraction = c_.get_vector<double>("ice_brine_fraction");
-      if (ice_present(presence)) {
-	check_validity(presence);
-	ensure(presence.size()==bubble_fraction.size() and
-	       bubble_fraction.size()==brine_fraction.size(),
-	       "number of points in ice profile");
+      if (n_ice_depths > 0) {
+	size_t n_total = c_.get_vector<double>("concentration_relative_depths").size();
+	ensure(n_ice_depths <= n_total,"ice_depths");
+	ensure(bubble_fraction.size()==n_ice_depths,"bubble_fraction size");
+	ensure(brine_fraction.size()==n_ice_depths,"brine_fraction size");
+
 	auto m1 = std::make_shared<pure_ice>();
-	add_profile(m1, stdvector(presence.begin(), presence.end()), "pure ice"); 
+	add_profile(m1, stdvector(n_ice_depths,1.0), "pure ice"); 
 
 	double width = 0;
 	double r_bu = c_.get<double>("ice_bubble_radius");
@@ -144,30 +144,15 @@ concentration_relative_depths variable.  )");
 	add_profile(m3, brine_fraction, "ice brines");
       }
     }
-    void check_validity(const std::vector<int>& ice_presence) {
-      stdvector r_depths = c_.get_vector<double>("concentration_relative_depths");
-      ensure(ice_presence.size()==r_depths.size(),"ice profile");
-      for (size_t i = 0; i < ice_presence.size(); ++i)
-	ensure(ice_presence.at(i) == 0 or ice_presence.at(i) == 1,"ice precence");
-    }
-    bool ice_present(const std::vector<int>& presence) {
-      return !(std::find(presence.begin(),presence.end(),1)==presence.end());
-    }
     void add_pure_water() {
       double S = c_.get<double>("water_salinity");
       double T = c_.get<double>("water_temperature");
-      std::vector<int> ice_presence = c_.get_vector<int>("ice_presence");
-      if (ice_present(ice_presence)) {
-	check_validity(ice_presence);
-	stdvector vf;
-	for (size_t i = 0; i < ice_presence.size(); ++i) {
-	  vf.push_back(1.0-ice_presence.at(i));
-	}
-	auto m = std::make_shared<pure_water>(S,T);
-	add_profile(m,vf,"pure water");
-      } else {
-	add_material<pure_water>(S,T);
-      }
+      size_t n_ice_depths = c_.get<int>("ice_depths");
+      size_t n_total = c_.get_vector<double>("concentration_relative_depths").size();
+      stdvector vol_frac(n_ice_depths, 0.0);
+      vol_frac.resize(n_total, 1.0);
+      auto m = std::make_shared<pure_water>(S,T);
+      add_profile(m,vol_frac,"pure water");
     }
     void add_cdom() {
       double a440 = c_.get<double>("cdom_440");
@@ -178,8 +163,9 @@ concentration_relative_depths variable.  )");
     }
     void add_profile(const std::shared_ptr<base>& m, stdvector factor,
 		     const std::string& name) {
-      std::reverse(factor.begin(),factor.end());
       stdvector z = absolute_depth(c_);
+      factor.resize(z.size(), 0.0);
+      std::reverse(factor.begin(),factor.end());
       add_material(make_scaled_z_profile<pl_function>(m,z,factor),name);
     }
     void add_concentration_profile(const std::shared_ptr<base>& m,
