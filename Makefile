@@ -109,7 +109,7 @@ check-eigen:
 check-env:
 	@if ! env | grep -q '^FLICK_PATH=' || [ -z "$${FLICK_PATH:-}" ]; then \
 		./update_shell.sh; \
-		exit 0; \
+		false; \
 	fi
 
 
