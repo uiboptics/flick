@@ -32,7 +32,7 @@ else
         echo ""
         echo "# --- Flick environment variables ---"
 	echo "export FLICK_PATH=$FLICK_FOLDER"
-	echo "export FLICK_COMPILER=$COMPILER"
+	echo "export FLICK_COMPILER=\"$COMPILER\""
 	echo "export EIGEN_PATH=\$FLICK_PATH/external/eigen"
         echo "export CPLUS_INCLUDE_PATH=\$FLICK_PATH:\$EIGEN_PATH:\$CPLUS_INCLUDE_PATH"
         echo "export PATH=\$FLICK_PATH/main:\$PATH"
@@ -43,9 +43,11 @@ else
     echo "✅ Flick environment variables added to $PROFILE"
     echo ""
     echo "Now run:"
-    echo ""
+    echo
     echo "  source $PROFILE"
-    echo ""
-    echo "and then rerun make."
-    echo ""
+    echo
+    echo "then:"
+    echo
+    echo "  make"
+    echo
 fi

@@ -12,7 +12,7 @@ namespace flick {
     std::string path;
     char *p = getenv("FLICK_PATH");
     if (p==NULL)
-      throw std::invalid_argument("FLICK_PATH not found. See Prerequisites");
+      throw std::invalid_argument("FLICK_PATH not found.");
     return std::string(p);
   }
 

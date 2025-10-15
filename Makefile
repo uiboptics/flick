@@ -107,7 +107,9 @@ check-eigen:
 
 
 check-env:
-ifndef FLICK_PATH
-	./update_shell.sh
-endif
+	@if ! env | grep -q '^FLICK_PATH=' || [ -z "$${FLICK_PATH:-}" ]; then \
+		./update_shell.sh; \
+		exit 0; \
+	fi
+
 
