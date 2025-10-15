@@ -85,7 +85,7 @@ variable.)");
 inclusions in the sea ice at each of the depths defined by the
 concentration_relative_depths variable.)");
 	
-	add<double>("ice_brine_radius", 500e-3, R"(Radius of sea ice brine pocket inclusions [m])");
+	add<double>("ice_brine_radius", 500e-6, R"(Radius of sea ice brine pocket inclusions [m])");
       }
     };
   private:

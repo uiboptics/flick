@@ -44,7 +44,7 @@ f.set('cdom_440', 0.1)
 f.set('chl_concentration', 1e-6)
 f.set('nap_concentration', 1e-3)
 f.set_override_sun_zenith_angle(60)
-wls = flick.atmosphere_wavelengths(wl_low, wl_high, n_wls)
+wls = flick.atmosphere_wavelengths('config_for_wavelengths', wl_low, wl_high, n_wls)
 E = f.spectrum(wls, wl_width, time_point_1AU)
 E = f.to_W_per_m2_nm(E)
 

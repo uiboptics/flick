@@ -23,55 +23,66 @@ if not os.path.exists('output'):
     os.makedirs('output')
     
 class sea_ice:
-    detector_height = -0.5 # [m]
+    detector_height = -5 # [m]
     wl_low = 400e-9 # [m]
-    wl_high = 800e-9 # [#]
-    n_wl =  15
+    wl_high = 600e-9 # [m]
+    n_wl =  10
     wl_band_width = 10e-9 # [m]
     time_point_utc = '2025 08 01 12 00' # yyyy mm dd hh mm
     latitude = 85 # [degree]
     longitude = 5 # [degree]
+    ocean_depth_grid = [0, 0.01, 0.01001, 100]
     
+    def __init__(self, flick_radiation_object):
+        self.f = flick_radiation_object
     
-    def __init__(self, flick_radiation):
-        self.fr = flick_radiation
-        self.fr.set('bottom_depth',100)
-        self.fr.set('concentration_relative_depths',[0, 0.5, 0.5001, 1])
-        self.fr.set('concentration_scaling_factors',[1, 1, 1, 1])
-        self.fr.set('ice_depths',2)
-        self.fr.set('ice_bubble_fraction',[0.01, 0.01])
-        self.fr.set('ice_brine_fraction',[0.01, 0.01])
+        self.f.set('bottom_depth',self.ocean_depth_grid[-1])
+        self.f.set('concentration_relative_depths',self.absolute_to_relative(self.ocean_depth_grid))
+        self.f.set('concentration_scaling_factors',np.ones(len(self.ocean_depth_grid)))
         
+        self.f.set('ice_depths',2)
+        self.f.set('ice_bubble_fraction',[0.01, 0.01])
+        self.f.set('ice_brine_fraction',[0.01, 0.01])
 
+    def set(self,parameter_name,value):
+        self.f.set(parameter_name,value)
+
+    def to_W_per_m2_nm(self, radiation_values):
+        return self.f.to_W_per_m2_nm(radiation_values)
+
+    def to_mW_per_m2_nm_sr(self, radiation_values):
+        return self.f.to_mW_per_m2_nm_sr(radiation_values)
+    
+    def absolute_to_relative(self, depths):
+        b = self.f.get('bottom_depth')
+        return np.array(depths)/b
+    
     def wavelength(self):
-        # Pick optimized wavelengths for atmosphere transmittance calculations
-        wl = np.linspace(self.wl_low, self.wl_high, self.n_wl)
-        return wl
-        #return flick.atmosphere_wavelengths('flick_tmp/config',
-        #                                   self.wl_low, self.wl_high, self.n_wl)
+        return flick.atmosphere_wavelengths('config_for_wavelengths',
+                                            self.wl_low, self.wl_high, self.n_wl)
         
     def radiation(self):
-        return self.fr.spectrum(self.wavelength(), self.wl_band_width,
-                                self.time_point_utc+' 0', self.latitude, self.longitude)
+        return self.f.spectrum(self.wavelength(), self.wl_band_width,
+                               self.time_point_utc+' 0', self.latitude, self.longitude)
 
-def plane_irradiance(height):
+def plane_downward_irradiance(height):
     si = sea_ice(flick.ocean_downward_plane_irradiance())
-    si.fr.set('detector_height', height)
-    xy = si.fr.to_W_per_m2_nm(si.radiation())
-    return xy[:,0], xy[:,1]
+    si.set('detector_height', height)
+    Ed = si.to_W_per_m2_nm(si.radiation())
+    return Ed[:,0], Ed[:,1]
+
+def surface_downward_scalar_irradiance():
+    si = sea_ice(flick.ocean_downward_plane_irradiance())
+    si.set('detector_type','scalar_irradiance')
+    si.set('detector_height', 1)
+    Eds = si.to_W_per_m2_nm(si.radiation())
+    return Eds[:,0], Eds[:,1]
 
 def nadir_radiance(height):
     si = sea_ice(flick.ocean_nadir_radiance())
-    si.fr.set('detector_height', height)
-    xy = si.fr.to_mW_per_m2_nm_sr(si.radiation())
-    return xy[:,0], xy[:,1]
-
-def surface_scalar_irradiance():
-    si = sea_ice(flick.ocean_downward_plane_irradiance())
-    si.fr.set('detector_height', 1)
-    si.fr.set('detector_type','scalar_irradiance')
-    xy = si.fr.to_W_per_m2_nm(si.radiation())
-    return xy[:,0], xy[:,1]
+    si.set('detector_height', height)
+    Lu = si.to_mW_per_m2_nm_sr(si.radiation())
+    return Lu[:,0], Lu[:,1]
 
 def save(file_name, x, y):
     f = open(file_name,'w')
@@ -83,26 +94,26 @@ def save(file_name, x, y):
 
 def plot_irradiance():
     depth = 9
-    x1, y1 = plane_irradiance(height=-depth)
-    x2, y2 = surface_scalar_irradiance()
+    x1, y1 = plane_downward_irradiance(height=-depth)
+    x2, y2 = surface_downward_scalar_irradiance()
     plt.plot(x1,y1,label=f'plane at {depth:#.{3}g} m depth')
     plt.plot(x2,y2,label='scalar at surface')
     plt.legend()
     plt.grid()
     plt.xlabel('Wavelength [nm]')
     plt.ylabel(r'Downward irradiance [W m$^{-2}$ nm$^{-1}$]')
-    #save('output/plane_irradiance.txt',x1,y1)
-    #save('output/surface_scalar_irradiance.txt',x2,y2)
+    save('output/plane_irradiance.txt',x1,y1)
+    save('output/surface_scalar_irradiance.txt',x2,y2)
 
 def plot_radiance():
-    depth = -9.37
-    x, y = nadir_radiance(height=-depth)
+    depth = 9.37
+    x, y = nadir_radiance(height=-9.37)
     plt.plot(x,y,label=f'at {depth:#.{3}g} m depth')
     plt.legend()
     plt.grid()
     plt.xlabel('Wavelength [nm]')
     plt.ylabel(r'Nadir radiance [mW m$^{-2}$ nm$^{-1}$ sr$^{-1}$]')
-    #save('output/nadir_radiance.txt',x,y)
+    save('output/nadir_radiance.txt',x,y)
 
 def plot_all():
     plt.figure(figsize=(9, 4))
@@ -113,7 +124,6 @@ def plot_all():
     plt.tight_layout()
     
 if __name__ == "__main__":
-    plot_radiance()
-    #plot_all()
+    plot_all()
     plt.show()
     

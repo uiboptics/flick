@@ -7,6 +7,7 @@ external
 .vscode
 __pycache__
 flick_tmp
+output
 .\#*
 \#*\#
 *.png

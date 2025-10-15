@@ -339,7 +339,10 @@ class basic_radiation:
             
     def set(self, config_parameter, value):
         config(self._config_name, config_parameter, value)
-
+    
+    def get(self, config_parameter):
+        return run('text '+self._config_name+' get '+ config_parameter)
+    
     def use_sentinel3_srf(self,tf):
         self._use_sentinel3_srf = tf
         

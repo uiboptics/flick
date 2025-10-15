@@ -10,7 +10,12 @@ namespace flick {
       void run() {
 	auto fname = a(1);
 	auto command = a(2);
-	if (command=="set") {
+	if (command=="get") {
+	  std::string parameter = a(3);
+	  auto t = read<parameter_text>(fname);
+	  std::cout << t.get(parameter);
+	}
+	else if (command=="set") {
 	  std::string parameter = a(3);
 	  std::string value = a(4);
 	  auto t = read<parameter_text>(fname);
