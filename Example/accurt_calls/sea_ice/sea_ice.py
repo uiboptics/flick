@@ -35,15 +35,18 @@ class sea_ice:
     
     def __init__(self, flick_radiation_object):
         self.f = flick_radiation_object
-    
-        self.f.set('bottom_depth',self.ocean_depth_grid[-1])
-        self.f.set('concentration_relative_depths',self.absolute_to_relative(self.ocean_depth_grid))
-        self.f.set('concentration_scaling_factors',np.ones(len(self.ocean_depth_grid)))
-        
+        self.f.set("snow_ice", 0.01)
+        self.f.set("snow_radius", 1e-3)        
         self.f.set('ice_depths',2)
         self.f.set('ice_bubble_fraction',[0.01, 0.01])
         self.f.set('ice_brine_fraction',[0.01, 0.01])
+        self.set_derived_parameters()
 
+    def set_derived_parameters(self):
+        self.f.set('bottom_depth',self.ocean_depth_grid[-1])
+        self.f.set('concentration_relative_depths',self.absolute_to_relative(self.ocean_depth_grid))
+        self.f.set('concentration_scaling_factors',np.ones(len(self.ocean_depth_grid)))
+ 
     def set(self,parameter_name,value):
         self.f.set(parameter_name,value)
 
@@ -62,6 +65,7 @@ class sea_ice:
                                             self.wl_low, self.wl_high, self.n_wl)
         
     def radiation(self):
+        self.set_derived_parameters()
         return self.f.spectrum(self.wavelength(), self.wl_band_width,
                                self.time_point_utc+' 0', self.latitude, self.longitude)
 

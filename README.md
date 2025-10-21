@@ -14,6 +14,8 @@ Flick is a radiative transfer modeling framework that currently supports generat
  - *flick help* - for further documentation and usage examples.
 
 You will need a c++ compiler (e.g. clang++ or g++) already installed.
+On most Linux variants "sudo apt install build-essential" should
+provide the needed compiler and tools.
 
 #### Dependencies
  
