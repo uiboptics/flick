@@ -149,7 +149,7 @@ reflection and '1' gives loamy sand reflection)");
     basic_configuration c_;
     std::shared_ptr<material::base> material_;
     const std::string tmpdir_ = c_.get<std::string>("flick_tmp_directory_name"); 
-    const std::string output_ = "./"+tmpdir_+"/accurtOutput";
+    const std::string output_ = tmpdir_+"/accurtOutput";
     size_t n_detector_;
     size_t n_reference_;
     double max_height_ = 1;
@@ -297,7 +297,7 @@ reflection and '1' gives loamy sand reflection)");
       layered_upper_slab_ = std::make_shared<layered_iops>(material_,b,
 							       n_terms);
       write(accurt_user_specified(layered_upper_slab_, wavelengths_),
-       	    "./"+tmpdir_+"/accurtMaterials/user_specified_upper_slab",
+       	    tmpdir_+"/accurtMaterials/user_specified_upper_slab",
 	    precision_);
 
       b = 0 - c_.get_vector<double>("layer_depths_lower_slab");
@@ -306,7 +306,7 @@ reflection and '1' gives loamy sand reflection)");
       layered_lower_slab_ = std::make_shared<layered_iops>(material_,b,
 							       n_terms);
       write(accurt_user_specified(layered_lower_slab_, wavelengths_),
-      	    "./"+tmpdir_+"/accurtMaterials/user_specified_lower_slab",
+      	    tmpdir_+"/accurtMaterials/user_specified_lower_slab",
 	    precision_);
     }
     stdvector depths_to_boundaries(stdvector depths) {
@@ -499,12 +499,12 @@ reflection and '1' gives loamy sand reflection)");
     void run() {
       c_.set_text_qualifiers("#","##");
       c_.set_uppercase(true);
-      system(("mkdir -p ./" + tmpdir_).c_str());      
-      write(c_,"./"+tmpdir_+"/accurt",precision_);
-      system(("mkdir -p ./"+tmpdir_+"/accurtMaterials").c_str());
-      system(("mkdir -p ./"+tmpdir_+"/accurtOutput").c_str());
+      system(("mkdir -p " + tmpdir_).c_str());      
+      write(c_, tmpdir_+"/accurt",precision_);
+      system(("mkdir -p "+tmpdir_+"/accurtMaterials").c_str());
+      system(("mkdir -p "+tmpdir_+"/accurtOutput").c_str());
       make_material_files();
-      int s=system(("DYLD_LIBRARY_PATH=$ACCURT_PATH/lib AccuRT ./"+tmpdir_+
+      int s=system(("DYLD_LIBRARY_PATH=$ACCURT_PATH/lib AccuRT "+tmpdir_+
 		    "/accurt").c_str());
       if (s!=0)
 	throw std::runtime_error("accurt_api");
@@ -543,7 +543,7 @@ reflection and '1' gives loamy sand reflection)");
 	add_configuration(accurt::configuration());
       }
       void write(const std::string& fname) {
-	flick::write(*this, "./"+fname, precision_);
+	flick::write(*this, fname, precision_);
       }
     };
 

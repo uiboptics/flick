@@ -141,7 +141,18 @@ class marine_iops:
 
     def b_spm(self):
         return self._coefficient("scattering","marine_particles")
-    
+
+    def b_slope(self):
+        m = self.b_spm()
+        x = m[:,0]
+        y = m[:,1]
+        #print(x)
+        #print(y)
+        x_fit = np.linspace(400e-9,700e-9,500)
+        y_fit = np.interp(x_fit,x,y)
+        coef = np.polyfit(np.log(x_fit),np.log(y_fit),1)
+        return coef[0]
+        
     def set_b_scaling_factor(self,f):
         self._b_scaling = f
         
@@ -280,7 +291,7 @@ class toa_meta:
         self.time_point_utc = m[4,1]
     
 def _run_os(command):
-    c = subprocess.run("nice "+command, stdout=subprocess.PIPE, shell=True, check=True)
+    c = subprocess.run(command, stdout=subprocess.PIPE, shell=True, check=True)
     return c
 
 def _to_matrix(flick_output):

@@ -63,7 +63,7 @@ gives full absorption and 1 gives absorption after adding a bleaching
 chemical. A factor larger than one will reduce the absorption beyond
 the bleached values.)");
 	
-	add<std::string>("mcdom_names", "HF22_D001", R"(Space-separated list of names of measured marine CDOM with absorption
+	add<std::string>("mcdom_names", "ECOSENS_HF22_D1", R"(Space-separated list of names of measured marine CDOM with absorption
 coefficients tabulated in separate ASCII files stored in the Flick
 directory material/marine_cdom/iop_tables)");
 	
