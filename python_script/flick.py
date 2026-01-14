@@ -146,8 +146,6 @@ class marine_iops:
         m = self.b_spm()
         x = m[:,0]
         y = m[:,1]
-        #print(x)
-        #print(y)
         x_fit = np.linspace(400e-9,700e-9,500)
         y_fit = np.interp(x_fit,x,y)
         coef = np.polyfit(np.log(x_fit),np.log(y_fit),1)
@@ -436,6 +434,7 @@ class basic_radiation:
     def set_n_angles(self,n_angles):
          self.set("n_angles", round(n_angles)) 
          self.set("stream_upper_slab_size", to_streams(round(n_angles))) 
+
 
 
 class radiance_distribution(basic_radiation):
