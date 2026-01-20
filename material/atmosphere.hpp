@@ -14,6 +14,9 @@ namespace material {
   public:
     struct configuration : public mixture::configuration {
       configuration() {
+	add<std::string>("atmosphere_type", "us_standard", R"(Atmospheric constituent profile types: tropical, midlatitude_summer,
+midlatitude_winter, subarctic_summer, subarctic_winter, or
+us_standard.)");
 	add<double>("temperature", 290, R"(Atmosphere ground temperature [K])");
 		    
 	add<double>("pressure", 1000e2, R"(Atmosphere ground pressure [Pa])");
@@ -93,7 +96,8 @@ optimized for TOA radiation.)");
     void add_air() {
       double p = c_.get<double>("pressure");
       if (p > 0) {
-	atmospheric_state s(c_.get<double>("temperature"),p);
+	atmospheric_state s(c_.get<double>("temperature"),p,50,
+			    c_.get<std::string>("atmosphere_type"));
 	s.remove_all_gases();
 	for (size_t i=0; i<c_.size<std::string>("gases"); i++) {
 	  std::string gas = c_.get<std::string>("gases",i);

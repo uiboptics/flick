@@ -16,10 +16,11 @@ namespace flick {
     pe_function f_;
   public:
     profile() = default;
-    profile(const std::string& file_name, size_t n_points = 50)
+    profile(const std::string& file_name, size_t n_points = 50,
+	    const std::string& atmosphere_type="us_standard")
       : n_points_{n_points} {
       f_ = read<pe_function>
-	("material/gas/profile_input/"+file_name);
+	("material/gas/profile_input/"+atmosphere_type+"/"+file_name);
       column_integral_ = f_.integral(0, 120e3);
       surface_value_ = f_.value(0);
       f_ = sparse_profile_distribution();
@@ -75,8 +76,9 @@ namespace flick {
   // Temperature profile should conserve surface value instead of
   // column integral
   {
-    temperature_profile(const std::string& file_name, size_t n_points = 50) 
-      : profile(file_name,n_points) {
+    temperature_profile(const std::string& file_name, size_t n_points = 50,
+			const std::string& atmosphere_type="us_standard") 
+      : profile(file_name,n_points,atmosphere_type) {
       column_integral_ *= surface_value_ / value(0);
     }
   };

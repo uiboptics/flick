@@ -8,12 +8,13 @@
 namespace flick {
   class atmospheric_state {
     size_t n_points_;
+    std::string atmosphere_type_;
     std::set<std::string> gases_{"co2","h2o","o2","o3","no2"};
     std::map<std::string, concentration_profile> gas_concentrations_;
     std::map<std::string, double> gas_scaling_factors_;
-    concentration_profile air_concentration_{"air.txt", n_points_};
-    temperature_profile temperature_{"temperature.txt", n_points_};
-    pressure_profile pressure_{"pressure.txt", n_points_};
+    concentration_profile air_concentration_{"air.txt", n_points_, atmosphere_type_};
+    temperature_profile temperature_{"temperature.txt", n_points_, atmosphere_type_};
+    pressure_profile pressure_{"pressure.txt", n_points_, atmosphere_type_};
     double temperature_scaling_factor_;
     double pressure_scaling_factor_;
     double air_scaling_factor_;
@@ -23,13 +24,15 @@ namespace flick {
     atmospheric_state(size_t n_points)      
       : atmospheric_state(constants::T_stp, constants::P_stp, n_points) {};
     atmospheric_state(double surface_temperature, double surface_pressure,
-		     size_t n_points=50)
-      : n_points_{n_points} {
+		      size_t n_points=50,
+		      const std::string& atmosphere_type="us_standard")
+      : n_points_{n_points}, atmosphere_type_{atmosphere_type} {
       temperature_scaling_factor_ = surface_temperature / temperature_.surface_value();
       pressure_scaling_factor_ = surface_pressure / pressure_.surface_value();
       air_scaling_factor_ = pressure_scaling_factor_;
       for(auto g : gases_) {
-	gas_concentrations_[g] = concentration_profile(g+".txt", n_points_);
+	gas_concentrations_[g] = concentration_profile(g+".txt", n_points_,
+						       atmosphere_type_);
 	gas_scaling_factors_[g] = air_scaling_factor_;
       }
     }

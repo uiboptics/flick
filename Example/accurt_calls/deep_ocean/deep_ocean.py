@@ -31,7 +31,6 @@ class deep_ocean:
         self.config = flick.basic_radiation()
         self.config._generate_config('toa_reflectance', './flick_tmp')
         self.config.set('detector_height', -depth)
-        epsilon = 1e-5
         self.config.set_n_angles(100)
         self.config.set("n_heights", 8)
         self.config.set("pressure",0.001)
