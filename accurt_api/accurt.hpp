@@ -77,65 +77,113 @@ namespace flick {
   public:
     struct configuration : public basic_configuration {
       configuration() {
-	add<std::string>("material_name","atmosphere_ocean", R"(Name of the material that gives inherent optical properties used in
-the radiative transfer calculations, which could be 'atmosphere' or
-'atmosphere_ocean')");
+	add<std::string>("material_name","atmosphere_ocean", R"(
+Name of the material that defines the inherent optical properties used in
+the radiative transfer calculations. Valid options are ‘atmosphere’ or
+‘atmosphere_ocean’.
+)");
 
-	add<std::string>("subtract_specular_radiance","false", R"(Possible subtraction the nadir radiance specularly reflected off the
-water surface, which could be 'true' or 'false'. Note that it should
-be set to 'true' when calculating remote sensing reflectance)");
-	
-	add<double>("detector_height", 120e3, R"(Detector height relative to sea level [m], where a positive value
-gives height in atmosphere and a negative value gives depth in the
-ocean)");
+	add<std::string>("subtract_specular_radiance","false", R"(
+Possible subtraction of the nadir radiance specularly reflected from the
+water surface. Valid options are ‘true’ or ‘false’.
 
-	add<std::string>("detector_orientation", "up", R"(Detector vertical orientation, looking 'up' or 'down')");
+Note that this should be set to ‘true’ when calculating remote sensing
+reflectance.
+)");
 	
-	add<double>("detector_orientation_override", {0,0}, R"(Polar and azimuth viewing angles override for slant radiance view
-[degrees]. Note that '0 0' will deactivate the override, and a
-radiance detector will still be looking vertically up when
-detector_orientation is set to 'up' and be looking vertically down
-when detector_orientations is set to 'down'. For other override
-angles, a polar angle less than 90 degrees will make the detector look
-towards the upper heimisphere, and zero degrees azimuth will make it
-look towards the azimuth position of the source.)");
+	add<double>("detector_height", 120e3, R"(
+Detector height relative to sea level [m]. A positive value
+corresponds to a height in the atmosphere, and a negative value
+corresponds to a depth in the ocean.
+)");
+
+	add<std::string>("detector_orientation", "up", R"(
+Detector vertical orientation, either ‘up’ or ‘down’.
+)");
 	
-	add<size_t>("detector_radiance_distribution_override", {0,0}, R"(Number of polar and azimuth viewing angles override for detection of
-angular distributed radiance. Note that '0 0' will deactivate the
-override, and a radiance detector will still be looking vertically up
-when detector_orientation is set to 'up' and be looking vertically
-down when detector_orientations is set to 'down'. For other override
-number of angles, the first value gives number of polar viewing angles
-linearly spaced from 0 to 180 degrees, and the second value gives
-number of azimuth viewing angles linearly spaced from -180 to 180
-degrees. If detector_radiance_distribution_override is activated,
-Flick will return a 3D array with radiance values for each wavelength,
-polar angle, and azimuth angel, respectively.)");
+	add<double>("detector_orientation_override", {0,0}, R"(
+Polar and azimuth viewing angles for overriding the default slant
+radiance view [degrees].
+
+Setting the angles to '0 0' disables the override. In this case, the
+radiance detector is oriented vertically upward when
+detector_orientation = ‘up’, and vertically downward when
+detector_orientation = ‘down’.
+
+For nonzero override angles:
+- Polar angles < 90 degrees correspond to viewing directions in the
+  upper hemisphere.
+- An azimuth angle of 0 degrees corresponds to the azimuth direction
+  of the source.
+- Positive and negative azimuth angles correspond to directions west
+  and east of the sun, respectively.
+)");
 	
-	add<std::string>("detector_type", "irradiance", R"(Type of radiation to be detected, which could be 'plane_irradiance',
-'scalar_irradiance', or 'radiance')");
+	add<size_t>("detector_radiance_distribution_override", {0,0}, R"(
+Number of polar and azimuth viewing angles used to override the default
+settings for detection of angularly distributed radiance.
+
+Setting the values to '0 0' disables the override. In this case, the
+radiance detector is oriented vertically upward when
+detector_orientation = ‘up’, and vertically downward when
+detector_orientation = ‘down’.
+
+For nonzero override values, the first number specifies the number of
+polar viewing angles, linearly spaced from 0 to 180 degrees, and the
+second number specifies the number of azimuth viewing angles, linearly
+spaced from -180 to 180 degrees.
+
+If detector_radiance_distribution_override is enabled, Flick returns a
+3D array containing radiance values for each wavelength, polar angle,
+and azimuth angle, respectively.
+)");
 	
-	add<double>("detector_wavelengths", {400e-9,500e-9}, R"(Space-separated list of radiation wavelengths to be calculated and
-saved [m]. Note that a wavelength of e.g., 400 nm may be written as
-400e-9 m for clarity)");
+	add<std::string>("detector_type", "irradiance", R"(
+Type of radiation to be detected. Valid options are
+‘plane_irradiance’, ‘scalar_irradiance’, and ‘radiance’.
+)");
 	
-	add<double>("reference_detector_height", 120e3, R"(Radiation is calculated relative to a reference plane
-irradiance at a given height [m]. For example, a reference
-detector height of 100e3 gives calculated radiation relative to the
-top-of-atmosphere irradiance)");
+	add<double>("detector_wavelengths", {400e-9,500e-9}, R"(
+Space-separated list of radiation wavelengths [m] to be calculated and
+saved.
+
+Note that a wavelength (e.g., 400 nm) may be written as 400e-9 m for
+clarity.
+)");
 	
-	add<std::string>("reference_detector_orientation","up", R"(Reference detector vertical orientation, looking 'up' or 'down')");
+	add<double>("reference_detector_height", 120e3, R"(
+All radiation output is expressed relative to the reference plane
+irradiance at a specified height m.
+
+For example, setting the reference detector height to 100e3 defines the
+top-of-atmosphere plane irradiance as the reference. If a plane
+irradiance main detector is then placed at the surface, the resulting
+output represents the atmospheric transmissivity.
+)");
+	
+	add<std::string>("reference_detector_orientation","up", R"(
+Reference detector vertical orientation, either ‘up’ or ‘down’.
+)");
 			 
-	add<double>("source_zenith_angle", 0, R"(Source zenith angle [degrees], where zero gives vertically
-downward-directed incident irradiance. The source is usually the solar
-beam.)");
+	add<double>("source_zenith_angle", 0, R"(
+Source zenith angle [degrees], where 0 corresponds to vertically
+downward-directed incident irradiance. The source is typically the
+solar beam.
+)");
 	
-	add<double>("bottom_boundary_surface_scaling_factor", 1, R"(Darkness scaling of the bottom boundary, where '0' gives no bottom
-reflection and '1' gives loamy sand reflection)");
+	add<double>("bottom_boundary_surface_scaling_factor", 1, R"(
+Darkness scaling of the bottom boundary, where ‘0’ corresponds to no
+bottom reflection and ‘1’ corresponds to loamy sand reflection.
+)");
 		    
-	add<size_t>("stream_upper_slab_size", 34, R"(Number of streams used when solving the radiative transfer equation)");
+	add<size_t>("stream_upper_slab_size", 34, R"(
+Number of streams used when solving the radiative transfer equation.
+)");
 
-	add<std::string>("flick_tmp_directory_name","flick_tmp", R"(Name of directory where the Flick and AccuRT configuration files, as well as the AccuRT material and output sub-directories will be stored.)");
+	add<std::string>("flick_tmp_directory_name","flick_tmp", R"(
+Specifies the directory where the Flick and AccuRT configuration files,
+as well as the AccuRT material and output subdirectories, are stored.
+)");
 	
       }
       size_t to_streams(size_t n_angles) {

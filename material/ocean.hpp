@@ -16,76 +16,125 @@ namespace material {
   struct ocean : public mixture<pl_function> {
     struct configuration : public mixture::configuration {
       configuration() {
-	add<double>("bottom_depth", 200, R"(Total depth of the water column [m])");
+	add<double>("bottom_depth", 200, R"(
+Total depth of the water column [m].
+)");
 	
-	add<double>("concentration_relative_depths", {0,1}, R"(Space-separated list of depth fractions, df, from surface (df=0) to bottom (df=1)
-defining a material scaling factor profile.)");
+	add<double>("concentration_relative_depths", {0,1}, R"(
+Space-separated list of depth fractions, df, ranging from the surface
+(df = 0) to the bottom (df = 1), which define a material scaling
+factor profile.
+)");
 	
-	add<double>("concentration_scaling_factors", {1,1}, R"(Space-separated list of scaling factors which scale the concentration
-of all ocean materials except pure water.)");
+	add<double>("concentration_scaling_factors", {1,1}, R"(
+Space-separated list of scaling factors that scale the concentration
+of all ocean materials except pure water.
+)");
 	
-	add<double>("cdom_440", 0.0, R"(CDOM absorption coefficient at 440 nm [1/m])");
+	add<double>("cdom_440", 0.0, R"(
+CDOM absorption coefficient at 440 nm [1/m].
+)");
 
-	add<double>("cdom_slope", 0.017, R"(Slope of the CDOM absorption spectrum [1/nm]. Note the exception from
-the SI unit convention)");
+	add<double>("cdom_slope", 0.017, R"(
+Slope of the CDOM absorption spectrum 1/nm. Note that
+this unit is an exception to the SI mks unit convention.
+)");
 		    	
-	add<double>("chl_concentration", 0, R"(Chlorophyll concentration in the water column [kg/m^3]. A
+	add<double>("chl_concentration", 0, R"(
+Chlorophyll concentration in the water column [kg/m^3]. A
 concentration of e.g., 10.0 mg/m^3 may be written as 10.0e-6 kg/m^3
-for clarity)");
+for clarity.
+)");
 
-	add<double>("nap_concentration", 0, R"(Dry mass concentration of nonalgal particles in the water column
+	add<double>("nap_concentration", 0, R"(
+Dry mass concentration of nonalgal particles in the water column
 [kg/m^3]. A concentration of e.g., 10.0 g/m^3 may be written as
-10.0e-3 kg/m^3 for clarity)");
+10.0e-3 kg/m^3 for clarity.
+)");
 	
-	add<double>("bubble_volume_fraction", 0, R"(Bubble volume fraction in the water column [unitless])");
+	add<double>("bubble_volume_fraction", 0, R"(
+Bubble volume fraction in the water column [unitless].
+)");
 
-	add<double>("water_temperature", 290, R"(Temperature in the water column [K])");
+	add<double>("water_temperature", 290, R"(
+Temperature in the water column [K].
+)");
 
-	add<double>("water_salinity", 30, R"(Salinity of the water column [PSU])");
+	add<double>("water_salinity", 30, R"(
+Salinity of the water column [PSU].
+)");
 
-	add<std::string>("mp_names", "SD16_VF17", R"(Space-separated list of names of measured marine particles
-with inherent optical properties tabulated in separate ASCII files stored
-in the Flick directory material/marine_particles/iop_tables)");
+	add<std::string>("mp_names", "SD16_VF17", R"(
+Space-separated list of names of measured marine particles with
+inherent optical properties tabulated in separate ASCII files stored in
+the Flick directory material/marine_particles/iop_tables.
+)");
 	
-	add<double>("mp_concentrations", 0, R"(Space-separated list of dry mass concentrations [kg/m^3] of measured
-marine particles with inherent optical properties tabulated
-in separated ASCII files in the Flick directory
-material/marine_particles/iop_table, one concentration value for each
-material given in mp_names. Note that a concentration of e.g., 10.0
-g/m^3 may be written as 10.0e-3 kg/m^3 for clarity)");
+	add<double>("mp_concentrations", 0, R"(
+Space-separated list of dry mass concentrations [kg/m^3]
+of measured marine particles with inherent optical properties
+tabulated in separate ASCII files stored in the Flick directory
+material/marine_particles/iop_tables. One concentration value must be
+provided for each material specified in mp_names.
+
+Concentrations may be written in scientific notation for clarity, e.g.,
+10.0 g/m^3 as 10.0e-3 kg/m^3.
+)");
 	
-	add<double>("mp_scattering_scaling_factors", 1, R"(Space-separated list of scaling factors [unitless] for manual scaling of the
-scattering coefficient of marine particles, one scaling factor for each listed marine particles name.)");
+	add<double>("mp_scattering_scaling_factors", 1, R"(
+Space-separated list of scaling factors [unitless] for
+manual scaling of the scattering coefficient of marine particles. One
+scaling factor must be provided for each marine particle specified in
+mp_names.
+)");
 	
-	add<double>("mp_bleaching_factors", 0, R"(Space-separated list of factors [unitless] for degree of particle
-bleaching, one scaling factor for each listed marine particles name. 0
-gives full absorption and 1 gives absorption after adding a bleaching
-chemical. A factor larger than one will reduce the absorption beyond
-the bleached values.)");
+	add<double>("mp_bleaching_factors", 0, R"(
+Space-separated list of factors [unitless] representing
+the degree of particle bleaching. One factor must be provided for each
+marine particle specified in mp_names.
+
+A value of '0' corresponds to full absorption, while a value of '1'
+corresponds to absorption after bleaching. Values greater than '1'
+reduce the absorption beyond the bleached state.
+)");
 	
-	add<std::string>("mcdom_names", "ECOSENS_HF22_D1", R"(Space-separated list of names of measured marine CDOM with absorption
+	add<std::string>("mcdom_names", "ECOSENS_HF22_D1", R"(
+Space-separated list of names of measured marine CDOM with absorption
 coefficients tabulated in separate ASCII files stored in the Flick
-directory material/marine_cdom/iop_tables)");
+directory material/marine_cdom/iop_tables.
+)");
 	
-	add<double>("mcdom_scaling_factors", 0, R"(Space-separated list of scaling factor for measured marine CDOM
+	add<double>("mcdom_scaling_factors", 0, R"(
+Space-separated list of scaling factor for measured marine CDOM
 absorption coefficients listed in separated ASCII files in the Flick
 directory material/marine_cdom/iop_table, one concentration value for
-each CDOM spectra given in mcdom_names.)");
+each CDOM spectra given in mcdom_names.
+)");
 	
-	add<int>("ice_depths", 0, R"(Number of depths defined by the concentration_relative_depths variable
-that include sea ice.)");
+	add<int>("ice_depths", 0, R"(
+Number of depths, defined by the concentration_relative_depths
+variable, that include sea ice.
+)");
 	
-	add<double>("ice_bubble_fraction", {0.01,0.01}, R"(Space-separated list of the volume fraction of bubble inclusions in the sea ice at
-each of the depths defined by the concentration_relative_depths
-variable.)");
+	add<double>("ice_bubble_fraction", {0.01,0.01}, R"(
+Space-separated list of the volume fraction of bubble inclusions in
+sea ice at each depth defined by the concentration_relative_depths
+variable.
+)");
 	
-	add<double>("ice_bubble_radius", 200e-6, R"(Radius of sea ice bubble inclusions [m])");
+	add<double>("ice_bubble_radius", 200e-6, R"(
+Radius of sea ice bubble inclusions [m].
+)");
 	
-	add<double>("ice_brine_fraction", {0.02,0.02}, R"(Space-separated list of the volume fraction of saline brine pocket
+	add<double>("ice_brine_fraction", {0.02,0.02}, R"(
+Space-separated list of the volume fraction of saline brine pocket
 inclusions in the sea ice at each of the depths defined by the
-concentration_relative_depths variable.)");
+concentration_relative_depths variable.
+)");
 	
-	add<double>("ice_brine_radius", 500e-6, R"(Radius of sea ice brine pocket inclusions [m])");
+	add<double>("ice_brine_radius", 500e-6, R"(
+Radius of sea ice brine pocket inclusions [m].
+)");
       }
     };
   private:

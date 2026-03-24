@@ -14,39 +14,67 @@ namespace material {
   public:
     struct configuration : public mixture::configuration {
       configuration() {
-	add<std::string>("atmosphere_type", "us_standard", R"(Atmospheric constituent profile types: tropical, midlatitude_summer,
-midlatitude_winter, subarctic_summer, subarctic_winter, or
-us_standard.)");
-	add<double>("temperature", 290, R"(Atmosphere ground temperature [K])");
+	add<std::string>("atmosphere_type", "us_standard", R"(
+Atmospheric constituent profile type. Valid options are
+‘tropical’, ‘midlatitude_summer’, ‘midlatitude_winter’,
+‘subarctic_summer’, ‘subarctic_winter’, and ‘us_standard’.
+)");
+	add<double>("temperature", 290, R"(
+Atmosphere ground temperature [K].
+)");
 		    
-	add<double>("pressure", 1000e2, R"(Atmosphere ground pressure [Pa])");
+	add<double>("pressure", 1000e2, R"(
+Atmosphere ground pressure [Pa].
+)");
 	
-	add<double>("ozone", 0.003, R"(Ozone column thickness [m] at STP. Note that 100 DU = 0.001 m)");
+	add<double>("ozone", 0.003, R"( 
+Ozone column thickness m at STP. Note that 100 DU corresponds to
+0.001 m.  
+)");
 	
-	add<double>("water_vapor", 17, R"(Vater vapor column thickness [m] at STP.)");
+	add<double>("water_vapor", 17, R"(
+Vater vapor column thickness [m] at STP.
+)");
 	
-	add<double>("aerosol_od", 0, R"(Aerosol vertical total optical thickness at 550 nm)");
+	add<double>("aerosol_od", 0, R"(
+Aerosol vertical total optical thickness at 550 nm.
+)");
 	
-	add<double>("aerosol_ratio", 1, R"(Ratio of rural aerosol optical depth to total aerosol optical
-depth. Set to '1' for rural aerosols only and '0' for urban aerosols only)");
+	add<double>("aerosol_ratio", 1, R"(
+Ratio of rural aerosol optical depth to total aerosol optical depth.
+A value of ‘1’ corresponds to rural aerosols only, while a value of ‘0’
+corresponds to urban aerosols only.
+)");
 	
-	add<double>("relative_humidity", 0.5, R"(Relative humidity ratio of the atmosphere at the ground)");
+	add<double>("relative_humidity", 0.5, R"(
+Relative humidity ratio of the atmosphere at the ground.
+)");
 	
-	add<double>("cloud_liquid", 0, R"(Liquid equivalent cloud thickness [m]. Typical values are in the range
-0 to 1e-4 m)");
+	add<double>("cloud_liquid", 0, R"(
+Liquid equivalent cloud thickness [m]. Typical values range from
+0 to 1e-4 m.
+)");
 	
-	add<double>("snow_ice", 0, R"(Ice equivalent snow thickness [m], which is the thickness the snow
-layer would have if it was compressed into a layer of ice with no air
-between snow grains.)");
+	add<double>("snow_ice", 0, R"(
+Ice equivalent snow thickness [m], defined as the thickness the snow
+layer would have if compressed into a layer of ice with no air between
+the snow grains.
+)");
 	
-	add<double>("snow_radius", 100e-6, R"(Average snow grain radius [m].)");
+	add<double>("snow_radius", 100e-6, R"(
+Average snow grain radius [m].
+)");
 	
-	add<std::string>("gases", {"o3","o2","h2o"}, R"(Space-separated list of names of absorbing gases included in the
-atmosphere, selected among 'o3', 'o2', 'h2o', 'no2', and 'co2')");
+	add<std::string>("gases", {"o3","o2","h2o"}, R"(
+Space-separated list of absorbing gases included in the
+atmosphere. Valid options are ‘o3’, ‘o2’, ‘h2o’, ‘no2’, and ‘co2’.
+)");
 	
-	add<std::string>("gas_spectral_region", "uv_vis", R"(Atmospheric spectral region for pre-calculated smoothed gas absorption
-spectra. Select 'uv_vis' or 'uv_vis_toa', where 'uv_vis_toa' is
-optimized for TOA radiation.)");
+	add<std::string>("gas_spectral_region", "uv_vis", R"(
+Atmospheric spectral region for pre-calculated, smoothed gas
+absorption spectra. Valid options are ‘uv_vis’ and ‘uv_vis_toa’. The
+‘uv_vis_toa’ option is optimized for top-of-atmosphere radiation.
+)");
       }
     };
   private:

@@ -82,7 +82,7 @@ namespace flick {
       return description_;
     }
     void print(std::ostream &os) {
-      os << begin_qualifier_ << " " << description_ << " "
+      os << begin_qualifier_ << description_
 	 << end_qualifier_ << "\n\n";
       std::string s = name_;
       if (uppercase_)

@@ -7,6 +7,12 @@ depth. Set to '1' for rural aerosols only and '0' for urban aerosols only */
 
 aerosol_ratio = 1 
 
+/* Atmospheric constituent profile types: tropical,
+midlatitude_summer, midlatitude_winter, subarctic_summer,
+subarctic_winter, or us_standard. */
+
+atmosphere_type = us_standard
+
 /* Darkness scaling of the bottom boundary, where '0' gives no bottom
 reflection and '1' gives loamy sand reflection */
 

@@ -53,10 +53,13 @@ namespace flick {
        	earth_orbit_{t.year(),t.day_of_year()} {
       S_ = sun_direction();      
     }
-    double zenith_angle() const {
+    double zenith_angle() const { 
       return acos(S_[2]);
     }
-    double azimuth_angle() const {
+    double azimuth_angle() const { 
+      // South-clockwise convention, [-pi, pi] radians. Zero
+      // corresponds to the Sun in the South; positive angles toward
+      // the West and negative angles toward the East
       return std::atan2(-S_[0],-S_[1]);
     }
   private:

@@ -384,6 +384,12 @@ class basic_radiation:
         return a
 
     def sun_azimuth_angle(self, time_point_utc, latitude, longitude):
+        """
+        South-clockwise convention, [-180, 180] radians.
+
+        Zero corresponds to the Sun in the South.  Positive angles are
+        toward the West, and negative angles are toward the East.
+        """
         command = "sun_position azimuth_angle "+ \
             self._to_spaced_string(time_point_utc)+" "+ \
             str(latitude)+" "+str(longitude)
