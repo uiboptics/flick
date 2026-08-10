@@ -284,8 +284,8 @@ Radius of sea ice brine pocket inclusions [m].
       double volume_fraction = c_.get<double>("bubble_volume_fraction");
       if (volume_fraction > 0) {
 	std::string calculator = c_.get<std::string>("bubble_calculator");
-	double mu = log(c_.get<double>("mie_bubble_radius"));
-	double sigma = c_.get<double>("mie_bubble_sigma");
+	double mu = log(c_.get<double>("bubble_radius"));
+	double sigma = c_.get<double>("bubble_sigma");
 	double S = c_.get<double>("water_salinity");
 	double T = c_.get<double>("water_temperature");
 	using full = bubbles_in_water<monodispersed_mie>;
