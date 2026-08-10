@@ -11,6 +11,7 @@ int main() {
   t.include<time_point_test_E>();
   t.include<sun_position_test_A>();
   t.include<sun_position_test_B>();
+  t.include<sun_position_test_C>();
   t.run_test_cases();
   return 0;
 } 

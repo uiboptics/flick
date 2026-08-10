@@ -37,6 +37,7 @@ int main() {
   t.include<ocean_test_B>();
   t.include<ocean_test_C>();
   t.include<ocean_test_D>();
+  t.include<ocean_test_E>();
   t.include<atmosphere_ocean_test_A>();
   t.include<atmosphere_ocean_test_B>();
   t.run_test_cases();

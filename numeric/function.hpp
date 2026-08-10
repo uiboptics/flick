@@ -84,7 +84,7 @@ namespace flick {
     double y(double x) const {
       return a * x + b;
     }
-    double derivative(double x) const {
+    double derivative(double) const {
       return a;
     }
     double integral(double limit_a, double limit_b) const {

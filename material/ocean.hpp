@@ -10,6 +10,7 @@
 #include "mixture.hpp"
 #include "spheres.hpp"
 #include "../environment/configuration.hpp"
+#include <algorithm>
 
 namespace flick {
 namespace material {
@@ -21,15 +22,42 @@ Total depth of the water column [m].
 )");
 	
 	add<double>("concentration_relative_depths", {0,1}, R"(
-Space-separated list of depth fractions, df, ranging from the surface
-(df = 0) to the bottom (df = 1), which define a material scaling
-factor profile.
+Space-separated list of depth fractions (df), ranging from the surface
+(df = 0) to the bottom (df = 1), defining depths of the material
+scaling factor profile. See the concentration_scaling_factors
+variable.
 )");
 	
 	add<double>("concentration_scaling_factors", {1,1}, R"(
 Space-separated list of scaling factors that scale the concentration
-of all ocean materials except pure water.
+of all ocean materials except pure water, sea ice with brines and
+bubbles, and those listed by the concentration_exception_names
+variable.
 )");
+
+
+
+
+       
+	
+	add<double>("concentration_exception_scaling_factors", {1,1}, R"(
+Space-separated list of scaling factors that scale the concentration
+of all ocean materials listed by the concentration_exception_materials
+variable.
+)");
+
+	add<std::string>("concentration_exception_names", " ", R"(
+Space-separated list of material names that is scaled by the factors
+listed by the concentration_exception_scaling_factors. Valid material
+names are: cdom, phytoplankton, nap, bubbles, and any names
+listed by the configuration variables mp_names or mcdom_names.
+)");
+	
+
+
+
+
+	
 	
 	add<double>("cdom_440", 0.0, R"(
 CDOM absorption coefficient at 440 nm [1/m].
@@ -220,7 +248,12 @@ Radius of sea ice brine pocket inclusions [m].
     void add_concentration_profile(const std::shared_ptr<base>& m,
 				   const std::string& name) {
       auto f = c_.get_vector<double>("concentration_scaling_factors");
-      add_profile(m,f,name);
+      auto f_e = c_.get_vector<double>("concentration_exception_scaling_factors");
+      auto n_e = c_.get_vector<std::string>("concentration_exception_names");
+      if (std::ranges::find(n_e, name) != n_e.end())
+	add_profile(m,f_e,name);
+      else
+	add_profile(m,f,name);
     }  
     static stdvector absolute_depth(const basic_configuration& c) {
       double bottom_depth = c.get<double>("bottom_depth");

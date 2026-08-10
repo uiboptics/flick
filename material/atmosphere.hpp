@@ -64,7 +64,24 @@ the snow grains.
 	add<double>("snow_radius", 100e-6, R"(
 Average snow grain radius [m].
 )");
+
+	/*
+	add<std::string>("snow_impurity_names", "flick_sand flick_soot", R"(
+Space-separated list of names of snow impurity types, each
+corresponding to an ASCII file containing refractive-index data,
+stored either in the current directory or in
+Flick/material/continium/refractive_index.
+)");
 	
+	add<double>("snow_impurity_volume_fractions", 0, R"(
+Space-separated list of volume fractions for each snow impurity type,
+where the impurity types are defined by ASCII refractive-index files
+located either in the current directory or in
+flick/material/continium/refractive_index. Impurity volume fraction would be
+1 if the entire volume was occupied by impurities (with no room for
+snow grains).  
+)");
+	*/
 	add<std::string>("gases", {"o3","o2","h2o"}, R"(
 Space-separated list of absorbing gases included in the
 atmosphere. Valid options are ‘o3’, ‘o2’, ‘h2o’, ‘no2’, and ‘co2’.
@@ -169,6 +186,7 @@ absorption spectra. Valid options are ‘uv_vis’ and ‘uv_vis_toa’. The
 	set_range<cloud>(n_base,n_top);
       }
     }
+    
     void add_snow() {
       double ice_depth = c_.get<double>("snow_ice");
       if (ice_depth > 0) {
@@ -183,6 +201,32 @@ absorption spectra. Valid options are ‘uv_vis’ and ‘uv_vis_toa’. The
 	add_material<snow>(volume_fraction,mu,sigma);
 	set_range<snow>(n_base,n_top);
       }
+    }
+    /*
+    void add_snow_impurity() {
+      std::vector<std::string> names = c_.get_vector<std::string>("simpurity_names");
+      stdvector scaling_factors = c_.get_vector<double>("simpurity_scaling_factors");
+      ensure(names.size()==scaling_factors.size(), "snow impurity");
+      for (size_t i = 0; i<names.size(); i++) {
+	if (scaling_factors.at(i) > 0) {
+	  auto m = std::make_shared<snow_impurity>(names[i], at_or_last(scaling_factors,i));
+	  auto name = "snow_impurity_"+names[i];
+	  add_material(m,name);
+	  set_range(n_base,n_top, name);
+	}
+      }
+    }
+    */
+  private:
+    template<class T>
+    T at_or_last(const std::vector<T>& v, size_t i) {
+      if (i > v.size()-1)
+	return v.back();
+      return v[i];
+    }
+    void ensure(bool b, const std::string& s) {
+      if (not b)
+	throw std::runtime_error("atmosphere "+s+" error");
     }
   };
 }

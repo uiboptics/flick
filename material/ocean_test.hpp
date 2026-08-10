@@ -75,4 +75,33 @@ namespace flick {
     double od = oce.scattering_optical_depth(d);
     check_close(od,od_approx,1_pct);
   } end_test_case()
+
+  begin_test_case(ocean_test_E) {
+    // Check concentration exception scaling
+    using namespace material;
+    ocean::configuration c;
+    double d = 100;
+    double wl = 390e-9;
+    double distance = d;
+    c.set<double>("bottom_depth",d);
+    c.set<double>("cdom_440",10);
+    auto oce = ocean{c};
+    oce.set_wavelength(wl);
+    oce.set_position({0,0,0});
+    oce.set_direction({0,0,-1});
+    double od1 = oce.absorption_optical_depth(distance);
+    c.set<double>("concentration_relative_depths",{0,0.5,0.5001,1});
+    c.set<double>("concentration_exception_scaling_factors",{0,0,1,1});
+    c.set<std::string>("concentration_exception_names",{"cdom"});
+    oce = ocean{c};
+    oce.set_wavelength(wl);
+    oce.set_position({0,0,0});
+    oce.set_direction({0,0,-1});
+    double od2 = oce.absorption_optical_depth(distance/2);
+    check_small(od2,0.1);
+    double od3 = oce.absorption_optical_depth(distance);
+    check_close(od1/od3,2,0.1_pct);
+
+  } end_test_case()
+
 }

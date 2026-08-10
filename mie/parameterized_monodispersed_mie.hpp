@@ -18,7 +18,6 @@ namespace flick {
   // absorption when e.g. bubbles are added in water.
   {
     double Qa_{0};
-    double n_ = real(m_sphere_ / m_host_);
     pl_function g0_ = read<pl_function>("mie/g_parameterized.txt");
     
     void update_efficiency() {
@@ -32,7 +31,8 @@ namespace flick {
       return pi_ * pow(radius_,2);
     }
     double asymmetry_factor() const {
-      return pow(g0_.value(n_), pow(1-Qa_, 0.6));
+      double n_r = real(m_sphere_ / m_host_);
+      return pow(g0_.value(n_r), pow(1-Qa_, 0.6));
     }
     double extinction_cross_section() const {
       return 2 * geometrical_cross_section();
@@ -54,7 +54,7 @@ namespace flick {
     }
     stdvector scattering_matrix_element(size_t row, size_t col) const
     // Note that integratinig element 0,0 over all 4*pi solid angles gives
-    // the scattering cross section, where we count from 0 instead of one.
+    // the scattering cross section, where we count from 0 instead of 1.
     {
       if (row == 0 && col == 0) {
 	stdvector hg(angles_.size());
