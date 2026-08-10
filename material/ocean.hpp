@@ -11,6 +11,7 @@
 #include "spheres.hpp"
 #include "../environment/configuration.hpp"
 #include <algorithm>
+#include <cctype>
 
 namespace flick {
 namespace material {
@@ -24,7 +25,7 @@ Total depth of the water column [m].
 	add<double>("concentration_relative_depths", {0,1}, R"(
 Space-separated list of depth fractions (df), ranging from the surface
 (df = 0) to the bottom (df = 1), defining depths of the material
-scaling factor profile. See the concentration_scaling_factors
+scaling factor profile. See the `concentration_scaling_factors`
 variable.
 )");
 	
@@ -33,31 +34,20 @@ Space-separated list of scaling factors that scale the concentration
 of all ocean materials except pure water, sea ice with brines and
 bubbles, and those listed by the concentration_exception_names
 variable.
-)");
-
-
-
-
-       
+)");      
 	
 	add<double>("concentration_exception_scaling_factors", {1,1}, R"(
 Space-separated list of scaling factors that scale the concentration
-of all ocean materials listed by the concentration_exception_materials
+of all ocean materials listed by the `concentration_exception_materials`
 variable.
 )");
 
 	add<std::string>("concentration_exception_names", " ", R"(
 Space-separated list of material names that is scaled by the factors
 listed by the concentration_exception_scaling_factors. Valid material
-names are: cdom, phytoplankton, nap, bubbles, and any names
-listed by the configuration variables mp_names or mcdom_names.
+names are: cdom, phytoplankton, nap, water_bubbles, and any names
+listed by the variables `mp_names` or `mcdom_names`.
 )");
-	
-
-
-
-
-	
 	
 	add<double>("cdom_440", 0.0, R"(
 CDOM absorption coefficient at 440 nm [1/m].
@@ -81,7 +71,24 @@ Dry mass concentration of nonalgal particles in the water column
 )");
 	
 	add<double>("bubble_volume_fraction", 0, R"(
-Bubble volume fraction in the water column [unitless].
+Bubble volume fraction in water [unitless].
+)");
+	
+	add<std::string>("bubble_calcualator", {"full_mie"}, R"(
+Select `full_mie` or `parameterized_mie` for calculation of water
+bubble IOPs with a full Mie code or a fast parameterized Mie code
+optimized for large spheres.
+)");
+
+	add<double>("bubble_radius", 1e-7, R"(
+Median radius of the log-normal size distribution [m]. This median
+radius is exp(mu), where mu is the mean of the natural logarithm of the radius
+distribution.
+)");
+	
+	add<double>("bubble_sigma", 0.1, R"(
+Size-distribution sigma. Sigma is the standard deviation of the
+natural logarithm of the radius distribution.
 )");
 
 	add<double>("water_temperature", 290, R"(
@@ -103,7 +110,7 @@ Space-separated list of dry mass concentrations [kg/m^3]
 of measured marine particles with inherent optical properties
 tabulated in separate ASCII files stored in the Flick directory
 material/marine_particles/iop_tables. One concentration value must be
-provided for each material specified in mp_names.
+provided for each material specified in `mp_names`.
 
 Concentrations may be written in scientific notation for clarity, e.g.,
 10.0 g/m^3 as 10.0e-3 kg/m^3.
@@ -113,7 +120,7 @@ Concentrations may be written in scientific notation for clarity, e.g.,
 Space-separated list of scaling factors [unitless] for
 manual scaling of the scattering coefficient of marine particles. One
 scaling factor must be provided for each marine particle specified in
-mp_names.
+`mp_names`.
 )");
 	
 	add<double>("mp_bleaching_factors", 0, R"(
@@ -177,7 +184,7 @@ Radius of sea ice brine pocket inclusions [m].
       add_cdom();
       add_phytoplankton();
       add_nap();
-      add_ocean_bubbles();
+      add_water_bubbles();
       add_marine_particles();
       add_marine_cdom(); 
       auto_update_iops(true);
@@ -273,15 +280,22 @@ Radius of sea ice brine pocket inclusions [m].
 	add_concentration_profile(std::make_shared<nap>(con),"nap");
       }
     }
-    void add_ocean_bubbles() {
+    void add_water_bubbles() {
       double volume_fraction = c_.get<double>("bubble_volume_fraction");
       if (volume_fraction > 0) {
-	double effective_radius = 50e-6;
-	double mu = log(effective_radius);
-	double sigma = 0;
-	using bubbles = bubbles_in_water<parameterized_monodispersed_mie>;
-	auto b = bubbles(volume_fraction,mu,sigma);
-	add_concentration_profile(std::make_shared<bubbles>(volume_fraction,mu,sigma),"bubbles");
+	std::string calculator = c_.get<std::string>("bubble_calculator");
+	double mu = log(c_.get<double>("mie_bubble_radius"));
+	double sigma = c_.get<double>("mie_bubble_sigma");
+	double S = c_.get<double>("water_salinity");
+	double T = c_.get<double>("water_temperature");
+	using full = bubbles_in_water<monodispersed_mie>;
+	using param = bubbles_in_water<parameterized_monodispersed_mie>;
+	if (calculator == "full_mie")	  
+	  add_concentration_profile(std::make_shared<full>(volume_fraction,mu,sigma,S,T),"water_bubbles");
+	else if (calculator == "parameterized_mie")
+	  add_concentration_profile(std::make_shared<param>(volume_fraction,mu,sigma,S,T),"water_bubbles");
+	else
+	  ensure(false,"bubble_calculator");
       }
     }
     void add_marine_particles() {
