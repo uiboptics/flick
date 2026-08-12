@@ -46,7 +46,7 @@ irradiance_height = -0.5
 detector_separation = 0.37
 first_wavelength = 380e-9
 last_wavelength = 750e-9
-n_wavelengths = 3
+n_wavelengths = 2
 band_width = 10e-9
 use_satellite_wavelengths = False
 use_satellite_viewing_angles = False
@@ -83,7 +83,7 @@ def radiation(f, time_point, detector_height, wavelengths):
     f.set('detector_height', detector_height)
     #f.set_override_sun_zenith_angle(79)
     
-    f.set('bubble_volume_fraction',0.001)
+    f.set('bubble_volume_fraction',0)
     f.set('bubble_calculator','parameterized_mie')
     #f.set('bubble_calculator','full_mie')
     f.set('bubble_radius',1e-6)

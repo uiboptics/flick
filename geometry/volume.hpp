@@ -130,7 +130,7 @@ namespace geometry {
     }
   protected:
     volume(const boundary& b, const std::string& name) : 
-      boundary_{b}, name_{name}, outer_volume_{NULL} {
+      name_{name}, boundary_{b}, outer_volume_{NULL} {
     }
   private:
     void write(std::ostream& os=std::cout, size_t tree_depth=0) const {

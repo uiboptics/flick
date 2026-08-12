@@ -229,9 +229,9 @@ namespace flick {
     xyz[1] = transmit(s, filter::xyz_bar<1>()).integral(wl1,wl2);
     xyz[2] = transmit(s, filter::xyz_bar<2>()).integral(wl1,wl2);
     double sum = 0;
-    for (int i = 0; i < xyz.size(); i++)
+    for (size_t i = 0; i < xyz.size(); i++)
       sum += xyz[i];
-    for (int i = 0; i < xyz.size(); i++) {
+    for (size_t i = 0; i < xyz.size(); i++) {
       xyz[i] = xyz[i]/sum;
     }
     return xyz;

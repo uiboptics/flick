@@ -7,10 +7,9 @@ namespace transporter {
     radiation_package& rp_;
     material::base& m_;
     uniform_random& rnd_;
-    double scattering_optical_depth_;
     double g_;
+    double scattering_optical_depth_;
     unit_vector scattering_direction_;
-    double scattering_angle_;
     double distance_to_scattering_;
     double scattering_polar_angle_;
     double scattering_azimuth_angle_;

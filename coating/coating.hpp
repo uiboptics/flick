@@ -23,6 +23,7 @@ namespace coating
     unit_vector facing_surface_normal_{0,0,1};
     const double pi = constants::pi;
   public:
+    virtual ~base() = default;
     virtual mueller reflection_mueller_matrix() = 0;
     virtual mueller transmission_mueller_matrix() = 0;
     virtual double unpolarized_reflectance() = 0;

@@ -116,4 +116,23 @@ namespace flick {
     check_close(m2.scattering_optical_depth(distance),
 		m3.scattering_optical_depth(distance));     
   } end_test_case()
+
+  begin_test_case(mixture_test_D) {
+    using namespace material;
+    stdvector angles = range(0,constants::pi,5).linspace();;
+    stdvector z = {-100, -50, -1e-6};      
+    stdvector f = {0, 0, 1};      
+    material::mixture<pe_function> m(angles,z);
+    double volume_fraction = 0.01;
+    double mu = log(1e-7);
+    double sigma = 0.01;
+    double S = 33;
+    double T = 300;
+    using bubbles = bubbles_in_water<monodispersed_mie>;
+    auto b = std::make_shared<bubbles>(volume_fraction,mu,sigma,S,T);
+    m.add_material(make_scaled_z_profile<pl_function>(b,z,f),"bubbles");
+    m.set_position({0,0,-1});
+    //std::cout << m.mueller_matrix({0,0}) << std::endl;
+    
+  } end_test_case()
 }

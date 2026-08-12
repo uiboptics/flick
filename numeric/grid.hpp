@@ -36,10 +36,10 @@ namespace flick {
       for (size_t i=0; i<f.x.size(); i++) {
 	os << f.x[i] << "\n";
       }
-      for (int i = 0; i < f.x[0].size(); i++) {
-	for (int j = 0; j < f.x[1].size(); j++) {
-	  for (int k = 0; k < f.x[2].size(); k++) {
-	    for (int l = 0; l < f.x[3].size(); l++) {
+      for (size_t i = 0; i < f.x[0].size(); i++) {
+	for (size_t j = 0; j < f.x[1].size(); j++) {
+	  for (size_t k = 0; k < f.x[2].size(); k++) {
+	    for (size_t l = 0; l < f.x[3].size(); l++) {
 	      os << f.f[i][j][k][l] << " ";
 	    }
 	  }
@@ -55,7 +55,7 @@ namespace flick {
       }
       f = grid_4d(n[0],n[1],n[2],n[3]);
       for (size_t i=0; i<f.nd_; i++) {
-	for (size_t j=0; j<n[i]; j++) {
+	for (int j=0; j<n[i]; j++) {
 	  is >> f.x[i][j];
 	}
       }

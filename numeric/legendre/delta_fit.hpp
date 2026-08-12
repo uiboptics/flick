@@ -11,7 +11,7 @@ namespace flick {
   class delta_fit {
     std::vector<double> coefficients_;
   public:
-    delta_fit(const Function& f, int n_terms)
+    delta_fit(const Function& f, size_t n_terms)
       : coefficients_(n_terms) {
       int n_angles = wigner_n_sampling_points(n_terms);
       std::vector<double> x = wigner_x_values(n_angles);

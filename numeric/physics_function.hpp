@@ -105,7 +105,8 @@ namespace flick {
     double b_;
   public:
     size_distribution(double a, double b)
-      : a_{a}, b_{b} {} 
+      : a_{a}, b_{b} {}
+    virtual ~size_distribution() = default;
     virtual double center() const = 0;
     virtual double width() const = 0;
     virtual double value(double x) const = 0;
