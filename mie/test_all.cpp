@@ -27,6 +27,7 @@ int main() {
 
   t.include<poly_mie_test_t_matrix>();
   t.include<poly_mie_test_no_absorption>();
+  t.include<poly_mie_test_bubbles>();
   
   t.run_test_cases();
   return 0;

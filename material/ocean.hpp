@@ -45,7 +45,7 @@ variable.
 	add<std::string>("concentration_exception_names", " ", R"(
 Space-separated list of material names that is scaled by the factors
 listed by the concentration_exception_scaling_factors. Valid material
-names are: cdom, phytoplankton, nap, water_bubbles, and any names
+names are: cdom, phytoplankton, nap, bubbles, and any names
 listed by the variables `mp_names` or `mcdom_names`.
 )");
 	
@@ -74,19 +74,19 @@ Dry mass concentration of nonalgal particles in the water column
 Bubble volume fraction in water [unitless].
 )");
 	
-	add<std::string>("bubble_calcualator", {"full_mie"}, R"(
+	add<std::string>("bubble_calculator", {"parameterized_mie"}, R"(
 Select `full_mie` or `parameterized_mie` for calculation of water
 bubble IOPs with a full Mie code or a fast parameterized Mie code
 optimized for large spheres.
 )");
 
-	add<double>("bubble_radius", 1e-7, R"(
+	add<double>("bubble_radius", 10e-6, R"(
 Median radius of the log-normal size distribution [m]. This median
 radius is exp(mu), where mu is the mean of the natural logarithm of the radius
 distribution.
 )");
 	
-	add<double>("bubble_sigma", 0.1, R"(
+	add<double>("bubble_sigma", 0, R"(
 Size-distribution sigma. Sigma is the standard deviation of the
 natural logarithm of the radius distribution.
 )");
@@ -256,6 +256,7 @@ Radius of sea ice brine pocket inclusions [m].
 				   const std::string& name) {
       auto f = c_.get_vector<double>("concentration_scaling_factors");
       auto f_e = c_.get_vector<double>("concentration_exception_scaling_factors");
+      ensure(f.size()==f_e.size(),"config concentration factor length");
       auto n_e = c_.get_vector<std::string>("concentration_exception_names");
       if (std::ranges::find(n_e, name) != n_e.end())
 	add_profile(m,f_e,name);
@@ -290,10 +291,10 @@ Radius of sea ice brine pocket inclusions [m].
 	double T = c_.get<double>("water_temperature");
 	using full = bubbles_in_water<monodispersed_mie>;
 	using param = bubbles_in_water<parameterized_monodispersed_mie>;
-	if (calculator == "full_mie")	  
-	  add_concentration_profile(std::make_shared<full>(volume_fraction,mu,sigma,S,T),"water_bubbles");
+	if (calculator == "full_mie")
+	  add_concentration_profile(std::make_shared<full>(volume_fraction,mu,sigma,S,T),"bubbles");
 	else if (calculator == "parameterized_mie")
-	  add_concentration_profile(std::make_shared<param>(volume_fraction,mu,sigma,S,T),"water_bubbles");
+	  add_concentration_profile(std::make_shared<param>(volume_fraction,mu,sigma,S,T),"bubbles");
 	else
 	  ensure(false,"bubble_calculator");
       }

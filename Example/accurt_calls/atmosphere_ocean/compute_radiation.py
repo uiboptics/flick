@@ -46,7 +46,7 @@ irradiance_height = -0.5
 detector_separation = 0.37
 first_wavelength = 380e-9
 last_wavelength = 750e-9
-n_wavelengths = 25
+n_wavelengths = 3
 band_width = 10e-9
 use_satellite_wavelengths = False
 use_satellite_viewing_angles = False
@@ -82,6 +82,18 @@ def radiation(f, time_point, detector_height, wavelengths):
     f.set('subtract_specular_radiance','false')
     f.set('detector_height', detector_height)
     #f.set_override_sun_zenith_angle(79)
+    
+    f.set('bubble_volume_fraction',0.001)
+    f.set('bubble_calculator','parameterized_mie')
+    #f.set('bubble_calculator','full_mie')
+    f.set('bubble_radius',1e-6)
+    f.set('bubble_sigma',0)
+    f.set('bottom_depth', 100)
+    f.set('concentration_relative_depths', [0,0.01,0.01001,1])
+    f.set('concentration_scaling_factors', [1,1,1,1])
+    f.set('concentration_exception_names', 'bubbles')
+    f.set('concentration_exception_scaling_factors', [1,1,0,0])
+    
     return f.spectrum(wavelengths, band_width, time_point,
                       ocean_meta.latitude, ocean_meta.longitude)
 

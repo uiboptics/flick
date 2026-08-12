@@ -99,7 +99,7 @@ namespace flick {
     check_close(poly_mie.scattering_matrix_element(0,0)[0],t_matrix_F11,0.8_pct);
   } end_test_case()
 
-   begin_test_case(poly_mie_test_no_absorption) {
+  begin_test_case(poly_mie_test_no_absorption) {
     stdcomplex m_host = {1,0};
     stdcomplex m_sphere = {1.3,0};
     double r = 1e-6;
@@ -110,6 +110,18 @@ namespace flick {
     poly_mie.percentage_accuracy(p);
     check_small(poly_mie.absorption_cross_section());
     check_fast(10 * cpu_duration());
+  } end_test_case()
 
+  begin_test_case(poly_mie_test_bubbles) {
+    stdcomplex m_host = {1.3,1e-4};
+    stdcomplex m_sphere = {1.0,0};
+    double r = 1e-7;
+    parameterized_monodispersed_mie mono_mie(m_host,m_sphere,500e-9);
+    log_normal_distribution sd{log(r),0.1};
+    polydispersed_mie poly_mie(mono_mie,sd);
+    double p = 0.01;
+    poly_mie.percentage_accuracy(p);
+    check(poly_mie.absorption_cross_section()<0);
+    check_fast(10 * cpu_duration());  
   } end_test_case()
 }
