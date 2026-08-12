@@ -41,7 +41,6 @@ namespace flick {
       auto phi = phi_distribution(n_phi);     
       for (size_t i=0; i<n_theta; ++i) {
 	for (size_t j=0; j<n_phi; ++j) {
-	  direction d{theta[i], phi[j]};
 	  r[i][j] = value(direction{theta[i], phi[j]});
 	}
       }

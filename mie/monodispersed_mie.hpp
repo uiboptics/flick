@@ -3,6 +3,7 @@
 
 #include "basic_monodispersed_mie.hpp"
 #include "../numeric/legendre/legendre.hpp"
+#include <cstddef>
 
 namespace flick
   // Implementation based on the following two papers: (1) Mishchenko,
@@ -105,7 +106,7 @@ namespace flick
       pi[0] = 0; 
       pi[1] = 1;
       tau[0] = u;
-      for (size_t n=1; n<n_terms_; ++n) {
+      for (size_t n=1; std::cmp_less(n,n_terms_); ++n) {
 	double s = u * pi[n];
 	double t = s - pi[n-1];
 	pi[n+1] = s + (n+1.) / n * t;
@@ -151,7 +152,7 @@ namespace flick
       stdvectorc S22(angles_.size(),stdcomplex{0,0});
       for (size_t i=0; i<angles_.size(); ++i) {
 	auto [pi, tau] = pi_tau_polynomials(angles_[i]);
-	for (size_t n=1; n<n_terms_; ++n) {
+	for (size_t n=1; std::cmp_less(n,n_terms_); ++n) {
 	  stdcomplex c = 1i/wavenumber_in_host_*(2*n+1.)/(n*(n+1.));
 	  S11[i] += c*(a_[n]*tau[n] + b_[n]*pi[n]);
 	  S22[i] += c*(a_[n]*pi[n] + b_[n]*tau[n]);
@@ -163,7 +164,7 @@ namespace flick
       stdcomplex ext{0,0};
       double scat{0};
       const stdcomplex& k = wavenumber_in_host_;
-      for (size_t n=1; n<n_terms_; ++n) {
+      for (size_t n=1; std::cmp_less(n,n_terms_); ++n) {
 	ext += (2*n+1.) * (a_[n] + b_[n]);
 	scat += (2*n+1) * (norm(a_[n]) + norm(b_[n]));
       }

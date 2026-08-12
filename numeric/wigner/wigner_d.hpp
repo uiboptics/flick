@@ -17,8 +17,8 @@ namespace flick {
     int m_, n_;
   public:
     wigner_d(double x, int m, int n, int n_terms)
-      : x_{x}, m_{m}, n_{n}, t_(n_terms,0) {     
-      int s_min = wigner_d::leading_zeros(m_,n_);
+      : t_(n_terms,0), x_{x}, m_{m}, n_{n} {     
+      size_t s_min = wigner_d::leading_zeros(m_,n_);
       if (t_.size() <= s_min)
 	t_.resize(s_min+1,0);
       if (s_min >= t_.size())

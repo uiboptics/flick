@@ -8,7 +8,6 @@ namespace flick {
 namespace material {
   class marine_cdom : public base {
     pl_function a_;
-    double a440_;
   public:
     marine_cdom(const std::string& name, double scaling_factor) {
       std::string p = path()+"/material/marine_cdom/iop_tables";

@@ -91,6 +91,7 @@ namespace flick {
     oce.set_direction({0,0,-1});
     double od1 = oce.absorption_optical_depth(distance);
     c.set<double>("concentration_relative_depths",{0,0.5,0.5001,1});
+    c.set<double>("concentration_scaling_factors",{1,1,1,1});
     c.set<double>("concentration_exception_scaling_factors",{0,0,1,1});
     c.set<std::string>("concentration_exception_names",{"cdom"});
     oce = ocean{c};

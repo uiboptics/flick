@@ -28,8 +28,9 @@ namespace material {
   public:
     aerosols(double layer_thickness,
 	     double optical_depth_at_550nm, double relative_humidity)
-      : layer_thickness_{layer_thickness}, od550_{optical_depth_at_550nm},
-	rh_{relative_humidity} {
+      : rh_{relative_humidity} , od550_{optical_depth_at_550nm},
+	layer_thickness_{layer_thickness}
+    {
       std::string name;
       if(Name==rural) {
 	name = "rural";

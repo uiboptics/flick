@@ -255,11 +255,12 @@ Radius of sea ice brine pocket inclusions [m].
     void add_concentration_profile(const std::shared_ptr<base>& m,
 				   const std::string& name) {
       auto f = c_.get_vector<double>("concentration_scaling_factors");
-      auto f_e = c_.get_vector<double>("concentration_exception_scaling_factors");
-      ensure(f.size()==f_e.size(),"config concentration factor length");
       auto n_e = c_.get_vector<std::string>("concentration_exception_names");
-      if (std::ranges::find(n_e, name) != n_e.end())
+      if (std::ranges::find(n_e, name) != n_e.end()) {
+	auto f_e = c_.get_vector<double>("concentration_exception_scaling_factors");
+	ensure(f.size()==f_e.size(),"config concentration factor length");
 	add_profile(m,f_e,name);
+      }
       else
 	add_profile(m,f,name);
     }  

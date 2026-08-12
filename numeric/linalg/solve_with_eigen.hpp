@@ -9,8 +9,8 @@ namespace flick {
     std::vector<double> solve(const matrix& m, const std::vector<double>& v)
     // Solves set of linear equations using the Eigen library
     {
-      int rows = m.size();
-      int cols = m.at(0).size();
+      size_t rows = m.size();
+      size_t cols = m.at(0).size();
       Eigen::MatrixXd me(rows,cols);
       for (size_t i=0; i<rows; i++)
 	for (size_t j=0; j<cols; j++)

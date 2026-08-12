@@ -21,7 +21,6 @@ namespace flick {
       return m;
     }
     class mie : public basic_command {
-      const double pi = constants::pi;
       std::vector<double> wls_;
     public:
       mie():basic_command("mie"){};
@@ -31,7 +30,7 @@ namespace flick {
 	stdcomplex m_sphere = stoc(a(3));	
 	double median_r = std::stod(a(4));	
 	double sigma = std::stod(a(5));	
-	double paccuracy = std::stod(a(6));	
+	double paccuracy = std::stod(a(6));
 	std::string output_kind = a(7);
 	log_normal_distribution sd(log(median_r),sigma);
 	monodispersed_mie mono_mie(m_host,m_sphere,wl);
@@ -58,7 +57,7 @@ namespace flick {
 	  mono_mie.angles(angs);
 	  polydispersed_mie pm(mono_mie,sd);
 	  pm.percentage_accuracy(paccuracy);
-	  stdvector F = pm.scattering_matrix_element(row,col); 
+	  stdvector F = pm.scattering_matrix_element(row,col);
 	  std::cout << std::setprecision(n_out)
 		    << pl_function{mono_mie.angles(),F};
 	} else

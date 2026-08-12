@@ -150,6 +150,7 @@ namespace material {
     void add(base& material, size_t n_low, size_t n_high) {
       if (n_low >= n_high or n_high >= heights_.size())
 	throw std::runtime_error("mixtrue");
+      material.set_angles(angles_);
       flick::pose initial_pose = material.pose();
       add_mueller(material,n_low,n_high);
       add_absorption_and_scattering(material, n_low, n_high);

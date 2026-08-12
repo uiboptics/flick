@@ -26,7 +26,6 @@ namespace flick {
     double d = atmlike.distance(start,tau_slant);
     check_close(atmlike.optical_depth(start,d),tau_slant);
 
-    double z_toa = d*sin(pi/2-ang_slant);
     check_close(atmlike.distance(start,tau_slant),d);
     check_close(atmlike.optical_depth(start,d),tau_slant);
 

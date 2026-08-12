@@ -11,6 +11,7 @@ namespace flick {
     std::string end_qualifier_ = "*/";
     bool uppercase_ = false;
   public:
+    virtual ~basic_parameter() = default;
     virtual void print(std::ostream &os)=0;
     virtual void read(std::istream &is, const std::string& name) = 0;
     virtual const std::string& description() = 0;
@@ -91,7 +92,7 @@ namespace flick {
       for (size_t i = 0; i<p_.size(); ++i)
 	os << p_[i] << " ";
     }
-    void read(std::istream &is, const std::string& name) {
+    void read(std::istream &is, [[maybe_unused]] const std::string& name) {
       p_.clear();
       T x;
       while(is.peek() != begin_qualifier_.at(0) and is.peek() != EOF) {

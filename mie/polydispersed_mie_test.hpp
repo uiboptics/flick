@@ -124,4 +124,22 @@ namespace flick {
     check(poly_mie.absorption_cross_section()<0);
     check_fast(10 * cpu_duration());  
   } end_test_case()
+
+  begin_test_case(poly_mie_test_nan) {
+    stdcomplex m_host = {1.3,1e-5};
+    stdcomplex m_sphere = {1.0,0};
+    double r = 1e-6;
+    parameterized_monodispersed_mie mono_mie(m_host,m_sphere,500e-9);
+    size_t n_angs = 2;
+    auto angs = range(0,constants::pi,n_angs).linspace();
+    mono_mie.angles(angs);
+    log_normal_distribution sd{log(r),1};
+    polydispersed_mie poly_mie(mono_mie,sd);
+    double p = 8;
+    poly_mie.percentage_accuracy(p);
+    
+    std::cout << poly_mie.scattering_matrix_element(0,0) << std::endl;
+    check(not std::isnan(poly_mie.scattering_matrix_element(0,0)[0]));
+    check_fast(20 * cpu_duration());  
+  } end_test_case()
 }

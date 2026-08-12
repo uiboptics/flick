@@ -111,7 +111,7 @@ namespace flick {
 			   double readout_wavenumber) const {
       if (line_number < 0)
 	return 0;
-      if (line_number >= lines_.size())
+      if (std::cmp_greater_equal(line_number,lines_.size()))
 	return 0;
       double nu0 = wavenumbers_[line_number];
       double nu = readout_wavenumber;

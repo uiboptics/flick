@@ -20,7 +20,7 @@ namespace flick {
 	return l;
       return std::numeric_limits<double>::max(); 
     }
-    double value(double height) {
+    double value([[maybe_unused]] double height) {
       return value_;
     }
   };

@@ -44,9 +44,9 @@ namespace flick {
     int m_, n_;
     double x_cutoff_;
   public:
-    wigner_fit(const Function& f, int m, int n, int n_terms, fit fit,
+    wigner_fit(const Function& f, int m, int n, size_t n_terms, fit fit,
 	       const pe_function& scaling_function = pe_function{{-1,1},{1,1}})
-      : m_{m}, n_{n}, coefficients_(n_terms) {
+      :  coefficients_(n_terms), m_{m}, n_{n} {
       x_cutoff_ = cos(3./180*constants::pi);
       size_t n_angles = wigner_n_sampling_points(n_terms);
       stdvector x = wigner_x_values(n_angles);

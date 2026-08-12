@@ -14,6 +14,7 @@ namespace flick {
   namespace filter {     
     class filter {
     public:
+      virtual ~filter() = default;
       virtual double transmittance(double wavelength) const = 0;
     };
     

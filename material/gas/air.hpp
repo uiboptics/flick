@@ -41,6 +41,7 @@ namespace material {
       return s;
     }
   protected:
+    using z_profile<pe_function>::absorption_coefficient;
     virtual double absorption_coefficient(size_t gas_number, double height) = 0;
     void make_iop_profiles() {
       const auto& h = atm_.height_grid();

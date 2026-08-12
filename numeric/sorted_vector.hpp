@@ -22,6 +22,7 @@ namespace flick {
       void move_to_bin_at(double value) {
 	current_bin_ = sv_->find(value);
       }
+      virtual ~iterator() = default;
       virtual size_t next_index() const = 0;
       virtual size_t previous_index() const = 0;
       virtual bool is_in_end_bin() const = 0;

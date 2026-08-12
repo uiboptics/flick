@@ -7,7 +7,7 @@ namespace flick {
   {
     using namespace units;
     struct source {
-      double value(double wl) {
+      double value(double) {
 	return 1;
       }
     };

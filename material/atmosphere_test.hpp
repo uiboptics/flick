@@ -14,7 +14,6 @@ namespace flick {
     double s_b = atm->scattering_coefficient();
     check_close(s_b/s_a, pow(1./2,4),10_pct);
     atm->set_position({0,0,0});
-    double s1 = atm->scattering_coefficient();
     auto iops = layered_iops(atm,range(0.1,100e3,8).logspace(),4);
     iops.set_wavelength(500e-9);
     stdvector od = iops.scattering_optical_depth();
@@ -47,7 +46,6 @@ namespace flick {
     double aero_od = 0.1;
     double h_bottom = 0.1;
     double h_top = 120e3;
-    size_t n_layers = 3;
     size_t n_terms = 4;
     double wl = 550e-9;
     atmosphere::configuration c;

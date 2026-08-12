@@ -15,6 +15,7 @@ namespace material {
     double wavelength_{500e-9};
     flick::pose pose_;
   public:
+    virtual ~base() = default;
     virtual void set(const pose& p) {
       pose_ = p;
     }
@@ -33,6 +34,8 @@ namespace material {
     void set_direction(const unit_vector& d) {
       set(pose_.rotate_to(d));
     }
+    virtual void set_angles(const stdvector&) {      
+    }
     double angle(const unit_vector& scattering_direction) const {
       double d = dot(pose_.z_direction(),scattering_direction);
       d = std::clamp<double>(d,-1,1);
@@ -40,8 +43,7 @@ namespace material {
     }
     virtual double absorption_coefficient() const = 0;
     virtual double scattering_coefficient() const = 0;
-    virtual mueller mueller_matrix(const unit_vector&
-				   scattering_direction) const {
+    virtual mueller mueller_matrix(const unit_vector&) const {
       mueller m;
       return m.add(0,0,1/(4*constants::pi));
     }
@@ -157,7 +159,7 @@ namespace material {
     double scattering_coefficient() const {
       return 0;
     }
-    mueller mueller_matrix(const unit_vector& scattering_direction) const {
+    mueller mueller_matrix(const unit_vector&) const {
       mueller m;
       m.add(0,0,1/(4*constants::pi));
       return m;

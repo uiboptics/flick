@@ -65,7 +65,7 @@ namespace material {
       percent_accuracy_ = p;
       has_changed_ = true;
     }
-    void tabulated_angles(const stdvector& angles) {
+    void set_angles(const stdvector& angles) {
       tabulated_angles_ = angles;
       has_changed_ = true;
     }
@@ -81,14 +81,18 @@ namespace material {
     }
     mueller mueller_matrix(const unit_vector& scattering_direction) const {
       double theta = angle(scattering_direction);
-      if (tabulated_angles_.size() <= 1)
+      
+      if (tabulated_angles_.size() <= 1) {
 	has_changed_ = true;
 	tabulated_angles_ = stdvector{theta};
+      }
+     
       update_mie();
       mueller m;
+      double c = poly_mie_->scattering_cross_section();
       for (size_t i=0; i<scattering_matrix_elements_.size(); ++i) {
 	double s = scattering_matrix_elements_[i].value(theta);
-	m.add(row_[i],col_[i],s/poly_mie_->scattering_cross_section());
+	m.add(row_[i],col_[i],s/c);
       }
       return m;  
     }

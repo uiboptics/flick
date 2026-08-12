@@ -256,7 +256,6 @@ namespace flick {
       return *this;
     }
     void print(double mu) {
-      auto& e = elements_;
       std::cout << std::endl;
       for (size_t i = 0; i < 4; ++i) {
 	for (size_t j = 0; j < 4; ++j) {

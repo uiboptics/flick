@@ -31,6 +31,7 @@ namespace flick {
       : m_host_{m_host}, m_sphere_{m_sphere}, vacuum_wl_{vacuum_wl},
 	m_sphere_at_r0_{m_sphere} {
     }
+    virtual ~basic_monodispersed_mie() = default;
     virtual void radius(double r) = 0;
     virtual void angles(const stdvector& angles) = 0;
     virtual double absorption_cross_section() const = 0;

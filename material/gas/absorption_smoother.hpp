@@ -21,7 +21,7 @@ namespace flick {
   public:
     absorption_smoother(Source_spectrum s, atmospheric_state a,
 			const std::string& gas)
-      : source_spectrum_{s}, atm_{a}, gas_{gas} {
+      : atm_{a}, gas_{gas}, source_spectrum_{s} {
       air_all_ = std::make_shared<material::hitran_air>(atm_);
       atm_.remove_gas(gas_);
       air_rest_ = std::make_shared<material::hitran_air>(atm_);

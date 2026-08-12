@@ -22,6 +22,7 @@ namespace flick {
 		   const size_distribution& sd)
       : bm_{bm}, sd_{sd} {
     }
+    virtual ~basic_quantity() = default;
     virtual stdvector value(double x) = 0;
 
     stdvector center_quantity() const {

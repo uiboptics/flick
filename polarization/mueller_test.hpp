@@ -30,7 +30,6 @@ namespace flick {
   } end_test_case()
     
   begin_test_case(mueller_test_B) {   
-    double pi = constants::pi;
     double g = 0.95;
     pe_function hg = hg_phase_function<pe_function>(g,60,0.9);
     tabulated_phase_function p{hg};

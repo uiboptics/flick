@@ -116,7 +116,6 @@ namespace flick {
   } end_test_case()
   
     begin_test_case(mono_mie_test_F) {
-    double pi = constants::pi;
     stdcomplex m_host = 1.0;
     stdcomplex m_sphere = 1.33 + 0i;
     double wl = 500e-9;
