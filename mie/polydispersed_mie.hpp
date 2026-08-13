@@ -23,7 +23,7 @@ namespace flick {
       : bm_{bm}, sd_{sd} {
     }
     virtual ~basic_quantity() = default;
-    virtual stdvector value(double x) = 0;
+    virtual stdvector value(double x) const = 0;
 
     stdvector center_quantity() const {
       return center_quantity_;
@@ -37,7 +37,7 @@ namespace flick {
     size_t size() const {
       return center_quantity_.size();
     }
-    stdvector transformed_value(const stdvector& quantity) {
+    stdvector transformed_value(const stdvector& quantity) const {
       double r = bm_.radius();
       if (do_center_subtraction_)
 	return (quantity - center_quantity_ * pow(r,alpha_)) * r * sd_.value(r);
@@ -58,7 +58,7 @@ namespace flick {
       bm_.radius(sd_.center());
       center_quantity_ = transformed_center({bm_.absorption_cross_section()});
     }  
-    stdvector value(double x) {
+    stdvector value(double x) const {
       bm_.radius(exp(x));
       return transformed_value({bm_.absorption_cross_section()});
     }
@@ -72,7 +72,7 @@ namespace flick {
       bm_.radius(sd_.center());
       center_quantity_ = transformed_center({bm_.scattering_cross_section()});
     }  
-    stdvector value(double x) {
+    stdvector value(double x) const {
       bm_.radius(exp(x));
       return transformed_value({bm_.scattering_cross_section()});
     }
@@ -89,7 +89,7 @@ namespace flick {
       bm_.radius(sd_.center());
       center_quantity_ = transformed_center({bm_.scattering_matrix_element(row_,col_)});
     }  
-    stdvector value(double x) {
+    stdvector value(double x) const {
       bm_.radius(exp(x));
       return transformed_value(bm_.scattering_matrix_element(row_,col_));
     }
@@ -98,23 +98,22 @@ namespace flick {
   template<class Monodispersed_mie, class Size_distribution>
   class polydispersed_mie {
     const double epsilon_ = std::numeric_limits<double>::epsilon();
-    std::shared_ptr<basic_quantity> bq_;
     Monodispersed_mie mm_;
-    Size_distribution sd_;
+    const Size_distribution sd_;
     double accuracy_{0.05};
     bool keep_integration_points_ = true;
     pl_function xy_points_;
 
-    stdvector integral() {
+    stdvector integral(const basic_quantity& bq) {
       double max_step_factor = 0.25;
       double step_factor = max_step_factor;
-      double x0 = log(bq_->sd().center());
-      accumulated_integral_vector ai(bq_, 100*accuracy_);
-      stdvector a0 = bq_->center_quantity()
-	* bq_->sd().weighted_integral(bq_->alpha());
+      double x0 = log(bq.sd().center());
+      accumulated_integral_vector ai(bq, 100*accuracy_);
+      stdvector a0 = bq.center_quantity()
+	* bq.sd().weighted_integral(bq.alpha());
       ai.set_total(a0);
       ai.keep_integration_points(keep_integration_points_);
-      double width = 1.2*bq_->sd().width();
+      double width = 1.2*bq.sd().width();
       double x1, x2;
       double dx = step_factor * width;
       for (size_t i=0; i<2; i++) {
@@ -141,7 +140,7 @@ namespace flick {
       return ai.total();
     }
   public:
-    polydispersed_mie(Monodispersed_mie mm, Size_distribution sd)
+    polydispersed_mie(const Monodispersed_mie& mm, const Size_distribution& sd)
       : mm_{mm}, sd_{sd} {
     }
     void percentage_accuracy(double p) {
@@ -155,8 +154,7 @@ namespace flick {
 	mm_.radius(sd_.center());
 	return mm_.absorption_cross_section();
       } else {
-	bq_ = std::make_shared<absorption_quantity>(mm_,sd_);
-	return integral()[0];
+	return integral(absorption_quantity(mm_,sd_))[0];
       }
     }
     double scattering_cross_section() {
@@ -164,8 +162,7 @@ namespace flick {
 	mm_.radius(sd_.center());
 	return mm_.scattering_cross_section();
       } else {
-	bq_ = std::make_shared<scattering_quantity>(mm_,sd_);
-	return integral()[0];
+	return integral(scattering_quantity(mm_,sd_))[0];
       }
     }
     stdvector scattering_matrix_element(size_t row, size_t col) {
@@ -173,8 +170,7 @@ namespace flick {
 	mm_.radius(sd_.center());
 	return mm_.scattering_matrix_element(row,col);
       } else {
-	bq_ = std::make_shared<smatrix_quantity>(mm_,sd_,row,col);
-	return integral(); 
+	return integral(smatrix_quantity(mm_,sd_,row,col)); 
       }
     }
     stdvector normalized_scattering_matrix_element(size_t row, size_t col)

@@ -18,18 +18,17 @@ namespace flick {
   class basic_gl_integral {
   protected:
     two_columns quadrature_;
-    std::shared_ptr<Function> f_;
+    const Function& f_;
   public:
-    basic_gl_integral(const std::shared_ptr<Function>& f, size_t log2_n_points)
-      : f_{f} {
-      quadrature_ = read_quadrature(log2_n_points);
+    basic_gl_integral(const Function& f, size_t log2_n_points)
+      : quadrature_{read_quadrature(log2_n_points)}, f_{f} {
     }
   };
     
   template<class Function>
   class gl_integral : public basic_gl_integral<Function> {
   public:
-    gl_integral(const std::shared_ptr<Function>& f, size_t log2_n_points)
+    gl_integral(const Function& f, size_t log2_n_points)
      : basic_gl_integral<Function>(f,log2_n_points) {
     }
     double value(double from, double to) const {
@@ -39,7 +38,7 @@ namespace flick {
 	double x = this->quadrature_.column(0)[n];
 	double w = this->quadrature_.column(1)[n];
 	double local_x = from + (x+1)/2*range;
-	v += w * this->f_->value(local_x);
+	v += w * this->f_.value(local_x);
       }
       return v/2*range;
     }
@@ -48,22 +47,22 @@ namespace flick {
   template<class Function>
   class gl_integral_vector : public basic_gl_integral<Function> {
   public:
-     gl_integral_vector(const std::shared_ptr<Function>& f, size_t log2_n_points)
+     gl_integral_vector(const Function& f, size_t log2_n_points)
      : basic_gl_integral<Function>(f,log2_n_points) {
     }
     std::tuple<stdvector,std::vector<stdvector>>
-    xy_integration_points(double from, double to) {
+    xy_integration_points(double from, double to) const {
       stdvector x = from + (this->quadrature_.column(0)+1)/2*(to-from);
-      std::vector<stdvector> y(this->f_->size(),stdvector(x.size()));
+      std::vector<stdvector> y(this->f_.size(),stdvector(x.size()));
       for (size_t i = 0; i < x.size(); ++i) {
-	stdvector func = this->f_->value(x[i]);
+	stdvector func = this->f_.value(x[i]);
 	for (size_t j = 0; j < func.size(); ++j) {
 	   y[j][i] = func[j];
 	}
       }
       return {x,y};
     }
-    stdvector value(double from, double to) {
+    stdvector value(double from, double to) const {
       auto [x,y] = xy_integration_points(from,to);
       stdvector v(y.size());
       for (size_t i = 0; i < v.size(); ++i) {
@@ -71,7 +70,7 @@ namespace flick {
       }
       return v;   
     }
-    stdvector of_abs_integrand(double from, double to) {
+    stdvector of_abs_integrand(double from, double to) const {
       auto [x,y] = xy_integration_points(from,to);
       stdvector v(y.size());
       for (size_t i = 0; i < v.size(); ++i) {
@@ -83,7 +82,7 @@ namespace flick {
 
   template<class Function>
   class accumulated_integral_vector {
-    std::shared_ptr<Function> f_;
+    const Function& f_;
     double percent_accuracy_;
     size_t log2_n_points_{0};
     stdvector total_;
@@ -94,8 +93,8 @@ namespace flick {
     bool keep_integration_points_{false};
     pl_function integration_points_;
   public:
-    accumulated_integral_vector(const std::shared_ptr<Function>& f, double percent_accuracy)
-      : f_{f}, percent_accuracy_{percent_accuracy}, total_(f->size(),0), previous_total_(f->size(),0) {
+    accumulated_integral_vector(const Function& f, double percent_accuracy)
+      : f_{f}, percent_accuracy_{percent_accuracy}, total_(f.size(),0), previous_total_(f.size(),0) {
     }
     void set_total(const stdvector& value) {
       total_ = value;
@@ -118,8 +117,8 @@ namespace flick {
     }
     void add_value(double x1, double x2, double estimated_total_width=0) {
       double error = std::numeric_limits<double>::max();
-      stdvector previous_a = stdvector(f_->size(),0);
-      stdvector a = stdvector(f_->size(),0);
+      stdvector previous_a = stdvector(f_.size(),0);
+      stdvector a = stdvector(f_.size(),0);
       size_t n = log2_n_points_;
       double f = 1;
       if (estimated_total_width > 0)
@@ -179,37 +178,17 @@ namespace flick {
 
   template<class Function>
   class vector_function {
-    std::shared_ptr<Function> f_;
+    const Function& f_;
   public:
-    vector_function(const std::shared_ptr<Function>& f) : f_{f} {}
+    vector_function(const Function& f) : f_{f} {}
     size_t size() const {
       return 1;
     }
     stdvector value(double x) const {
-      return stdvector{f_->value(x)};
+      return stdvector{f_.value(x)};
     }
   };
-  
-  template<class Function>
-  class accumulated_integral : public accumulated_integral_vector<vector_function<Function>> {
-  public:
-    accumulated_integral(const std::shared_ptr<Function>& f, double percent_accuracy) :
-      accumulated_integral_vector<vector_function<Function>>(std::make_shared<vector_function<Function>>(f),percent_accuracy) {
-    }
-    void set_total(double value) {
-      accumulated_integral_vector<vector_function<Function>>::set_total(stdvector{value});
-    }
-    double previous_total() const {
-      return accumulated_integral_vector<vector_function<Function>>::previous_total()[0];
-    }
-    double total() const {
-      return accumulated_integral_vector<vector_function<Function>>::total()[0];
-    }
-    double total(double x1, double x2) {
-      return accumulated_integral_vector<vector_function<Function>>::total(x1,x2)[0];
-    }
-  };
-  
+
   class legendre {
     std::vector<stdvector> p_;
   public:
@@ -237,7 +216,7 @@ namespace flick {
 	double y = f->value(x[j]) * legendre.value(i,j);
 	plf->append(point{x[j],y});
       }
-      terms[i] = (2.*i+1)/2 * gl_integral(plf,log2_n_points).value(-1,1);
+      terms[i] = (2.*i+1)/2 * gl_integral(*plf,log2_n_points).value(-1,1);
     }
     return terms;
   }

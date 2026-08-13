@@ -83,17 +83,6 @@ def radiation(f, time_point, detector_height, wavelengths):
     f.set('detector_height', detector_height)
     #f.set_override_sun_zenith_angle(79)
     
-    f.set('bubble_volume_fraction',0)
-    f.set('bubble_calculator','parameterized_mie')
-    #f.set('bubble_calculator','full_mie')
-    f.set('bubble_radius',1e-6)
-    f.set('bubble_sigma',0)
-    f.set('bottom_depth', 100)
-    f.set('concentration_relative_depths', [0,0.01,0.01001,1])
-    f.set('concentration_scaling_factors', [1,1,1,1])
-    f.set('concentration_exception_names', 'bubbles')
-    f.set('concentration_exception_scaling_factors', [1,1,0,0])
-    
     return f.spectrum(wavelengths, band_width, time_point,
                       ocean_meta.latitude, ocean_meta.longitude)
 

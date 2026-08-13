@@ -142,7 +142,7 @@ namespace flick {
     double weighted_integral(double alpha) const {
       return exp(a_*alpha+0.5*pow(alpha*b_,2));
     }
-    double average_area() {
+    double average_area() const {
       return constants::pi*weighted_integral(2);
     }
     static std::tuple<double, double>
