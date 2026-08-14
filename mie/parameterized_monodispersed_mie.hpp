@@ -21,21 +21,11 @@ namespace flick {
     pl_function g0_ = read<pl_function>("mie/g_parameterized.txt");
     
     void update_efficiency() {
-      stdcomplex n = m_sphere_ / m_host_;
-      stdcomplex arg = 1./n * (pow(n,3) - pow(pow(n,2)-1., 3./2));
-      double Qa0 = 8./3*imag(m_sphere_-m_host_) * real(size_parameter_in_host())
-      	* std::abs(arg);
-      Qa_ = 0.94 * tanh(Qa0/0.94);
-    }
-    double geometrical_cross_section() const {
-      return pi_ * pow(radius_,2);
+      Qa_ = parameterized_absorption_efficiency();
     }
     double asymmetry_factor() const {
-      double n_r = real(m_sphere_ / m_host_);
+      double n_r = real(relative_refractive_index());
       return pow(g0_.value(n_r), pow(1-Qa_, 0.6));
-    }
-    double extinction_cross_section() const {
-      return 2 * geometrical_cross_section();
     }
   public:
     using basic_monodispersed_mie::basic_monodispersed_mie;
@@ -47,7 +37,7 @@ namespace flick {
       return Qa_ * geometrical_cross_section();
     }
     double scattering_cross_section() const override {
-      return extinction_cross_section() - absorption_cross_section();
+      return geometrical_extinction_cross_section() - absorption_cross_section();
     }
     stdvector scattering_matrix_element(size_t row, size_t col) const override
     // Note that integratinig element 0,0 over all 4*pi solid angles gives

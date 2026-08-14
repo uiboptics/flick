@@ -24,6 +24,25 @@ namespace flick {
     double size_parameter_in_vacuum() {
       return 2*pi_*radius_/vacuum_wl_;
     }
+    stdcomplex relative_refractive_index() const {
+      return m_sphere_ / m_host_;
+    }
+    double geometrical_cross_section() const {
+      return pi_ * pow(radius_,2);
+    }
+    double geometrical_extinction_cross_section() const {
+      return 2 * geometrical_cross_section();
+    }
+    double parameterized_absorption_efficiency() {
+      stdcomplex n = relative_refractive_index();
+      stdcomplex arg = 1./n * (pow(n,3) - pow(pow(n,2)-1., 3./2));
+      double Qa0 = 8./3*imag(m_sphere_-m_host_) * real(size_parameter_in_host())
+	* std::abs(arg);
+      return 0.94 * tanh(Qa0/0.94);
+    }
+    double parameterized_absorption_cross_section() {
+      return parameterized_absorption_efficiency() * geometrical_cross_section();
+    }
   public:
     basic_monodispersed_mie(const stdcomplex& m_host,
 			     const stdcomplex& m_sphere,

@@ -86,8 +86,6 @@ namespace flick
   };
 
   class monodispersed_mie : public basic_monodispersed_mie {  
-    const double pi_ = constants::pi;
-
     int n_terms_;
     stdvectorc a_;
     stdvectorc b_;
@@ -188,14 +186,8 @@ namespace flick
 	max_direct_terms = max_direct_bubble_terms_;
       use_large_size_approximation_ = (n_terms_ > max_direct_terms);
       if (use_large_size_approximation_) {
-	double area = pi_ * pow(radius_,2);
-	stdcomplex n = m_sphere_ / m_host_;
-	stdcomplex arg = 1./n * (pow(n,3) - pow(pow(n,2)-1., 3./2));
-	double Qa0 = 8./3*imag(m_sphere_-m_host_) * real(size_parameter_in_host())
-	  * std::abs(arg);
-	double Qa = 0.94 * tanh(Qa0/0.94);
-	C_ext_ = 2 * area;
-	C_scat_ = C_ext_ - Qa * area;
+	C_ext_ = geometrical_extinction_cross_section();
+	C_scat_ = C_ext_ - parameterized_absorption_cross_section();
 	has_changed_ = true;
 	return;
       }
