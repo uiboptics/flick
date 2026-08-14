@@ -32,15 +32,26 @@ namespace flick {
 	m_sphere_at_r0_{m_sphere} {
     }
     virtual ~basic_monodispersed_mie() = default;
-    virtual void radius(double r) = 0;
-    virtual void angles(const stdvector& angles) = 0;
     virtual double absorption_cross_section() const = 0;
     virtual double scattering_cross_section() const = 0;
     virtual stdvector scattering_matrix_element(size_t row,
 						size_t col) const = 0;
-
+    virtual void radius(double r) = 0;
+    virtual void angles(const stdvector& a) {
+      angles_ = a;
+    }
     double radius() const {
       return radius_;
+    }
+    stdvector angles() const {
+      return angles_;
+    }
+    void set_wavelength(double wl) {
+      vacuum_wl_ = wl;
+    }
+    void set_refractive_indices(stdcomplex m_host, stdcomplex m_sphere) {
+      m_host_ = m_host;
+      m_sphere_ = m_sphere;
     }
   };  
 }

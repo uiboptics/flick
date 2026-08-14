@@ -95,8 +95,7 @@ namespace flick
     double C_scat_;
     mutable stdvectorc S11_;
     mutable stdvectorc S22_;
-    mutable bool changed_radius_ = true;
-    mutable bool changed_angles_ = true;
+    mutable bool has_changed_ = true;
     double refractive_index_slope_{0.0};
     
     std::tuple<stdvector,stdvector> pi_tau_polynomials(double angle) const {
@@ -121,6 +120,7 @@ namespace flick
     }
   public:
     using basic_monodispersed_mie::basic_monodispersed_mie;
+    using basic_monodispersed_mie::angles;
  
     std::tuple<stdvectorc,stdvectorc> ab_coefficients() {
       stdcomplex m = m_sphere_ / m_host_;
@@ -175,41 +175,37 @@ namespace flick
     void refractive_index_slope(double s) {
       refractive_index_slope_ = s;
     }
-    void radius(double r) {
+    void radius(double r) override {
       radius_ = r;
       double r0_ = 1e-6;
       m_sphere_.real(m_sphere_at_r0_.real()*pow(radius_/r0_,refractive_index_slope_));
       set_n_terms();
       std::tie(a_, b_) = ab_coefficients();
       std::tie(C_ext_, C_scat_) = es_coefficients();
-      changed_radius_ = true;
+      has_changed_ = true;
     }
-    void angles(const stdvector& angles) {
+    void angles(const stdvector& angles) override {
       angles_ = angles;
-      changed_angles_ = true;
+      has_changed_ = true;
     }
     void quadrature_angles(size_t n) {
       stdvector x = read_quadrature(n).column(0);
       std::reverse(x.begin(),x.end());
       angles(vec::acos(x));
     }
-    stdvector angles() {
-      return angles_;
-    }
-    double absorption_cross_section() const {
+    double absorption_cross_section() const override {
       return C_ext_ - C_scat_;
     }
-    double scattering_cross_section() const {
+    double scattering_cross_section() const override {
       return C_scat_;
     }
-    stdvector scattering_matrix_element(size_t row, size_t col) const
+    stdvector scattering_matrix_element(size_t row, size_t col) const override
     // Note that integratinig element F11 over all 4*pi solid angles gives
     // the scattering cross section.
     {
-      if (changed_angles_ or changed_radius_) {
+      if (has_changed_) {
 	std::tie(S11_, S22_) = s_functions();
-	changed_radius_ = false;
-	changed_angles_ = false;
+	has_changed_ = false;
       }
       
       bool F11 = (row==0 and col==0);
@@ -239,5 +235,3 @@ namespace flick
 }
 
 #endif
-
-

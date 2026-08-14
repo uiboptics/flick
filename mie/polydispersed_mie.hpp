@@ -146,6 +146,15 @@ namespace flick {
     void percentage_accuracy(double p) {
       accuracy_ = p/100;
     }
+    void angles(const stdvector& angles) {
+      mm_.angles(angles);
+    }
+    void set_wavelength(double wl) {
+      mm_.set_wavelength(wl);
+    }
+    void set_refractive_indices(stdcomplex m_host, stdcomplex m_sphere) {
+      mm_.set_refractive_indices(m_host, m_sphere);
+    }
     pl_function xy_points() {
       return xy_points_;
     }

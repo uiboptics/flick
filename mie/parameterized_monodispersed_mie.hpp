@@ -39,20 +39,17 @@ namespace flick {
     }
   public:
     using basic_monodispersed_mie::basic_monodispersed_mie;
-    void radius(double r) {
+    void radius(double r) override {
       radius_ = r;
       update_efficiency();
     }
-    void angles(const stdvector& angles) {
-      angles_ = angles;
-    }
-    double absorption_cross_section() const {
+    double absorption_cross_section() const override {
       return Qa_ * geometrical_cross_section();
     }
-    double scattering_cross_section() const {
+    double scattering_cross_section() const override {
       return extinction_cross_section() - absorption_cross_section();
     }
-    stdvector scattering_matrix_element(size_t row, size_t col) const
+    stdvector scattering_matrix_element(size_t row, size_t col) const override
     // Note that integratinig element 0,0 over all 4*pi solid angles gives
     // the scattering cross section, where we count from 0 instead of 1.
     {
@@ -72,4 +69,3 @@ namespace flick {
 
 #endif
   
-

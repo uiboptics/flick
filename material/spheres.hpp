@@ -18,85 +18,75 @@ namespace material {
     Size_distribution size_distribution_;
     Host_material host_material_;
     Sphere_material sphere_material_;
-    double percent_accuracy_{5};
     const std::vector<int> row_{0,0,1,1,2,2,3,3};
     const std::vector<int> col_{0,1,0,1,2,3,2,3};
-    using pm = polydispersed_mie<Monodispersed_mie,Size_distribution>;
-
-    mutable stdvector tabulated_angles_{0};
-    mutable std::shared_ptr<pm> poly_mie_;
-    mutable bool has_changed_{true};
     mutable std::vector<pl_function> scattering_matrix_elements_;
-    mutable std::shared_ptr<Monodispersed_mie> mono_mie_;
-    
-    void update_mie() const {
-      if (has_changed_) {
-	stdcomplex m_host = host_material_.refractive_index();
-	stdcomplex m_sphere = sphere_material_.refractive_index();	
-	mono_mie_ = std::make_shared<Monodispersed_mie>(m_host,m_sphere,wavelength());
-	mono_mie_->angles(tabulated_angles_);
-	poly_mie_ = std::make_shared<pm>(*mono_mie_, size_distribution_);
-	poly_mie_->percentage_accuracy(percent_accuracy_);
-	for (size_t i=0; i < row_.size(); ++i) {
-	  scattering_matrix_elements_[i] =
-	    pl_function(tabulated_angles_,poly_mie_->
-			scattering_matrix_element(row_[i],col_[i]));
-	}
-      }
-      has_changed_ = false;
-    }
+    mutable Monodispersed_mie mono_mie_;
+    mutable polydispersed_mie<Monodispersed_mie,Size_distribution> poly_mie_;
+    mutable bool has_changed_{true};
   public:
+    spheres(const spheres&) = delete;
+    spheres& operator=(const spheres&) = delete;
     spheres(double volume_fraction,
 	    const Size_distribution& sd,
 	    const Host_material& hm,
 	    const Sphere_material& sm)
       : volume_fraction_{volume_fraction}, size_distribution_{sd},
-	host_material_{hm}, sphere_material_{sm} {
-      scattering_matrix_elements_.resize(row_.size());
-      update_mie();
+	host_material_{hm}, sphere_material_{sm},
+	scattering_matrix_elements_(row_.size()),
+	mono_mie_{host_material_.refractive_index(),
+      sphere_material_.refractive_index(), wavelength()},
+	poly_mie_{mono_mie_, size_distribution_}
+    {
     }
-    void set_wavelength(double wl) {
+    void set_wavelength(double wl) override {
       base::set_wavelength(wl);
       host_material_.set_wavelength(wl);
       sphere_material_.set_wavelength(wl);
+      mono_mie_.set_wavelength(wl);
+      mono_mie_.set_refractive_indices(host_material_.refractive_index(),
+				       sphere_material_.refractive_index());
+      poly_mie_.set_wavelength(wl);
+      poly_mie_.set_refractive_indices(host_material_.refractive_index(),
+				       sphere_material_.refractive_index());
+      has_changed_ = true;
+    }
+    void set_angles(const stdvector& angles) override {
+      base::set_angles(angles);
+      mono_mie_.angles(angles);
+      poly_mie_.angles(angles);
       has_changed_ = true;
     }
     void percentage_accuracy(double p) {
-      percent_accuracy_ = p;
-      has_changed_ = true;
+      poly_mie_.percentage_accuracy(p);
     }
-    void set_angles(const stdvector& angles) {
-      tabulated_angles_ = angles;
-      has_changed_ = true;
-    }
-    double absorption_coefficient() const {
-      update_mie();
-      return poly_mie_->absorption_cross_section()
+    double absorption_coefficient() const override {
+      return poly_mie_.absorption_cross_section()
 	* size_distribution_.particles_per_volume(volume_fraction_);
     }
-    double scattering_coefficient() const {
-      update_mie();
-      return poly_mie_->scattering_cross_section()
+    double scattering_coefficient() const override {
+      return poly_mie_.scattering_cross_section()
 	      * size_distribution_.particles_per_volume(volume_fraction_);
     }
-    mueller mueller_matrix(const unit_vector& scattering_direction) const {
-      double theta = angle(scattering_direction);
-      
-      if (tabulated_angles_.size() <= 1) {
-	has_changed_ = true;
-	tabulated_angles_ = stdvector{theta};
+    mueller mueller_matrix(const unit_vector& scattering_direction) const override {
+      if (has_changed_) {
+	for (size_t i=0; i < row_.size(); ++i) {
+	  scattering_matrix_elements_[i] =
+	    pl_function(mono_mie_.angles(),
+			poly_mie_.scattering_matrix_element(row_[i],col_[i]));
+	}
+	has_changed_ = false;
       }
-     
-      update_mie();
+      double theta = angle(scattering_direction);
       mueller m;
-      double c = poly_mie_->scattering_cross_section();
+      double c = poly_mie_.scattering_cross_section();
       for (size_t i=0; i<scattering_matrix_elements_.size(); ++i) {
 	double s = scattering_matrix_elements_[i].value(theta);
 	m.add(row_[i],col_[i],s/c);
       }
       return m;  
     }
-    double real_refractive_index() const {
+    double real_refractive_index() const override {
       return 1;
     }   
   };

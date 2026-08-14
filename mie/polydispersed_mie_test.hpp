@@ -61,7 +61,7 @@ namespace flick {
     mono_mie.angles({0,constants::pi});
     log_normal_distribution sd{log(1e-6),0.2};
     polydispersed_mie poly_mie(mono_mie,sd);
-     poly_mie.percentage_accuracy(0.1);
+    poly_mie.percentage_accuracy(0.1);
     stdvector F11 = poly_mie.scattering_matrix_element(0,0);
     check(F11[0]/F11[1] > 10);
   } end_test_case()
@@ -70,7 +70,7 @@ namespace flick {
     stdcomplex m_host = 1.33;
     stdcomplex m_sphere = 1.5+1e-10i;
     double wl = 500e-9;
-    monodispersed_mie mono_mie(m_host,m_sphere,wl);  
+    monodispersed_mie mono_mie(m_host,m_sphere,wl);
     mono_mie.angles({1.88});
     log_normal_distribution sd{log(8e-6),0.1};
     polydispersed_mie poly_mie(mono_mie,sd);
@@ -80,6 +80,7 @@ namespace flick {
     double bench = 6.131e-13;
     check_close(F11,bench,p);
     check_fast(9000 * cpu_duration());
+   
   } end_test_case()
 
    begin_test_case(poly_mie_test_t_matrix) {
@@ -138,7 +139,7 @@ namespace flick {
     double p = 8;
     poly_mie.percentage_accuracy(p);
     
-    std::cout << poly_mie.scattering_matrix_element(0,0) << std::endl;
+    //std::cout << poly_mie.scattering_matrix_element(0,0) << std::endl;
     check(not std::isnan(poly_mie.scattering_matrix_element(0,0)[0]));
     check_fast(20 * cpu_duration());  
   } end_test_case()

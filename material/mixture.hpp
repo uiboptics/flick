@@ -15,7 +15,6 @@ namespace material {
     struct configuration : basic_configuration {
       configuration() {
 	add<size_t>("n_angles", 300, R"(Number of grid points used to sample the volume scattering function)");
-	
 	add<size_t>("n_heights", 8, R"(Number of grid points used sample vertical atmospheric gas profiles)");
       }
     };
@@ -41,6 +40,7 @@ namespace material {
     }
     void add_material(const std::shared_ptr<base>& m, const std::string& unique_name) {
       std::string key = unique_name;
+      m->set_angles(angles_);
       if (exists(key))
       	throw std::runtime_error("material add: " + key + " already exists");
       materials_[key] = m;
@@ -150,7 +150,6 @@ namespace material {
     void add(base& material, size_t n_low, size_t n_high) {
       if (n_low >= n_high or n_high >= heights_.size())
 	throw std::runtime_error("mixtrue");
-      material.set_angles(angles_);
       flick::pose initial_pose = material.pose();
       add_mueller(material,n_low,n_high);
       add_absorption_and_scattering(material, n_low, n_high);
@@ -164,7 +163,7 @@ namespace material {
     }
     void add_mueller(base& material, size_t n_low, size_t n_high)
     // Must be run before adding scattering coefficients
-    {
+    { 
       for (size_t i=n_low; i<=n_high; ++i) {
 	double z = heights_[i];
 	double s1 = 0;
