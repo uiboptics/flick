@@ -40,7 +40,7 @@ namespace flick {
       return geometrical_extinction_cross_section() - absorption_cross_section();
     }
     stdvector scattering_matrix_element(size_t row, size_t col) const override
-    // Note that integratinig element 0,0 over all 4*pi solid angles gives
+    // Note that integrating element 0,0 over all 4*pi solid angles gives
     // the scattering cross section, where we count from 0 instead of 1.
     {
       if (row == 0 && col == 0) {

@@ -15,7 +15,6 @@ namespace flick {
     const size_distribution& sd_;
     stdvector center_quantity_;
     double alpha_{0};
-    size_t size_{1};
     bool do_center_subtraction_ = false;
   public:
     basic_quantity(basic_monodispersed_mie& bm,

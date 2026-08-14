@@ -89,8 +89,8 @@ namespace flick
     int n_terms_;
     stdvectorc a_;
     stdvectorc b_;
-    double C_ext_;
-    double C_scat_;
+    double C_ext_{0};
+    double C_scat_{0};
     mutable stdvectorc S11_;
     mutable stdvectorc S22_;
     mutable bool has_changed_ = true;
@@ -211,7 +211,7 @@ namespace flick
       return C_scat_;
     }
     stdvector scattering_matrix_element(size_t row, size_t col) const override
-    // Note that integratinig element F11 over all 4*pi solid angles gives
+    // Note that integrating element F11 over all 4*pi solid angles gives
     // the scattering cross section.
     {
       if (use_large_size_approximation_) {

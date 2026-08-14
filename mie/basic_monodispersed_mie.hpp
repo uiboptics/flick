@@ -18,10 +18,10 @@ namespace flick {
     stdcomplex wavenumber_in_host_{2*pi_*m_host_/vacuum_wl_};
     stdcomplex m_sphere_at_r0_;
     
-    stdcomplex size_parameter_in_host() {
+    stdcomplex size_parameter_in_host() const {
       return wavenumber_in_host_ * radius_;
     }
-    double size_parameter_in_vacuum() {
+    double size_parameter_in_vacuum() const {
       return 2*pi_*radius_/vacuum_wl_;
     }
     stdcomplex relative_refractive_index() const {
@@ -33,15 +33,18 @@ namespace flick {
     double geometrical_extinction_cross_section() const {
       return 2 * geometrical_cross_section();
     }
-    double parameterized_absorption_efficiency() {
+    double parameterized_absorption_efficiency() const {
       stdcomplex n = relative_refractive_index();
       stdcomplex arg = 1./n * (pow(n,3) - pow(pow(n,2)-1., 3./2));
       double Qa0 = 8./3*imag(m_sphere_-m_host_) * real(size_parameter_in_host())
 	* std::abs(arg);
       return 0.94 * tanh(Qa0/0.94);
     }
-    double parameterized_absorption_cross_section() {
+    double parameterized_absorption_cross_section() const {
       return parameterized_absorption_efficiency() * geometrical_cross_section();
+    }
+    void update_wavenumber_in_host() {
+      wavenumber_in_host_ = 2*pi_*m_host_/vacuum_wl_;
     }
   public:
     basic_monodispersed_mie(const stdcomplex& m_host,
@@ -67,10 +70,13 @@ namespace flick {
     }
     void set_wavelength(double wl) {
       vacuum_wl_ = wl;
+      update_wavenumber_in_host();
     }
     void set_refractive_indices(stdcomplex m_host, stdcomplex m_sphere) {
       m_host_ = m_host;
       m_sphere_ = m_sphere;
+      m_sphere_at_r0_ = m_sphere;
+      update_wavenumber_in_host();
     }
   };  
 }
