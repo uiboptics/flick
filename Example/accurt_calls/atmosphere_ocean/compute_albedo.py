@@ -34,7 +34,7 @@ f.set('bubble_volume_fraction',0.0001)
 f.set('bubble_calculator','parameterized_mie')
 #f.set('bubble_calculator','full_mie')
 f.set('bubble_radius',1e-6)
-f.set('bubble_sigma',0.00)
+f.set('bubble_sigma',0.0)
 
 f.set('concentration_relative_depths', [0,0.01,0.01001,1])
 f.set('concentration_scaling_factors', [1,1,1,1])

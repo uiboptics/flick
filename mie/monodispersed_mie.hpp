@@ -96,7 +96,10 @@ namespace flick
     mutable stdvectorc S11_;
     mutable stdvectorc S22_;
     mutable bool has_changed_ = true;
+    bool use_large_size_approximation_ = false;
     double refractive_index_slope_{0.0};
+    static constexpr int max_direct_terms_ = 1500;
+    static constexpr int max_direct_bubble_terms_ = 900;
     
     std::tuple<stdvector,stdvector> pi_tau_polynomials(double angle) const {
       stdvector pi(n_terms_+1);
@@ -180,6 +183,22 @@ namespace flick
       double r0_ = 1e-6;
       m_sphere_.real(m_sphere_at_r0_.real()*pow(radius_/r0_,refractive_index_slope_));
       set_n_terms();
+      int max_direct_terms = max_direct_terms_;
+      if (real(m_sphere_/m_host_) < 1)
+	max_direct_terms = max_direct_bubble_terms_;
+      use_large_size_approximation_ = (n_terms_ > max_direct_terms);
+      if (use_large_size_approximation_) {
+	double area = pi_ * pow(radius_,2);
+	stdcomplex n = m_sphere_ / m_host_;
+	stdcomplex arg = 1./n * (pow(n,3) - pow(pow(n,2)-1., 3./2));
+	double Qa0 = 8./3*imag(m_sphere_-m_host_) * real(size_parameter_in_host())
+	  * std::abs(arg);
+	double Qa = 0.94 * tanh(Qa0/0.94);
+	C_ext_ = 2 * area;
+	C_scat_ = C_ext_ - Qa * area;
+	has_changed_ = true;
+	return;
+      }
       std::tie(a_, b_) = ab_coefficients();
       std::tie(C_ext_, C_scat_) = es_coefficients();
       has_changed_ = true;
@@ -203,6 +222,12 @@ namespace flick
     // Note that integratinig element F11 over all 4*pi solid angles gives
     // the scattering cross section.
     {
+      if (use_large_size_approximation_) {
+	if (row == col)
+	  return stdvector(angles_.size(), C_scat_/(4*pi_));
+	else
+	  return stdvector(angles_.size(), 0);
+      }
       if (has_changed_) {
 	std::tie(S11_, S22_) = s_functions();
 	has_changed_ = false;

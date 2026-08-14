@@ -28,6 +28,14 @@ namespace flick {
     stdvector center_quantity() const {
       return center_quantity_;
     }
+    stdvector center_approximation_total() const {
+      return center_quantity_ * sd_.weighted_integral(alpha_);
+    }
+    stdvector center_subtraction_total() const {
+      if (do_center_subtraction_)
+	return center_approximation_total();
+      return stdvector(size(),0);
+    }
     const size_distribution& sd() const {
       return sd_;
     }
@@ -44,9 +52,7 @@ namespace flick {
       return quantity * r * sd_.value(r);
     }
     stdvector transformed_center(const stdvector& quantity) {
-      if (do_center_subtraction_)
-	return quantity/pow(bm_.radius(),alpha_);
-      return 0*quantity;
+      return quantity/pow(bm_.radius(),alpha_);
     }
   };
  
@@ -109,8 +115,9 @@ namespace flick {
       double step_factor = max_step_factor;
       double x0 = log(bq.sd().center());
       accumulated_integral_vector ai(bq, 100*accuracy_);
-      stdvector a0 = bq.center_quantity()
-	* bq.sd().weighted_integral(bq.alpha());
+      if (bq.sd().width() > 0.5 && accuracy_ >= 0.05)
+	return bq.center_approximation_total();
+      stdvector a0 = bq.center_subtraction_total();
       ai.set_total(a0);
       ai.keep_integration_points(keep_integration_points_);
       double width = 1.2*bq.sd().width();
