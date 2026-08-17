@@ -5,6 +5,7 @@
 #include "water/cdom.hpp"
 #include "water/phytoplankton.hpp"
 #include "water/nap.hpp"
+#include "tabulated_iops/tabulated_iops.hpp"
 #include "marine_particles/marine_particles.hpp"
 #include "marine_cdom/marine_cdom.hpp"
 #include "mixture.hpp"
@@ -44,9 +45,11 @@ variable.
 
 	add<std::string>("concentration_exception_names", " ", R"(
 Space-separated list of material names that is scaled by the factors
-listed by the concentration_exception_scaling_factors. Valid material
-names are: cdom, phytoplankton, nap, bubbles, and any names
-listed by the variables `mp_names` or `mcdom_names`.
+listed by the concentration_exception_scaling_factors. Spelling is
+fine, but I would make the sentence a little clearer: Valid material
+names are: cdom, phytoplankton, nap, bubbles, and any names listed by
+the variables `ti_names`, `mp_names`, or `mcdom_names`. The latter
+three must use the respective prefixes `ti_`, `mp_`, and `mcdom_`.
 )");
 	
 	add<double>("cdom_440", 0.0, R"(
@@ -99,6 +102,19 @@ Temperature in the water column [K].
 Salinity of the water column [PSU].
 )");
 
+	add<std::string>("ti_names", "small_marine_bubbles", R"(
+Space-separated list of names of general tabulated iops materials. See
+the flick/Example/make_tabulated_iops/ and
+flick/material/tabulated_iops/iop_tables directories for details.  A
+directory with tabulated_iops data may also be stored in your current
+directory.
+)");
+	
+	add<double>("ti_volume_fractions", 0, R"(
+Space-separated list of volume fractions occupied by each
+tabulated_iops material [unitless]
+)");
+		
 	add<std::string>("mp_names", "SD16_VF17", R"(
 Space-separated list of names of measured marine particles with
 inherent optical properties tabulated in separate ASCII files stored in
@@ -185,6 +201,7 @@ Radius of sea ice brine pocket inclusions [m].
       add_phytoplankton();
       add_nap();
       add_water_bubbles();
+      add_tabulated_iops(); 
       add_marine_particles();
       add_marine_cdom(); 
       auto_update_iops(true);
@@ -300,6 +317,17 @@ Radius of sea ice brine pocket inclusions [m].
 	  ensure(false,"bubble_calculator");
       }
     }
+    void add_tabulated_iops() {
+      std::vector<std::string> names = c_.get_vector<std::string>("ti_names");
+      std::vector<double> vf = c_.get_vector<double>("ti_volume_fractions");
+      for (size_t i = 0; i < names.size(); i++) {
+	if (vf.at(i) > 0) {
+	  auto m = std::make_shared<tabulated_iops>(names.at(i), vf.at(i));
+	  auto name = "ti_"+names[i];
+	  add_concentration_profile(m,name);
+	}
+      }
+    }
     void add_marine_particles() {
       std::vector<std::string> names = c_.get_vector<std::string>("mp_names");
       std::vector<double> concentrations = c_.get_vector<double>("mp_concentrations");
@@ -311,7 +339,7 @@ Radius of sea ice brine pocket inclusions [m].
 						      at_or_last(concentrations,i),
 						      at_or_last(scattering_scaling_factors,i),
 						      at_or_last(bleaching_factors,i));
-	  auto name = "marine_particles_"+names[i];
+	  auto name = "mp_"+names[i];
 	  add_concentration_profile(m,name);
 	}
       }
@@ -323,7 +351,7 @@ Radius of sea ice brine pocket inclusions [m].
       for (size_t i = 0; i<names.size(); i++) {
 	if (scaling_factors.at(i) > 0) {
 	  auto m = std::make_shared<marine_cdom>(names[i], at_or_last(scaling_factors,i));
-	  auto name = "marine_cdom_"+names[i];
+	  auto name = "mcdom_"+names[i];
 	  add_concentration_profile(m,name);
 	}
       }

@@ -65,8 +65,9 @@ Then: normalized scattering values [1/sr] for each wavelength (rows)
 and each angle (columns).  
 */
 
-"""    
-    s += " ".join(f"{x:#.4g}" for x in wls)+'\n\n'
+"""
+    wls_nm = wls*1e9
+    s += " ".join(f"{x:#.4g}" for x in wls_nm)+'\n\n'
     for i in range(len(wls)):
         se = normalized_scattering_elements(row,col,wls[i])
         if i == 0:

@@ -12,7 +12,7 @@ path = os.environ['FLICK_PATH']+"/Example/accurt_calls/atmosphere_ocean"
 os.chdir(path)
 
 f = flick.relative_radiation()
-
+f._generate_config("toa_reflectance", "flick_tmp")
 f.set('detector_type','plane_irradiance')
 f.set('detector_orientation','down')
 f.set('detector_height', 1)
@@ -30,7 +30,10 @@ f.set('mcdom_scaling_factors', 1)
 f.set('detector_height', 1)
 f.set('bottom_depth', 100)
 
-f.set('bubble_volume_fraction',0.0001)
+f.set('ti_names','small_marine_bubbles')
+f.set('ti_volume_fractions', 1e-9)
+
+f.set('bubble_volume_fraction',0)
 f.set('bubble_calculator','parameterized_mie')
 #f.set('bubble_calculator','full_mie')
 f.set('bubble_radius',1e-6)
@@ -38,8 +41,10 @@ f.set('bubble_sigma',0.0)
 
 f.set('concentration_relative_depths', [0,0.01,0.01001,1])
 f.set('concentration_scaling_factors', [1,1,1,1])
-f.set('concentration_exception_names', 'bubbles')
+f.set('concentration_exception_names', 'ti_small_marine_bubbles')
 f.set('concentration_exception_scaling_factors', [1,1,0,0])
+#f.set('concentration_exception_names', 'bubbles')
+#f.set('concentration_exception_scaling_factors', [1,1,0,0])
        
 wl = np.linspace(310e-9, 700e-9, 3)
 albedo = f.spectrum(wl, source_zenith_angle = 20)
