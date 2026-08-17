@@ -7,6 +7,7 @@
 namespace flick {
   template<class Interpolation>
   class flist {
+    // List of functions
     std::string header_;
     std::vector<function<Interpolation>> functions_;
     linalg::matrix all_values_;

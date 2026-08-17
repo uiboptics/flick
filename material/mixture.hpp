@@ -40,7 +40,6 @@ namespace material {
     }
     void add_material(const std::shared_ptr<base>& m, const std::string& unique_name) {
       std::string key = unique_name;
-      m->set_angles(angles_);
       if (exists(key))
       	throw std::runtime_error("material add: " + key + " already exists");
       materials_[key] = m;
@@ -180,6 +179,7 @@ namespace material {
 	  weight = s2/(s1+s2);
 	if (not std::isfinite(weight))
 	  weight = 0;
+	material.set_angles(angles_);
 	angular_mueller am = fill_angular_mueller(material);
 	mueller_[i].add(am, weight);
       }

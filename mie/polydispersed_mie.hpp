@@ -172,6 +172,9 @@ namespace flick {
 	return integral(absorption_quantity(mm_,sd_))[0];
       }
     }
+    double absorption_coefficient_per_vf() {
+      return absorption_cross_section() * sd_.particles_per_volume(1);
+    }
     double scattering_cross_section() {
       if (sd_.width() < epsilon_) {
 	mm_.radius(sd_.center());
@@ -179,6 +182,9 @@ namespace flick {
       } else {
 	return integral(scattering_quantity(mm_,sd_))[0];
       }
+    }
+    double scattering_coefficient_per_vf() {
+      return scattering_cross_section() * sd_.particles_per_volume(1);
     }
     stdvector scattering_matrix_element(size_t row, size_t col) {
       if (sd_.width() < epsilon_) {

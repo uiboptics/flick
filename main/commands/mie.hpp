@@ -43,6 +43,18 @@ namespace flick {
 	  std::cout << std::setprecision(n_out)
 		    << pm.absorption_cross_section() << std::endl;
 	}
+	else if (output_kind=="absorption_coefficient_per_vf") {
+	  polydispersed_mie pm(mono_mie,sd);
+	  pm.percentage_accuracy(paccuracy);
+	  std::cout << std::setprecision(n_out)
+		    << pm.absorption_coefficient_per_vf() << std::endl;
+	}
+	else if (output_kind=="scattering_coefficient_per_vf") {
+	  polydispersed_mie pm(mono_mie,sd);
+	  pm.percentage_accuracy(paccuracy);
+	  std::cout << std::setprecision(n_out)
+		    << pm.scattering_coefficient_per_vf() << std::endl;
+	}
 	else if (output_kind=="scattering_cross_section") {
 	  polydispersed_mie pm(mono_mie,sd);
 	  pm.percentage_accuracy(paccuracy);
