@@ -1,0 +1,10 @@
+/*         
+Only the following elements will be loaded into the normalized
+scattering matrix. Other elements will be zero.
+
+First column: scattering matrix row number, counting from 1
+Second column: scattering matrix column number, counting form 1
+*/
+
+1 1
+2 2

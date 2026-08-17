@@ -184,6 +184,11 @@ namespace flick {
     pl_function f;
     s >> f;
     check_close(f.integral(0,10),50);
+    s.clear();
+    s.seekg(0);
+    matrix<size_t> m;
+    s >> m;
+    check(m.element(0,5)==3);
   } end_test_case()
   
   begin_test_case(function_test_F) {

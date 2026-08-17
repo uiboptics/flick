@@ -1,3 +1,10 @@
+"""
+Example of how to make water bubbles input data to the tabulated_iops
+material.  Customize by modifying parameters at the bottom of this
+script.
+
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -72,7 +79,7 @@ def write_all_normalized_scattering_elements(wls, include_elements):
     for el in include_elements:
         row = el[0]
         col = el[1]
-        with open(f's_{row}{col}.txt', 'w') as f1:
+        with open(f's_{row+1}{col+1}.txt', 'w') as f1:
             print(stream_normalized_scattering_elements(wls,row,col),file=f1)
 
 def write_include_elements(include_elements):
@@ -99,7 +106,6 @@ Frist column: wavelengths [nm]
 Second column: absorption coefficient per volume fraction [1/m]
 Third column: scattering coefficient per volume fraction [1/m]
 */
-       
 """
     with open(f'ab.txt', 'w') as f:
         print(header,file=f)

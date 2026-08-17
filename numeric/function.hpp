@@ -32,6 +32,39 @@ namespace flick {
     return h+"\n";
   }
 
+  template<class T>
+  class matrix {
+    std::vector<std::vector<T>> m_;
+
+  public:
+    size_t n_rows() const {
+      return m_.size();
+    }
+    const std::vector<T>& row(size_t n) const {
+      return m_.at(n);
+    }
+    T element(size_t row_no, size_t col_no) const {
+      return m_.at(row_no).at(col_no);
+    }
+    friend std::istream& operator>>(std::istream& is, matrix<T>& m) {
+      read_header(is);
+      std::string line;
+      while (std::getline(is, line)) {
+	std::istringstream stream(line);
+	std::vector<T> row;
+	T value;
+	while (stream >> value)
+	  row.push_back(value);
+	if (row.empty())
+	  continue;
+	if (!m.m_.empty() && row.size() != m.m_.front().size())
+	  throw std::runtime_error("Matrix rows have different lengths");	
+	m.m_.push_back(std::move(row));
+      }
+      return is;
+    }
+  };
+  
   class point {
     double x_;
     double y_;
