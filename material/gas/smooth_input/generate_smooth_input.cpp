@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
   else if (wl_region_name=="solar") {
     m.from_wl = 280e-9;
     m.to_wl = 2500e-9;
-    m.band_width_sigma = m.get_band_width_sigma(300,5);
+    m.band_width_sigma = m.get_band_width_sigma(300,3);
   }
   else if (wl_region_name=="terrestrial") {
     m.from_wl = 4e-6;
@@ -80,7 +80,6 @@ int main(int argc, char* argv[]) {
     }
   };
 
-  const auto& v = meta_data_vector;
   stdvector scale_T = {1,1+m.relative_TP_step,1};
   stdvector scale_P = {1,1,1+m.relative_TP_step};
   std::vector<std::string> ext = {"T0_P0","T1_P0","T0_P1"};

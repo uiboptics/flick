@@ -1,16 +1,4 @@
-/* 
-Normalized scattering matrix element for the material described
-in ab.txt. Element 1,1 is the phase function with 4 pi integral equal
-to one. This file is for the element given by the file name,
-e.g. 's_11' indicates element 1,1.
-
-First data row: wavelengths [nm]
-
-Second data row: scattering angles [degrees]
-
-Then: normalized scattering values [1/sr] for each wavelength (rows)
-and each angle (columns).  
-*/
+4 5
 
 300.0 433.3 566.7 700.0
 

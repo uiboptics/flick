@@ -145,10 +145,8 @@ Type of radiation to be detected. Valid options are
 	
 	add<double>("detector_wavelengths", {400e-9,500e-9}, R"(
 Space-separated list of radiation wavelengths [m] to be calculated and
-saved.
-
-Note that a wavelength (e.g., 400 nm) may be written as 400e-9 m for
-clarity.
+saved.  Note that a wavelength (e.g., 400 nm) may be written as 400e-9
+m for clarity.
 )");
 	
 	add<double>("reference_detector_height", 120e3, R"(
@@ -173,9 +171,16 @@ solar beam.
 	
 	add<double>("bottom_boundary_surface_scaling_factor", 1, R"(
 Darkness scaling of the bottom boundary, where ‘0’ corresponds to no
-bottom reflection and ‘1’ corresponds to loamy sand reflection.
+bottom reflection and ‘1’ corresponds to the albedo given by data in
+file given by the bottom_albedo_file.
 )");
-		    
+	
+	add<std::string>("bottom_albedo_file","loamy_sand.txt", R"(
+Name of the spectral albedo file to be used at bottom boundary. See
+accurt_api/bottom_albedo. Current valid names are ´loamy_sand.txt´ and
+´custom.txt´.
+)");
+		   
 	add<size_t>("stream_upper_slab_size", 34, R"(
 Number of streams used when solving the radiative transfer equation.
 )");
@@ -247,7 +252,28 @@ as well as the AccuRT material and output subdirectories, are stored.
       c_.add<double>("lpick",0);
       wavelengths_ = c_.get_vector<double>("detector_wavelengths");
       c_.set<double>("detector_wavelengths",wavelengths_*1e9);
+      set_bottom_albedo();
     }
+    void set_bottom_albedo() {
+      std::string accurt_ba_name = "jhu.becknic.soil.aridisol.camborthid.coarse.89P1772.spectrum.txt";
+      char *accurt_path = getenv("ACCURT_PATH");
+      if (accurt_path==NULL)
+	throw std::invalid_argument("ACCURT_PATH not found.");
+      std::string path = std::string(accurt_path)+"/lll/manager/data/";
+      std::string ba_name = c_.get<std::string>("bottom_albedo_file");
+      std::string p = "/accurt_api/bottom_albedo/";
+      auto ba = read<pl_function>(ba_name, p);
+      stdvector x = ba.x()*0.001; // Microns
+      stdvector y = ba.y()*100; // Percent 
+      std::reverse(x.begin(), x.end());
+      std::reverse(y.begin(), y.end());
+      std::ofstream ofs(path+accurt_ba_name);
+      if (!ofs)
+	throw std::invalid_argument(path+accurt_ba_name+" could not be opened");
+      ofs << std::setprecision(5);
+      for (size_t i=0; i<x.size(); ++i)
+	ofs << x[i] << " " << y[i] << '\n';
+    }  
     pp_function relative_radiation() {
       std::string t = c_.get<std::string>("detector_type"); 
       if (t=="radiance")

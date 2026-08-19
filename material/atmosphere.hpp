@@ -89,8 +89,15 @@ atmosphere. Valid options are ‘o3’, ‘o2’, ‘h2o’, ‘no2’, and ‘c
 	
 	add<std::string>("gas_spectral_region", "uv_vis", R"(
 Atmospheric spectral region for pre-calculated, smoothed gas
-absorption spectra. Valid options are ‘uv_vis’ and ‘uv_vis_toa’. The
-‘uv_vis_toa’ option is optimized for top-of-atmosphere radiation.
+absorption spectra. Valid options are ‘uv_vis’, ‘uv_vis_toa’, and
+´solar´.  ‘uv_vis’ option is optimized for bottom-of-atmosphere
+calculations in the 280-1030 nm region with line-by-line IOPs smoothed
+to about 0.5 nm bandwidth; ‘uv_vis_toa’ option is optimized for
+top-of-atmosphere calculations in the 280-1030 nm region with
+line-by-line IOPs smoothed to 0.5 nm bandwidth; ‘solar’ option is
+optimized for bottom-of-atmosphere calculations in the 280-2500 nm
+region with line-by-line IOPs smoothed to 3 nm bandwidth at 300 nm.
+All band widths are progressively slightly increasing with wavelength
 )");
       }
     };

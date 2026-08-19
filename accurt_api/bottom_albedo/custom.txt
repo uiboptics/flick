@@ -1,0 +1,11 @@
+/* Can take any custom spectral bottom albedo values. Other albedo files can
+also be added and loaded according to the names specified in the
+bottom_albedo_name variable in the configuration file.
+
+First column: wavelength [nm]
+Second column: bottom albedo [unitless]
+*/
+
+280	0.1
+500	0.1
+2500	0.1

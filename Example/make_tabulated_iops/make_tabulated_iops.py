@@ -57,22 +57,27 @@ in ab.txt. Element 1,1 is the phase function with 4 pi integral equal
 to one. This file is for the element given by the file name,
 e.g. 's_11' indicates element 1,1.
 
-First data row: wavelengths [nm]
+First data row: number of rows and columns
 
-Second data row: scattering angles [degrees]
+Second data row: wavelengths [nm]
+
+Third data row: scattering angles [degrees]
 
 Then: normalized scattering values [1/sr] for each wavelength (rows)
 and each angle (columns).  
 */
 
 """
+    se0 = normalized_scattering_elements(row,col,wls[0])
     wls_nm = wls*1e9
+    angles_deg = se0[:,0]/np.pi*180;
+
+    s = f'{len(wls_nm)} {len(angles_deg)}\n\n'  
     s += " ".join(f"{x:#.4g}" for x in wls_nm)+'\n\n'
+    s += " ".join(f"{x:#.4g}" for x in angles_deg)+'\n\n'            
+
     for i in range(len(wls)):
         se = normalized_scattering_elements(row,col,wls[i])
-        if i == 0:
-            angles_deg = se[:,0]/np.pi*180;
-            s += " ".join(f"{x:#.4g}" for x in angles_deg)+'\n\n'            
         s += " ".join(f"{x:#.2e}" for x in se[:,1])+'\n'    
     return s
 
