@@ -32,9 +32,9 @@ class sea_ice:
     latitude = 85 # [degree]
     longitude = 5 # [degree]
     ocean_depth_grid = [0, 0.01, 0.01001, 100]
-    
     def __init__(self, flick_radiation_object):
         self.f = flick_radiation_object
+        self.f._generate_config("toa_reflectance", "flick_tmp")
         self.f.set("snow_ice", 0.01)
         self.f.set("snow_radius", 1e-3)        
         self.f.set('ice_depths',2)
@@ -61,8 +61,7 @@ class sea_ice:
         return np.array(depths)/b
     
     def wavelength(self):
-        return flick.atmosphere_wavelengths('config_for_wavelengths',
-                                            self.wl_low, self.wl_high, self.n_wl)
+        return flick.atmosphere_wavelengths('./flick_tmp/config',                                            self.wl_low, self.wl_high, self.n_wl)
         
     def radiation(self):
         self.set_derived_parameters()
