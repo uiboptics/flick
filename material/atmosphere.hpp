@@ -88,7 +88,6 @@ atmosphere. Valid options are ‘o3’, ‘o2’, ‘h2o’, ‘no2’, and ‘c
 )");
 	
 	add<std::string>("gas_spectral_region", "uv_vis", R"(
-
 Atmospheric spectral region for pre-calculated, smoothed gas
 absorption spectra. Valid options are ‘uv_vis’, ‘uv_vis_toa’, and
 ´solar´.  ‘uv_vis’ option is optimized for bottom-of-atmosphere
