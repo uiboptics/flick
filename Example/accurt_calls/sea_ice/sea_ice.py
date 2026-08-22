@@ -28,24 +28,27 @@ if not os.path.exists('output'):
 class sea_ice:
     detector_height = 1 # [m]
     wl_low = 310e-9 # [m]
-    wl_high = 1020e-9 # [m]
-    n_wl =  5
+    wl_high = 1200e-9 # [m]
+    n_wl =  80
     wl_band_width = 10e-9 # [m]
     time_point_utc = '2026 08 30 12 00' # yyyy mm dd hh mm
     latitude = 90 # [degree]
     longitude = 90 # [degree]
-    ocean_depth_grid = [0, 0.01, 0.01001, 100] # [m]
-    def __init__(self, flick_radiation_object):
+    ocean_depth_grid = [0, 0.5, 0.5001, 500] # [m]
+    def __init__(self, flick_radiation_object, run_info):
         self.f = flick_radiation_object
-        self.f._generate_config("toa_reflectance", "flick_tmp")
-        self.f.set('cloud_liquid', 0.0001)
-        self.f.set("snow_ice", 0.01)
-        self.f.set("snow_radius", 1e-3)        
-        self.f.set('ice_depths',2)
-        self.f.set('ice_bubble_fraction',[0.01, 0.01])
-        self.f.set('ice_brine_fraction',[0.01, 0.01])
+        self.f.set('cloud_liquid', 1e-4)
+        if run_info == 'snow_on_ice':
+            self.f.set("snow_ice", 0.01)
+            self.f.set("snow_radius", 1e-3)        
+            self.f.set('ice_depths',2)
+            self.f.set('ice_bubble_fraction',[0.005, 0.005])
+            self.f.set('ice_brine_fraction',[0.02, 0.02])
         self.f.set('gases',['o3','o2','h2o'])
-        self.f.set('gas_spectral_region','uv_vis')
+        self.f.set('gas_spectral_region','solar')
+        self.f.set('cdom_440',0.1)        
+        self.f.set('chl_concentration',0.1e-6)        
+        self.f.set('nap_concentration',0.1e-3)        
         self.set_derived_parameters()
 
     def set_derived_parameters(self):
@@ -74,27 +77,30 @@ class sea_ice:
         return self.f.spectrum(self.wavelength(), self.wl_band_width,
                                self.time_point_utc+' 0', self.latitude, self.longitude)
 
-def downward_plane_irradiance(height):
-    si = sea_ice(flick.ocean_downward_plane_irradiance())
+def downward_plane_irradiance(height, run_info):
+    si = sea_ice(flick.ocean_downward_plane_irradiance(), run_info)
+    si.set('detector_type','plane_irradiance')
+    si.set('detector_orientation','up')
     si.set('detector_height', height)
     Ed = si.to_W_per_m2_nm(si.radiation())
     return Ed[:,0], Ed[:,1]
 
-def downward_scalar_irradiance(height):
-    si = sea_ice(flick.ocean_downward_plane_irradiance())
+def downward_scalar_irradiance(height, run_info):
+    si = sea_ice(flick.ocean_downward_plane_irradiance(), run_info)
     si.set('detector_type','scalar_irradiance')
+    si.set('detector_orientation','up')
     si.set('detector_height', height)
     Eds = si.to_W_per_m2_nm(si.radiation())
     return Eds[:,0], Eds[:,1]
 
-def nadir_radiance(height):
-    si = sea_ice(flick.ocean_nadir_radiance())
+def nadir_radiance(height, run_info):
+    si = sea_ice(flick.ocean_nadir_radiance(), run_info)
     si.set('detector_height', height)
     Lu = si.to_mW_per_m2_nm_sr(si.radiation())
     return Lu[:,0], Lu[:,1]
 
-def zenith_radiance(height):
-    si = sea_ice(flick.ocean_nadir_radiance())
+def zenith_radiance(height, run_info):
+    si = sea_ice(flick.ocean_nadir_radiance(), run_info)
     si.set('detector_height', height)
     si.set('detector_orientation','up')
     Ld = si.to_mW_per_m2_nm_sr(si.radiation())
@@ -108,34 +114,44 @@ def save(file_name, x, y):
         f.write(f"{x[i]:#.{5}g}\t{y[i]:#.{4}g}\n")
     f.close()
 
-def plot_all():
-    height = 1
-    x1, y1 = downward_plane_irradiance(height)
-    x2, y2 = downward_scalar_irradiance(height)
-    x3, y3 = zenith_radiance(height)
+def plot_and_save_all(run_info, height):
+    x1, y1 = downward_plane_irradiance(height, run_info)
+    x2, y2 = downward_scalar_irradiance(height, run_info)
+    x3, y3 = zenith_radiance(height, run_info)
+    y3 *= 1e-3 # From mW to W
+    run_info_file = run_info.replace(' ', '_')
+    title = (f"{run_info}; Position: {sea_ice.latitude:g} deg N, {sea_ice.longitude:g} deg E; "
+             f"Time: {sea_ice.time_point_utc} UTC")
+    output_file_base = (f"output/{run_info_file}_lat_{sea_ice.latitude:g}_lon_{sea_ice.longitude:g}_"
+                        f"{sea_ice.time_point_utc.replace(' ', '_')}")
+    plot_file_name = f"{output_file_base}.png"
     
     plt.figure(figsize=(9, 4))
+    plt.suptitle(title, y=0.94)
     plt.subplot(1,2,1)
-    plt.plot(x1,y1*6,label=r'plane $\times$ 6')
+    plt.plot(x1,y1*2,label=r'plane $\times$ 2')
     plt.plot(x2,y2,label='scalar')
     plt.ylabel(r'Irradiance [W m$^{-2}$ nm$^{-1}$]')
     plt.xlabel('Wavelength [nm]')
     plt.legend()
     plt.grid()
     plt.subplot(1,2,2)
-    plt.plot(x3,y3*1e-3*2*np.pi,label=r'zenith radiance $\times 2\pi$')
+    plt.plot(x3,y3*2*np.pi,label=r'zenith radiance $\times 2\pi$')
     plt.legend()
     plt.grid()
     plt.xlabel('Wavelength [nm]')
     plt.ylabel(r'Zenith radiance [W m$^{-2}$ nm$^{-1}$ sr$^{-1}$]')
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    plt.savefig(plot_file_name, dpi=300)
     
-    save('output/plane_irradiance.txt',x1,y1)
-    save('output/scalar_irradiance.txt',x2,y2)
-    save('output/radiance.txt',x3,y3)
+    save(f"{output_file_base}_plane_irradiance.txt",x1,y1)
+    save(f"{output_file_base}_scalar_irradiance.txt",x2,y2)
+    save(f"{output_file_base}_radiance.txt",x3,y3)
 
     
 if __name__ == "__main__":
-    plot_all()
+    height = 1
+    for run_info in ['no_ice', 'snow_on_ice']:
+        plot_and_save_all(run_info, height)
     plt.show()
     
