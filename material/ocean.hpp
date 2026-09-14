@@ -45,8 +45,7 @@ variable.
 
 	add<std::string>("concentration_exception_names", " ", R"(
 Space-separated list of material names that is scaled by the factors
-listed by the concentration_exception_scaling_factors. Spelling is
-fine, but I would make the sentence a little clearer: Valid material
+listed by the concentration_exception_scaling_factors. Valid material
 names are: cdom, phytoplankton, nap, bubbles, and any names listed by
 the variables `ti_names`, `mp_names`, or `mcdom_names`. The latter
 three must use the respective prefixes `ti_`, `mp_`, and `mcdom_`.

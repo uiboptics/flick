@@ -36,7 +36,9 @@ def scattering_elements(row,col,wl):
     return flick.run(c)
 
 def normalized_scattering_elements(row,col,wl):
-    return scattering_elements(row,col,wl)/scattering_cross_section(wl)
+    se = scattering_elements(row,col,wl).copy()
+    se[:,1]=se[:,1]/scattering_cross_section(wl)
+    return se
 
 def absorption_coefficient_per_vf(wl):
     return flick.run(f'{mie_sub_command(wl)} absorption_coefficient_per_vf')

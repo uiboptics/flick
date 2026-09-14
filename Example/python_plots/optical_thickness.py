@@ -28,7 +28,7 @@ else:
     wl_high = 800e-9
     n_wls = 20
 
-flick.run("accurt -g toa_reflectance ./optical_thickness_config2")
+flick.run("accurt -g toa_reflectance ./optical_thickness_config")
 ot = flick.atmosphere_optical_thickness("optical_thickness_config",
                                           wl_low,wl_high,n_wls*10).attenuation();
 T = transmittance(ot)

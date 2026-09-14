@@ -433,8 +433,10 @@ class basic_radiation:
                 spectrum[i,1] = run("filter "+self._tmpdir+"/spectrum sentinel3 "+ \
                                 str(wl[i]))
             else:
-                spectrum[i,1] = run("filter "+self._tmpdir+"/spectrum triangular "+ \
+                spectrum[i,1] = run("filter "+self._tmpdir+"/spectrum gaussian_mean "+ \
                                     str(wl[i])+" "+str(wl_width))     
+#                spectrum[i,1] = run("filter "+self._tmpdir+"/spectrum triangular "+ \
+#                                    str(wl[i])+" "+str(wl_width))     
         return spectrum
 
     def set_n_angles(self,n_angles):
