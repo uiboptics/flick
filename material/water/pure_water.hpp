@@ -7,7 +7,7 @@
 
 namespace flick {
 namespace material {
-namespace water {
+namespace water { // Pure sea water
   using vec = std::vector<double>;
   class base {
   protected:
@@ -256,7 +256,6 @@ namespace water {
       else if (wl > wl_2)
 	return segelstein_real_refractive_index_.value(wl) + sal_temp_shift(wl_2);
       else {
-	water::scattering s(salinity(),temperature());
 	return water::refractive_index(salinity(),temperature()).at(wavelength());
       }
     }

@@ -84,12 +84,10 @@ namespace flick {
     pw.salinity(0_psu);
     size_t n = 100;
     auto wl = range(340e-9,350e-9,n).linspace();
-    //auto wl = range(540e-9,550e-9,n).linspace();
     double y = 0;
     for (size_t i=0; i<wl.size(); i++) {
       pw.set_wavelength(wl[i]);
       y += pw.absorption_coefficient();
-      //std::cout << wl[i] << " " << y << std::endl; 
     }
     double mean = y/n;
     y = 0;

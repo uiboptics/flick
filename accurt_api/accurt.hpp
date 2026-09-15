@@ -189,6 +189,10 @@ Number of streams used when solving the radiative transfer equation.
 Specifies the directory where the Flick and AccuRT configuration files,
 as well as the AccuRT material and output subdirectories, are stored.
 )");
+	add<std::string>("print_iops","false", R"(
+Option for printing of inherent optical properties to screen during
+runtime. Valid options are ‘true’ or ‘false’.  
+)");
 	
       }
       size_t to_streams(size_t n_angles) {
@@ -329,12 +333,13 @@ as well as the AccuRT material and output subdirectories, are stored.
     }
     void print_iops() {
       make_material_files();
-      std::cout << "Layered IOPs\n";
-      std::cout << "------------\n";
-      std::cout << "Lower slab";
-      std::cout << *layered_lower_slab_;
-      std::cout << "Upper slab"; 
+      std::string ba_name = c_.get<std::string>("bottom_albedo_file");
+      std::cout << "\nLayered IOPs\n";
+      std::cout << "------Upper slab-------------------------------------------------"; 
       std::cout << *layered_upper_slab_;
+      std::cout << "------Lower slab-------------------------------------------------";
+      std::cout << *layered_lower_slab_;
+      std::cout << "------Bottom albedo: "<<ba_name <<"\n";
     }
 
   private:
@@ -578,6 +583,12 @@ as well as the AccuRT material and output subdirectories, are stored.
       system(("mkdir -p "+tmpdir_+"/accurtMaterials").c_str());
       system(("mkdir -p "+tmpdir_+"/accurtOutput").c_str());
       make_material_files();
+      std::string p = c_.get<std::string>("print_iops"); 
+      if (p=="true") {
+	print_iops();
+      } else if (p != "false") {
+	throw std::runtime_error("print_iops");
+      }
       int s=system(("DYLD_LIBRARY_PATH=$ACCURT_PATH/lib AccuRT "+tmpdir_+
 		    "/accurt").c_str());
       if (s!=0)

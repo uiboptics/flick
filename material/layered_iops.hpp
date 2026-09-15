@@ -68,21 +68,23 @@ namespace flick {
       auto oda = iops.absorption_optical_depth();
       auto ods = iops.scattering_optical_depth();
       auto real_n = iops.refractive_index();
-      auto g = iops.alpha_terms(0)[0];
-      os << std::scientific << "\n";
-      os << "column 1: Layer bottom height" << "\n";
-      os << "column 2: Layer geometrical thickness" << "\n";
+      os << std::defaultfloat << std::setprecision(4) << "\n";
+      os << "Wavelength [m]: " << iops.m_->wavelength() << "\n";
+      os << "column 1: Layer bottom height [m]" << "\n";
+      os << "column 2: Layer geometrical thickness [m]" << "\n";
       os << "column 3: Absorption optical thickness" << "\n";
       os << "column 4: Scattering optical thickness without delta-fit" << "\n";
       os << "column 5: Real refractive index" << "\n";
       os << "column 6: Delta-fit scattering scaling factor" << "\n";
       os << "column 7: Asymmetry factor with delta-fit scaling" << "\n";
-      for (size_t i = 0; i<oda.size(); i++) {
-	os << h[i] << "  " << h[i+1]-h[i]<< "  "<< oda[i] << "  "
-	   << ods[i] << "  "
-	   << real_n[i] << "  "
-	   << 4*std::numbers::pi*iops.alpha_terms(0)[i][0] << "  "
-	   << 4*std::numbers::pi/3*iops.alpha_terms(0)[i][1]
+      size_t n = oda.size()-1;
+      for (size_t i = 0; i<n+1; i++) {
+	os << std::scientific << std::setprecision(3) 
+	   << h[n-i] << "  " << h[n-i]-h[n-(i+1)]<< "  "<< oda[n-i] << "  "
+	   << ods[n-i] << "  "
+	   << real_n[n-i] << "  "
+	   << 4*std::numbers::pi*iops.alpha_terms(0)[n-i][0] << "  "
+	   << 4*std::numbers::pi/3*iops.alpha_terms(0)[n-i][1]
 	   << std::endl;
       }
       return os;
