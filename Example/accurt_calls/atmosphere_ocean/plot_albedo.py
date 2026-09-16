@@ -10,8 +10,8 @@ import sys
 sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
 
-path = os.environ['FLICK_PATH']+"/Example/accurt_calls/atmosphere_ocean"
-os.chdir(path)
+from pathlib import Path
+os.chdir(Path(__file__).resolve().parent)
 
 data = flick.table('output/computed_albedo.txt')
 wls = data[:,0]

@@ -47,8 +47,11 @@ variable.
 Space-separated list of material names that is scaled by the factors
 listed by the concentration_exception_scaling_factors. Valid material
 names are: cdom, phytoplankton, nap, bubbles, and any names listed by
-the variables `ti_names`, `mp_names`, or `mcdom_names`. The latter
-three must use the respective prefixes `ti_`, `mp_`, and `mcdom_`.
+the variables `ti_names`, `mp_names`, or `mcdom_names`. For the latter
+three material name groups, the respective prefixes `ti_`, `mp_`, and
+`mcdom_` must be added to the original name to avoid name
+clashes. These prefixes are only needed here in this
+concentration_exception_names variable.
 )");
 	
 	add<double>("cdom_440", 0.0, R"(

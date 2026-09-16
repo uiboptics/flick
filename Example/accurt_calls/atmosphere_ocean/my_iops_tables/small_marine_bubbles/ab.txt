@@ -1,0 +1,12 @@
+/*
+Spherical bubbles in sea water with S = 33 PSU and T = 293 K.
+
+Frist column: wavelengths [nm]
+Second column: absorption coefficient per volume fraction [1/m]
+Third column: scattering coefficient per volume fraction [1/m]
+*/
+
+300.0	-4.63e-03	5.07e+06
+433.3	-4.11e-03	2.16e+06
+566.7	-6.92e-02	1.10e+06
+700.0	-6.64e-01	6.17e+05

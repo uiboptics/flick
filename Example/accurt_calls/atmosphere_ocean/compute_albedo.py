@@ -8,8 +8,8 @@ import sys
 sys.path.append(os.environ['FLICK_PATH']+'/python_script')
 import flick
 
-path = os.environ['FLICK_PATH']+"/Example/accurt_calls/atmosphere_ocean"
-os.chdir(path)
+from pathlib import Path
+os.chdir(Path(__file__).resolve().parent)
 
 f = flick.relative_radiation()
 f._generate_config("toa_reflectance", "flick_tmp")
@@ -41,7 +41,7 @@ f.set('bubble_sigma',0.0)
 
 f.set('concentration_relative_depths', [0,0.01,0.01001,1])
 f.set('concentration_scaling_factors', [1,1,1,1])
-f.set('concentration_exception_names', 'ti_small_marine_bubbles')
+f.set('concentration_exception_names', './my_iops_tables/ti_small_marine_bubbles')
 f.set('concentration_exception_scaling_factors', [1,1,0,0])
 #f.set('concentration_exception_names', 'bubbles')
 #f.set('concentration_exception_scaling_factors', [1,1,0,0])
