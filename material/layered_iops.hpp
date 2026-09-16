@@ -77,14 +77,18 @@ namespace flick {
       os << "column 5: Real refractive index" << "\n";
       os << "column 6: Delta-fit scattering scaling factor" << "\n";
       os << "column 7: Asymmetry factor with delta-fit scaling" << "\n";
-      size_t n = oda.size()-1;
-      for (size_t i = 0; i<n+1; i++) {
+      size_t n_last = oda.size()-1;
+      for (size_t i = 0; i<oda.size(); i++) {
+	size_t n = n_last - i;
+	double dh = h[n_last];
+	if (i > 0)
+	  dh = h[n+1]-h[n];
 	os << std::scientific << std::setprecision(3) 
-	   << h[n-i] << "  " << h[n-i]-h[n-(i+1)]<< "  "<< oda[n-i] << "  "
-	   << ods[n-i] << "  "
-	   << real_n[n-i] << "  "
-	   << 4*std::numbers::pi*iops.alpha_terms(0)[n-i][0] << "  "
-	   << 4*std::numbers::pi/3*iops.alpha_terms(0)[n-i][1]
+	   << h[n] << "  " << dh << "  "<< oda[n] << "  "
+	   << ods[n] << "  "
+	   << real_n[n] << "  "
+	   << 4*std::numbers::pi*iops.alpha_terms(0)[n][0] << "  "
+	   << 4*std::numbers::pi/3*iops.alpha_terms(0)[n][1]
 	   << std::endl;
       }
       return os;

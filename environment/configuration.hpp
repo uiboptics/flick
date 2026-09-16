@@ -140,6 +140,13 @@ namespace flick {
       parameter<T>* p = dynamic_cast<parameter<T>*>(&*parameters_.at(name));
       return p->p();
     }
+    bool get_boolean(const std::string& name) {
+      std::string tf = get<std::string>(name); 
+      if (tf=="true")
+	return true; 
+      ensure(tf == "false", name);
+      return false;
+    }
     bool exists(const std::string& name) const {
       return (parameters_.find(name) != parameters_.end());
     }

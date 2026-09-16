@@ -163,6 +163,7 @@ namespace flick {
     ac.set<double>("detector_height",120e3);
     ac.set<double>("reference_detector_height",120e3);
     ac.set<double>("bottom_boundary_surface_scaling_factor",0);
+    ac.set<std::string>("print_iops","true");
     material::atmosphere::configuration mc;
     mc.set<size_t>("n_angles",n_angles);
     mc.set<size_t>("n_heights",8);
