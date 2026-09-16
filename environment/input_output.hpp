@@ -73,13 +73,17 @@ namespace flick {
   
   template<typename T>
   T read(std::string file, const std::string& alternative_path="") {
+    std::string file_1 = file;
+    std::string file_2 = alternative_path+"/"+file;
+    std::string file_3 = path()+"/"+alternative_path+"/"+file;
+    file = file_1;
     if (not std::filesystem::exists(file))
-      file = alternative_path+"/"+file;
+      file = file_2;
     if (not std::filesystem::exists(file))
-      file = path()+file;
+      file = file_3;
     std::ifstream ifs(file);
     if (!ifs)
-      throw std::invalid_argument(file+" not found");
+      throw std::invalid_argument("Neither '"+file_1+"', '"+file_2+"', nor '"+file_3+"' were found");
     T t;
     ifs >> t;
     ifs.close();

@@ -124,12 +124,12 @@ Third column: scattering coefficient per volume fraction [1/m]
             print(f'{wl_nm:#.4g}\t{a:#.2e}\t{b:#.2e}',file=f)
 
 if __name__ == "__main__":
-    n_angles = 5
-    include_elements = [[0,0], [1,1]]
+    n_angles = 300
+    include_elements = [[0,0]] # [[0,0], [1,1]]
     r_median = 1e-7
     sigma = 0.1
     percent_accuracy = 1
-    wls = np.linspace(300e-9, 700e-9, 4)
+    wls = np.linspace(300e-9, 700e-9, 20)
 
     write_ab(wls)
     write_all_normalized_scattering_elements(wls, include_elements)

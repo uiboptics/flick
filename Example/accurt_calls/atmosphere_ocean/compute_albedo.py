@@ -29,20 +29,25 @@ f.set('mcdom_names', 'input/ECOSENS_HF22_D1')
 f.set('mcdom_scaling_factors', 1)
 f.set('detector_height', 1)
 f.set('bottom_depth', 100)
+f.set('print_iops','true')
 
-f.set('ti_names','small_marine_bubbles')
-f.set('ti_volume_fractions', 1e-9)
+my_bubbles = './my_iops_tables/small_marine_bubbles'
+bubble_vf = 1e-8
 
-f.set('bubble_volume_fraction',0)
+f.set('ti_names', my_bubbles)
+f.set('ti_volume_fractions', bubble_vf*1)
+
+f.set('bubble_volume_fraction',bubble_vf*0)
 f.set('bubble_calculator','parameterized_mie')
 #f.set('bubble_calculator','full_mie')
-f.set('bubble_radius',1e-6)
+f.set('bubble_radius',1e-7)
 f.set('bubble_sigma',0.0)
 
-f.set('concentration_relative_depths', [0,0.01,0.01001,1])
-f.set('concentration_scaling_factors', [1,1,1,1])
-f.set('concentration_exception_names', './my_iops_tables/ti_small_marine_bubbles')
-f.set('concentration_exception_scaling_factors', [1,1,0,0])
+#f.set('concentration_relative_depths', [0,0.01,0.01001,1])
+#f.set('concentration_scaling_factors', [1,1,1,1])
+#f.set('concentration_exception_names', my_bubbles)
+#f.set('concentration_exception_scaling_factors', [1,1,0,0])
+
 #f.set('concentration_exception_names', 'bubbles')
 #f.set('concentration_exception_scaling_factors', [1,1,0,0])
        

@@ -18,14 +18,14 @@ namespace material {
   public:
     tabulated_iops(const std::string& name, double volume_fraction)
       : volume_fraction_{volume_fraction} {
-      std::string p = "/material/tabulated_iops/iop_tables/"+name+'/';
-      ab_ = read<pl_flist>("ab.txt", p);
-      e_ = read<matrix<size_t>>("include_elements.txt", p);
+      std::string p = "/material/tabulated_iops/iop_tables/";
+      ab_ = read<pl_flist>(name+"/ab.txt", p);
+      e_ = read<matrix<size_t>>(name+"/include_elements.txt", p);
       s_.resize(e_.n_rows());
       for (size_t i=0; i < s_.size(); i++) {
 	std::string fname = "s_"+std::to_string(e_.element(i,0))+
 	  std::to_string(e_.element(i,1))+".txt";
-	s_[i] = read<pe_table>(fname, p);
+	s_[i] = read<pe_table>(name+"/"+fname, p);
       }
     }
     double absorption_coefficient() const override {
