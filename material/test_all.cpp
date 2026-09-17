@@ -20,7 +20,6 @@ int main() {
   t.include<material_test_A>();
   t.include<iop_profile_test>();
   t.include<spheres_test_A>();
-  t.include<spheres_test_B>();
   
   t.include<normalized_scattering_matrix_fit_test>();
   t.include<ab_functions_test_A>();

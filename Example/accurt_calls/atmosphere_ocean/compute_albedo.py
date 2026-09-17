@@ -35,9 +35,9 @@ my_bubbles = './my_iops_tables/small_marine_bubbles'
 bubble_vf = 1e-8
 
 f.set('ti_names', my_bubbles)
-f.set('ti_volume_fractions', bubble_vf*1)
+f.set('ti_volume_fractions', bubble_vf*0)
 
-f.set('bubble_volume_fraction',bubble_vf*0)
+f.set('bubble_volume_fraction',bubble_vf)
 f.set('bubble_calculator','parameterized_mie')
 #f.set('bubble_calculator','full_mie')
 f.set('bubble_radius',1e-7)

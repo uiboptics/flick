@@ -21,10 +21,9 @@ namespace flick {
     sky.add_material<simple_cloud>(cloud_scat_coef);
 
     sky.set_range<simple_cloud>(n_low, n_high);
-    //double od_cl = sky.optical_depth(toa);
-    //double od_cl_bench = cloud_scat_coef*(heights[n_high]-heights[n_low]);
-    //check_close(od_cl,od_cl_bench);
-/*
+    double od_cl = sky.optical_depth(toa);
+    double od_cl_bench = cloud_scat_coef*(heights[n_high]-heights[n_low]);
+    check_close(od_cl,od_cl_bench);
     
     sky.set_position({0,0,heights[n_low]});
     double p = sky.mueller_matrix(unit_vector{pi/2,0}).value(0,0);
@@ -32,7 +31,8 @@ namespace flick {
     
     auto pf = material::phase_function(sky);
     check_close(delta_fit(pf,8).coefficients()[0]*4*pi,1,1e-7_pct);
-    sky.add_material(std::make_shared<material::rural_aerosols>(300,0.1,0.5),"rural_aerosols");
+    sky.add_material(std::make_shared<material::rural_aerosols>(300,0.1,0.5),
+		     "rural_aerosols");
     sky.update_iops();
     sky.set_position({0,0,0});
 
@@ -44,7 +44,7 @@ namespace flick {
     check(p2/p1 < 0.3);
     auto pf2 = material::phase_function(sky);
     check_close(delta_fit(pf2,16).coefficients()[0]*4*pi,1,0.2_pct);   
-*/
+
   } end_test_case()
   
   begin_test_case(mixture_test_B) {
@@ -129,10 +129,8 @@ namespace flick {
     double S = 33;
     double T = 300;
     using bubbles = bubbles_in_water<monodispersed_mie>;
-    auto b = std::make_shared<bubbles>(volume_fraction,mu,sigma,S,T);
+    auto b = std::make_shared<bubbles>(volume_fraction,stdvector{0},mu,sigma,S,T);
     m.add_material(make_scaled_z_profile<pl_function>(b,z,f),"bubbles");
     m.set_position({0,0,-1});
-    //std::cout << m.mueller_matrix({0,0}) << std::endl;
-    
   } end_test_case()
 }

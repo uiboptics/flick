@@ -62,6 +62,13 @@ CDOM absorption coefficient at 440 nm [1/m].
 Slope of the CDOM absorption spectrum 1/nm. Note that
 this unit is an exception to the SI mks unit convention.
 )");
+
+	add<double>("pure_water_volume_fraction", 1, R"(
+Should normally be set to one, but can be changed to examine the
+contribution of pure water to radiative quantities. If set to zero,
+absorption and scattering by pure water are removed, but the
+refractive index of the lower slab is still that of water.
+)");
 		    	
 	add<double>("chl_concentration", 0, R"(
 Chlorophyll concentration in the water column [kg/m^3]. A
@@ -237,23 +244,24 @@ Radius of sea ice brine pocket inclusions [m].
 	double width = 0;
 	double r_bu = c_.get<double>("ice_bubble_radius");
 	using bubbles = bubbles_in_ice<parameterized_monodispersed_mie>;
-	auto m2 = std::make_shared<bubbles>(1,log(r_bu),width);
+	auto m2 = std::make_shared<bubbles>(1,angles(),log(r_bu),width);
 	add_profile(m2, bubble_fraction, "ice bubbles");
 	
 	double r_br = c_.get<double>("ice_brine_radius");
 	using brines = brines_in_ice<parameterized_monodispersed_mie>;
 	double salinity = 100;
-	auto m3 = std::make_shared<brines>(1,log(r_br),width,salinity);
+	auto m3 = std::make_shared<brines>(1,angles(),log(r_br),width,salinity);
 	add_profile(m3, brine_fraction, "ice brines");
       }
     }
     void add_pure_water() {
+      double vf = c_.get<double>("pure_water_volume_fraction");
       double S = c_.get<double>("water_salinity");
       double T = c_.get<double>("water_temperature");
       size_t n_ice_depths = c_.get<int>("ice_depths");
       size_t n_total = c_.get_vector<double>("concentration_relative_depths").size();
       stdvector vol_frac(n_ice_depths, 0.0);
-      vol_frac.resize(n_total, 1.0);
+      vol_frac.resize(n_total, vf);
       auto m = std::make_shared<pure_water>(S,T);
       add_profile(m,vol_frac,"pure water");
     }
@@ -312,9 +320,9 @@ Radius of sea ice brine pocket inclusions [m].
 	using full = bubbles_in_water<monodispersed_mie>;
 	using param = bubbles_in_water<parameterized_monodispersed_mie>;
 	if (calculator == "full_mie")
-	  add_concentration_profile(std::make_shared<full>(volume_fraction,mu,sigma,S,T),"bubbles");
+	  add_concentration_profile(std::make_shared<full>(volume_fraction,angles(),mu,sigma,S,T),"bubbles");
 	else if (calculator == "parameterized_mie")
-	  add_concentration_profile(std::make_shared<param>(volume_fraction,mu,sigma,S,T),"bubbles");
+	  add_concentration_profile(std::make_shared<param>(volume_fraction,angles(),mu,sigma,S,T),"bubbles");
 	else
 	  ensure(false,"bubble_calculator");
       }

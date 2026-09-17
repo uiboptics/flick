@@ -14,6 +14,7 @@ namespace flick {
     std::vector<std::vector<stdvector>> alpha_;
     std::vector<std::vector<stdvector>> beta_;
     stdvector refidx_;
+    stdvector s_height_;
   public:
     layered_iops(std::shared_ptr<material::base> m,
 		 const stdvector& boundaries, size_t n_terms)
@@ -23,7 +24,7 @@ namespace flick {
 	ods_(n_layers()),
 	alpha_(4, std::vector<stdvector>(n_layers(), stdvector(n_terms))),
 	beta_(2, std::vector<stdvector>(n_layers(), stdvector(n_terms))),
-	refidx_(n_layers())
+	refidx_(n_layers()), s_height_(n_layers())
     {
       if (boundaries.size() < 2 or boundaries[1] < boundaries[0] or
 	  (not std::is_sorted(boundaries.begin(), boundaries.end())))
@@ -62,6 +63,20 @@ namespace flick {
     stdvector scattering_coefficient() const {
       return ods_ / layer_thicknesses();
     }
+    double delta_fit_scaling_factor(size_t layer_no) const {
+      return 4*std::numbers::pi*alpha_terms(0)[layer_no][0];
+    }
+    double asymmetry_factor(size_t layer_no) const {
+      return 4*std::numbers::pi/3*alpha_terms(0)[layer_no][1];
+    }
+    double phase_function(size_t layer_no, double angle) const {
+      double h = m_->pose().position().z();
+      m_->set_position({0,0,s_height_.at(layer_no)});
+      double p = material::phase_function(*m_).value(cos(angle));
+      m_->set_position({0,0,h});
+      return p;
+    }
+
     friend std::ostream& operator<<(std::ostream &os,
 				    const layered_iops& iops) {
       auto h = iops.boundaries_;
@@ -70,13 +85,17 @@ namespace flick {
       auto real_n = iops.refractive_index();
       os << std::defaultfloat << std::setprecision(4) << "\n";
       os << "Wavelength [m]: " << iops.m_->wavelength() << "\n";
-      os << "column 1: Layer bottom height [m]" << "\n";
+      os << "column 1: Layer bottom boundary height [m]" << "\n";
       os << "column 2: Layer geometrical thickness [m]" << "\n";
       os << "column 3: Absorption optical thickness" << "\n";
       os << "column 4: Scattering optical thickness without delta-fit" << "\n";
       os << "column 5: Real refractive index" << "\n";
       os << "column 6: Delta-fit scattering scaling factor" << "\n";
       os << "column 7: Asymmetry factor with delta-fit scaling" << "\n";
+      os << "column 8: Average layer scattering height [m]" << "\n";
+      os << "column 9: Phase function forward at scattering height, without delta-fit [1/sr]" << "\n";
+      os << "column 10: Phase function at pi/2 at scattering height without delta-fit [1/sr]" << "\n";
+      os << "column 11: Phase function backward at scattering height without delta-fit [1/sr]" << "\n";
       size_t n_last = oda.size()-1;
       for (size_t i = 0; i<oda.size(); i++) {
 	size_t n = n_last - i;
@@ -84,11 +103,15 @@ namespace flick {
 	if (i > 0)
 	  dh = h[n+1]-h[n];
 	os << std::scientific << std::setprecision(3) 
-	   << h[n] << "  " << dh << "  "<< oda[n] << "  "
-	   << ods[n] << "  "
-	   << real_n[n] << "  "
-	   << 4*std::numbers::pi*iops.alpha_terms(0)[n][0] << "  "
-	   << 4*std::numbers::pi/3*iops.alpha_terms(0)[n][1]
+	   << "(1)"<< h[n] << " (2)" << dh << " (3)"<< oda[n] << " (4)"
+	   << ods[n] << " (5)"
+	   << real_n[n] << " (6)"
+	   << iops.delta_fit_scaling_factor(n)<< " (7)"
+	   << iops.asymmetry_factor(n) << " (8)"
+	   << iops.s_height_[n] << " (9)"
+	   << iops.phase_function(n, 0) << " (10)"
+	   << iops.phase_function(n, std::numbers::pi/2) << " (11)"
+	   << iops.phase_function(n, std::numbers::pi)
 	   << std::endl;
       }
       return os;
@@ -99,8 +122,8 @@ namespace flick {
       m_->set_position({0,0,boundaries_[0]});
       for (size_t i=0; i < n_layers(); i++) {	
 	double h = layer_thickness(i);
-	double dh = average_scattering_height(boundaries_[i],boundaries_[i+1])
-	  -boundaries_[i];
+	s_height_[i] = average_scattering_height(boundaries_[i],boundaries_[i+1]);
+	double dh = s_height_[i] - boundaries_[i];
 	move(dh);
 	set_alpha_beta(i);
 	refidx_[i] = m_->real_refractive_index();

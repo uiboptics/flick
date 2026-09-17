@@ -178,4 +178,40 @@ namespace flick {
     check(L_toa_cloudy > L_toa_clear);
     check_close(L_toa_cloudy,L_toa_clear,1_pct);
   } end_test_case()
+  
+   begin_test_case(accurt_test_H) {
+    // Check that build-in mie calculator gives delta-fit scaling
+    // factor less than one for bubbles
+    size_t n_angles = 100;
+    accurt::configuration ac;
+    ac.set<size_t>("stream_upper_slab_size",ac.to_streams(n_angles));
+    ac.set<double>("detector_wavelengths",443e-9);
+    ac.set<double>("detector_height",120e3);
+    ac.set<std::string>("detector_type","plane_irradiance");
+    ac.set<double>("bottom_boundary_surface_scaling_factor",0);
+    ac.set<std::string>("detector_orientation","down");
+    ac.set<double>("reference_detector_height",1);
+    
+    ac.set<std::string>("print_iops","true");
+    material::atmosphere_ocean::configuration mc;
+
+    mc.set<double>("pure_water_volume_fraction",0);
+    mc.set<double>("bubble_volume_fraction", 1e-5);
+    //mc.set<std::string>("bubble_calculator","parameterized_mie");
+    mc.set<std::string>("bubble_calculator","full_mie");
+    mc.set<double>("bubble_radius",1e-7);
+    mc.set<double>("bubble_sigma",0);
+
+    mc.set<size_t>("n_angles",n_angles);
+    mc.set<size_t>("n_heights",8);
+    mc.set<std::string>("gases","no2");   
+    mc.set<double>("bottom_depth", 100);
+    
+    auto m = std::make_shared<material::atmosphere_ocean>(mc);
+    auto a =  accurt(ac,m);
+    double albedo = a.relative_radiation().y()[0];
+    check(albedo > 0 && albedo < 1);
+    double f = a.lower_slab_delta_fit_scaling_factor(1);
+    check(f < 1);
+  } end_test_case()
 }

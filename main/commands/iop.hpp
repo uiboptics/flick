@@ -21,6 +21,7 @@ namespace flick {
   namespace command {
     class iop : public basic_command {
       std::vector<double> wls_;
+      std::vector<double> angles_;    
     public:
       iop():basic_command("iop"){};
       void run() {
@@ -28,6 +29,7 @@ namespace flick {
 	double to_wl = std::stod(a(3));
 	double n_points = std::stod(a(4));	
 	wls_ = range(from_wl, to_wl, n_points).logspace();
+	angles_ = range(0,constants::pi,1000).linspace();
 	
 	if (a(5)=="pure_water") {
 	  double T = std::stod(a(6));
@@ -58,11 +60,11 @@ namespace flick {
 	  double sigma = std::stod(a(9));
 	  double volfrac = std::stod(a(7));
 	  if (a(6)=="full_mie") {
-	    material::water_cloud<monodispersed_mie> m(volfrac,mu,sigma);
+	    material::water_cloud<monodispersed_mie> m(volfrac,angles_,mu,sigma);
 	   stream_iops(m, a(1));
 	  } else {
 	    material::water_cloud<parameterized_monodispersed_mie>
-	      m(volfrac,mu,sigma);
+	      m(volfrac,angles_,mu,sigma);
 	    stream_iops(m, a(1));
 	  }
 	}
@@ -71,11 +73,11 @@ namespace flick {
 	  double sigma = std::stod(a(9));
 	  double volfrac = std::stod(a(7));
 	  if (a(6)=="full_mie") {
-	    material::ice_cloud<monodispersed_mie> m(volfrac,mu,sigma);
+	    material::ice_cloud<monodispersed_mie> m(volfrac,angles_,mu,sigma);
 	   stream_iops(m, a(1));
 	  } else {
 	    material::ice_cloud<parameterized_monodispersed_mie>
-	      m(volfrac,mu,sigma);
+	      m(volfrac,angles_,mu,sigma);
 	    stream_iops(m, a(1));
 	  }
 	}
@@ -84,11 +86,11 @@ namespace flick {
 	  double sigma = std::stod(a(9));
 	  double volfrac = std::stod(a(7));
 	  if (a(6)=="full_mie") {
-	    material::bubbles_in_ice<monodispersed_mie> m(volfrac,mu,sigma);
+	    material::bubbles_in_ice<monodispersed_mie> m(volfrac,angles_,mu,sigma);
 	   stream_iops(m, a(1));
 	  } else {
 	    material::bubbles_in_ice<parameterized_monodispersed_mie>
-	      m(volfrac,mu,sigma);
+	      m(volfrac,angles_,mu,sigma);
 	    stream_iops(m, a(1));
 	  }
 	}
@@ -98,12 +100,12 @@ namespace flick {
 	  double volfrac = std::stod(a(7));
 	  double salinity = std::stod(a(10));
 	  if (a(6)=="full_mie") {
-	    material::brines_in_ice<monodispersed_mie> m(volfrac,mu,
+	    material::brines_in_ice<monodispersed_mie> m(volfrac,angles_,mu,
 							 sigma,salinity);
 	    stream_iops(m, a(1));
 	  } else {
 	    material::brines_in_ice<parameterized_monodispersed_mie>
-	      m(volfrac,mu, sigma,salinity);
+	      m(volfrac,angles_,mu, sigma,salinity);
 	    stream_iops(m, a(1));
 	  }
 	}

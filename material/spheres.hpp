@@ -28,6 +28,7 @@ namespace material {
     spheres(const spheres&) = delete;
     spheres& operator=(const spheres&) = delete;
     spheres(double volume_fraction,
+	    const stdvector& angles,
 	    const Size_distribution& sd,
 	    const Host_material& hm,
 	    const Sphere_material& sm)
@@ -38,6 +39,7 @@ namespace material {
       sphere_material_.refractive_index(), wavelength()},
 	poly_mie_{mono_mie_, size_distribution_}
     {
+      set_angles(angles);
     }
     void set_wavelength(double wl) override {
       base::set_wavelength(wl);
@@ -81,6 +83,7 @@ namespace material {
       mueller m;
       double c = poly_mie_.scattering_cross_section();
       for (size_t i=0; i<scattering_matrix_elements_.size(); ++i) {
+	
 	double s = scattering_matrix_elements_[i].value(theta);
 	m.add(row_[i],col_[i],s/c);
       }
@@ -96,14 +99,14 @@ namespace material {
 					 material::pure_ice,
 					 material::vacuum,
 					 Monodispersed_mie> {
-    bubbles_in_ice(double volume_fraction,double mu, double sigma) :
-      spheres<log_normal_distribution,
-	      material::pure_ice,
-	      material::vacuum,
-	      Monodispersed_mie>(volume_fraction,
-				 log_normal_distribution(mu,sigma),
-				 material::pure_ice(),
-				 material::vacuum()) {}
+
+    using base = spheres<log_normal_distribution, material::pure_ice,
+			 material::vacuum, Monodispersed_mie>;
+      
+    bubbles_in_ice(double volume_fraction, const stdvector& angles,
+		   double mu, double sigma) :
+      base(volume_fraction, angles, log_normal_distribution(mu,sigma),
+	   material::pure_ice(), material::vacuum()) {}
   };
 
   template<class Monodispersed_mie>
@@ -111,15 +114,16 @@ namespace material {
 					 material::pure_water,
 					 material::vacuum,
 					 Monodispersed_mie> {
-    bubbles_in_water(double volume_fraction,double mu, double sigma,
+
+    using base = spheres<log_normal_distribution, material::pure_water,
+                         material::vacuum, Monodispersed_mie>;
+    
+    bubbles_in_water(double volume_fraction, const stdvector& angles,
+		     double mu, double sigma,
 		     double salinity, double temperature) :
-      spheres<log_normal_distribution,
-	      material::pure_water,
-	      material::vacuum,
-	      Monodispersed_mie>(volume_fraction,
-				 log_normal_distribution(mu,sigma),
-				 material::pure_water(salinity,temperature),
-				 material::vacuum()) {}
+      base(volume_fraction, angles, log_normal_distribution(mu,sigma),
+	   material::pure_water(salinity,temperature),
+	   material::vacuum()) {}
   };
 
   template<class Monodispersed_mie>
@@ -127,15 +131,14 @@ namespace material {
 					 material::pure_ice,
 					 material::pure_water,
 					 Monodispersed_mie> {
-    brines_in_ice(double volume_fraction, double mu, double sigma,
-		   double salinity) :
-      spheres<log_normal_distribution,
-	      material::pure_ice,
-	      material::pure_water,
-	      Monodispersed_mie>(volume_fraction,
-				 log_normal_distribution(mu,sigma),
-				 material::pure_ice(),
-				 material::pure_water(salinity,273.15)) {}
+
+    using base = spheres<log_normal_distribution, material::pure_ice,
+			 material::pure_water, Monodispersed_mie>;
+      
+    brines_in_ice(double volume_fraction, const stdvector& angles,
+		  double mu, double sigma, double salinity) :
+      base(volume_fraction, angles, log_normal_distribution(mu,sigma),
+	   material::pure_ice(), material::pure_water(salinity,273.15)) {}
   };
   
   template<class Monodispersed_mie>
@@ -143,14 +146,14 @@ namespace material {
 				      material::vacuum,
 				      material::pure_water,
 				      Monodispersed_mie> {
-    water_cloud(double volume_fraction, double mu, double sigma) :
-      spheres<log_normal_distribution,
-	      material::vacuum,
-	      material::pure_water,
-	      Monodispersed_mie>(volume_fraction,
-				 log_normal_distribution(mu,sigma),
-				 material::vacuum(),
-				 material::pure_water()) {}
+
+    using base = spheres<log_normal_distribution, material::vacuum,
+			 material::pure_water, Monodispersed_mie>;
+    
+    water_cloud(double volume_fraction, const stdvector& angles,
+		double mu, double sigma) :
+      base(volume_fraction, angles, log_normal_distribution(mu,sigma),
+	   material::vacuum(), material::pure_water()) {}
   };
   
   template<class Monodispersed_mie>
@@ -158,14 +161,14 @@ namespace material {
 				      material::vacuum,
 				      material::pure_ice,
 				      Monodispersed_mie> {
-    ice_cloud(double volume_fraction, double mu, double sigma) :
-      spheres<log_normal_distribution,
-	      material::vacuum,
-	      material::pure_ice,
-	      Monodispersed_mie>(volume_fraction,
-				 log_normal_distribution(mu,sigma),
-				 material::vacuum(),
-				 material::pure_ice()) {}
+
+    using base = spheres<log_normal_distribution, material::vacuum,
+			 material::pure_ice, Monodispersed_mie>;
+    
+    ice_cloud(double volume_fraction, const stdvector& angles,
+	      double mu, double sigma) :
+      base(volume_fraction, angles, log_normal_distribution(mu,sigma),
+	   material::vacuum(), material::pure_ice()) {}
   }; 
 }
 }

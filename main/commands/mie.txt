@@ -44,7 +44,7 @@ Parameters:
 
     'scattering_cross_section'
 
-    'absorption_coefficient_per_vf'
+    'scattering_coefficient_per_vf'
 
     'scattering_matrix_element' <row> <column> <number_of_angles>
 

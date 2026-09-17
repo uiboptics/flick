@@ -342,6 +342,9 @@ flick_tmp_directory during runtime. Valid options are ‘true’ or
       os << *layered_lower_slab_;
       os << "------Bottom albedo: "<< ba_name <<"\n";
     }
+    double lower_slab_delta_fit_scaling_factor(size_t layer_no) {
+      return layered_lower_slab_->delta_fit_scaling_factor(layer_no);
+    }
 
   private:
     void set_vertical_radiance() {

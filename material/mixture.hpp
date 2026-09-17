@@ -30,6 +30,9 @@ namespace material {
       : angles_{angles}, heights_{heights} {
       mueller_.resize(heights.size());
     }
+    const stdvector& angles() const {
+      return angles_;
+    }
     const stdvector& heights() const {
       return heights_;
     }
@@ -175,8 +178,9 @@ namespace material {
 	  s1 = 0;
 	if (s2 < 0)
 	  s2 = 0;
-	if (s1+s2 > 0)
+	if (s1+s2 > 0) {
 	  weight = s2/(s1+s2);
+	}
 	if (not std::isfinite(weight))
 	  weight = 0;
 	material.set_angles(angles_);

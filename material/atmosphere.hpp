@@ -190,7 +190,7 @@ wavelength.
 	double mu = log(radius);
 	double sigma = 0;
 	using cloud = water_cloud<parameterized_monodispersed_mie>;
-	add_material<cloud>(volume_fraction,mu,sigma);
+	add_material<cloud>(volume_fraction,angles(),mu,sigma);
 	set_range<cloud>(n_base,n_top);
       }
     }
@@ -206,7 +206,7 @@ wavelength.
 	double mu = log(radius);
 	double sigma = 0;
 	using snow = ice_cloud<parameterized_monodispersed_mie>;
-	add_material<snow>(volume_fraction,mu,sigma);
+	add_material<snow>(volume_fraction,angles(),mu,sigma);
 	set_range<snow>(n_base,n_top);
       }
     }
