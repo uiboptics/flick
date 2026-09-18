@@ -22,7 +22,8 @@ build:
 	cd coating; make obj link
 	cd material/gas; make obj link
 	cd material/aerosols; make obj link
-	cd material/water; make obj link	
+	cd material/water; make obj link
+	cd material/water/refractive_index; make obj link	
 	cd material/ice; make obj link	
 	cd material/marine_cdom; make obj link	
 	cd material/marine_particles; make obj link

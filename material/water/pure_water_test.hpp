@@ -64,7 +64,7 @@ namespace flick {
     pw.set_wavelength(1001_nm);
     check_close(pw.real_refractive_index(),1.326,0.2_pct);
     pw.set_wavelength(2000_nm);
-    check_close(pw.real_refractive_index(),1.31,0.2_pct);
+    check_close(pw.real_refractive_index(),1.3,0.2_pct);
   } end_test_case()
   
   begin_test_case(pure_water_test_C) {

@@ -4,10 +4,12 @@
 #include "../material.hpp"
 #include "../../polarization/rayleigh_mueller.hpp"
 #include "../../environment/input_output.hpp"
+#include "./refractive_index/refractive_index.hpp"
+
 
 namespace flick {
 namespace material {
-namespace water { // Pure sea water
+namespace water {
   using vec = std::vector<double>;
   class base {
   protected:
@@ -103,47 +105,6 @@ namespace water { // Pure sea water
     }
   };
   
-  class refractive_index : public base
-  // Quan, X. and Fry, E.S., 1995. Empirical equation for the
-  // index of refraction of seawater. Applied optics, 34(18),
-  // pp.3477-3480.
-  {
-    vec a = {1.31405, 1.779e-4, -1.05e-6, 1.6e-8, -2.02e-6,
-      15.868, 0.01155, -0.00423, -4382, 1.1455e6};
-  public:
-    using base::base;
-    double at(double wavelength) const {
-      double lambda = wavelength*1e9; // [nm]
-      return (a[0]+(a[1]+a[2]*Tc_+a[3]*pow(Tc_,2))*S_+a[4]*pow(Tc_,2)+
-	      (a[5]+a[6]*S_+a[7]*Tc_)/lambda+a[8]/pow(lambda,2)+a[9]/pow(lambda,3))*
-	air_refractive_index(wavelength);
-    }
-    double dn_dS(double wavelength) {
-      double wl = wavelength*1e9; // [nm]
-      return (a[1]+a[2]*Tc_+a[3]*pow(Tc_,2)+a[6]/wl)*
-	air_refractive_index(wavelength);
-    }
-    double density_variation(double wavelength) const {
-      // Proutiere, A., Megnassan, E. and Hucteau, H.,
-      // 1992. Refractive index and density variations in pure
-      // liquids: A new theoretical relation. The Journal of Physical
-      // Chemistry, 96(8), pp.3485-3489.
-      double n = at(wavelength);
-      double n2 = pow(n,2);
-      return (n2-1)*(1+2./3*(n2+2)*pow(n/3-1/(3*n),2));
-    }  
-  private:
-    double air_refractive_index(double wavelength) const
-    // Ciddor, P.E., 1996. Refractive index of air: new equations for
-    // the visible and near infrared. Applied optics, 35(9),
-    // pp.1566-1573.
-    {
-      vec a = {238.0185, 5792105, 57.362, 167917}; // [microns^-2]
-      double nu = 1/(wavelength*1e6); // [microns^-1]
-      return 1+(a[1]/(a[0]-pow(nu,2))+a[3]/(a[2]-pow(nu,2)))/1e8;
-    }      
-  };
- 
   class scattering : public base
   // Zhang, X. and Hu, L., 2009. Estimating scattering of pure water
   // from density fluctuation of the refractive index. Optics Express,
@@ -158,16 +119,16 @@ namespace water { // Pure sea water
       return 0.039;
     }
     double vsf90_density(double wavelength) const {
-      refractive_index n(S_,T_);
+      water::refractive_index n(S_,T_);
       double wl = wavelength;
       double beta_T = compressibility(S_,T_).value();
       return vsf90_factor(wl) / 2 * pow(n.density_variation(wl),2) *
 	constants::k_B * T_ * beta_T;
     }
     double vsf90_salinity(double wavelength) const {
-      refractive_index n(S_,T_);
+      water::refractive_index n(S_,T_);
       double wl = wavelength;
-      return vsf90_factor(wl) * 2 * pow(n.at(wl),2) * S_ *
+      return vsf90_factor(wl) * 2 * pow(n.value(wl),2) * S_ *
 	water_molecular_weight() * pow(n.dn_dS(wl),2) /
       	(density(S_,T_).value() * (-activity(S_,T_).value())*constants::N_A);
     }
@@ -195,27 +156,25 @@ namespace water { // Pure sea water
   }
     
   class pure_water : public base {
+    /* Pure sea water */
     double volume_fraction_ = 1;
     pp_function absorption_coefficient_;
-    pp_function segelstein_real_refractive_index_;
     pl_function temperature_correction_;
     pl_function salinity_correction_;
     pl_function salinity_psu_{0};
     pl_function temperature_{constants::T_ntp};
     const double pope_fry_temperature_{295};
     const std::string path_{"/material/water"};
+    water::refractive_index real_refractive_index_{35, 295};
   public:
     pure_water() {
       absorption_coefficient_ = read<pp_function>
 	(path_+"/absorption_coefficient.txt"); 
-      segelstein_real_refractive_index_ = read<pp_function>
-	(path_+"/refractive_index.txt");
       temperature_correction_ = read<pl_function>
 	(path_+"/temperature_correction.txt"); 
       salinity_correction_ = read<pl_function>
 	(path_+"/salinity_correction.txt");
       absorption_coefficient_.add_constant_extrapolation();
-      segelstein_real_refractive_index_.add_constant_extrapolation();
       temperature_correction_.add_zero_extrapolation();
       salinity_correction_.add_zero_extrapolation();
     }
@@ -248,16 +207,8 @@ namespace water { // Pure sea water
 			      water::scattering::depolarization_ratio());
     }
     double real_refractive_index() const {
-      double wl_1 = 280e-9;
-      double wl_2 = 1600e-9;
-      double wl = wavelength();
-      if (wl < wl_1)
-	return segelstein_real_refractive_index_.value(wl) + sal_temp_shift(wl_1);
-      else if (wl > wl_2)
-	return segelstein_real_refractive_index_.value(wl) + sal_temp_shift(wl_2);
-      else {
-	return water::refractive_index(salinity(),temperature()).at(wavelength());
-      }
+      real_refractive_index_.set_S_T(salinity(),temperature());
+      return real_refractive_index_.value(wavelength());
     }
   private:
     double temperature_correction() const {
@@ -273,10 +224,6 @@ namespace water { // Pure sea water
     double temperature() const {
       return temperature_.value(pose().position().z());
     }
-    double sal_temp_shift(double wl) const {
-      return water::refractive_index(salinity(),temperature()).at(wavelength())-
-	segelstein_real_refractive_index_.value(wl);
-    } 
   };
 }
 }
