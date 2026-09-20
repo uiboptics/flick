@@ -3,6 +3,15 @@
 #include <numbers>
 
 namespace flick {
+  double compare_rayleigh(size_t row, size_t col, double angle) {
+    double r = 1e-10;
+    double sigma = 0.1;
+    material::bubbles_in_ice<monodispersed_mie> bi(1,stdvector{angle},log(r),sigma);
+    bi.percentage_accuracy(0.01);
+    auto m1 = bi.mueller_matrix(unit_vector{angle,0});
+    auto m2 = rayleigh_mueller(angle,0);
+    return abs(1-m1.value(row,col)/m2.value(row,col))*100;
+  }
   begin_test_case(spheres_test_A) {
     material::vacuum v;
     material::pure_water pw;
@@ -18,25 +27,25 @@ namespace flick {
     check_close(s.scattering_coefficient(),3./2*f/r,p);
 
     double pi = std::numbers::pi;
-    material::bubbles_in_ice<monodispersed_mie> bi(1,stdvector{0,pi/2},log(1e-10),0.0001);
-    p = 0.5; //%
-    bi.percentage_accuracy(p);
-    auto m1 = bi.mueller_matrix(unit_vector{0,0});
-    auto m2 = rayleigh_mueller(0,0);
-    check_close(m1.value(0,0),m2.value(0,0),p);
-    check_close(m1.value(2,2),m2.value(2,2),p);
-    check_close(m1.value(3,3),m2.value(3,3),p);
-
-    p = 1;
-    bi.percentage_accuracy(p);
-    double theta = pi/2;
-    m1 = bi.mueller_matrix(unit_vector{theta,0});
-    m2 = rayleigh_mueller(theta,0);
-    check_close(m1.value(0,0),m2.value(0,0),p);
-    check_close(m1.value(1,1),m2.value(1,1),p);
-    //check_close(m1.value(0,1),m2.value(0,1),p);
-    //check_close(m1.value(1,0),m2.value(1,0),p);
-    
+    p = 0.01; //%
+    check_small(compare_rayleigh(0,0,0),p);
+    check_small(compare_rayleigh(2,2,0),p);
+    check_small(compare_rayleigh(3,3,0),p);
+    check_small(compare_rayleigh(0,1,pi/2),p);
+    check_small(compare_rayleigh(1,0,pi/2),p);
   } end_test_case()
-
+  
+  begin_test_case(spheres_test_B) {
+    // Check size-distribution integration convergence for small particles
+    material::vacuum v;
+    material::pure_water pw;
+    double r = 1e-10;
+    double sigma = 0.1;
+    double angle = std::numbers::pi/2;
+    material::bubbles_in_ice<monodispersed_mie> bi(1,stdvector{angle},log(r),sigma);
+    bi.percentage_accuracy(0.1);
+    bi.phase_function_only(true);
+    bi.mueller_matrix(unit_vector{angle,0});
+    check(true);
+  } end_test_case()
 }

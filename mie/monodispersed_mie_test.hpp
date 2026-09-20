@@ -1,5 +1,6 @@
 #include "monodispersed_mie.hpp"
 #include "parameterized_monodispersed_mie.hpp"
+#include <numbers>
 
 namespace flick {
   begin_test_case(mono_mie_bessel_test_A) {
@@ -130,7 +131,7 @@ namespace flick {
 		/mie.scattering_cross_section(),0.119366,1e-3_pct);
   } end_test_case()
   
-    begin_test_case(mono_mie_test_G) {
+  begin_test_case(mono_mie_test_G) {
     stdcomplex m_host = 1.33 + 1e-5i;
     stdcomplex m_sphere = 1;
     double wl = 500e-9;
@@ -144,4 +145,16 @@ namespace flick {
     check_close(pmie.scattering_cross_section(),
     		mie.scattering_cross_section(),2.0_pct);
   } end_test_case()
+
+  begin_test_case(mono_mie_test_H) {
+    // Check not nan for small bubbles
+    stdcomplex m_host = {1.34, 0};
+    stdcomplex m_sphere = {1.0, 0};
+    double r = 9.84594346570364e-21;
+    monodispersed_mie mie(m_host,m_sphere,500e-9);
+    mie.radius(r);
+    double value = mie.scattering_cross_section();
+    check(value > 0, "scattering cross section: " + std::to_string(value));
+  } end_test_case()
+
 }

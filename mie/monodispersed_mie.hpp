@@ -77,8 +77,20 @@ namespace flick
 	r_previous = r_high;
       }
       stdvectorc r_stable = r(z,n_terms+n_extra,2);
-      f_[0] = sin(z)/z;
-      f_[1] = sin(z)/pow(z,2)-cos(z)/z; // Avoids instability when sin(z)=0
+      /* f_[1] calculated to void instability when sin(z)=0 */
+      if (std::abs(z) < 0.1) {
+	/* The recursion loses precision near zero, using
+	   Taylor expansion there */
+	const stdcomplex z2 = z*z;
+	f_[0] = 1.0-z2/6.0+z2*z2/120.0-z2*z2*z2/5040.0
+	  +z2*z2*z2*z2/362880.0;
+	f_[1] = z*(1.0/3.0-z2/30.0+z2*z2/840.0
+	  -z2*z2*z2/45360.0+z2*z2*z2*z2/3991680.0);
+      }
+      else {
+	f_[0] = sin(z)/z;
+	f_[1] = sin(z)/pow(z,2)-cos(z)/z; 
+      }
       for (size_t n=2; n<f_.size(); ++n) {
 	f_[n] = r_stable[n] * f_[n-1];
       }
@@ -126,15 +138,14 @@ namespace flick
     std::tuple<stdvectorc,stdvectorc> ab_coefficients() {
       stdcomplex m = m_sphere_ / m_host_;
       stdcomplex x = size_parameter_in_host();
-      
       spherical_bessel jx(x,n_terms_);
       stdvectorc jx_t = jx.terms();
       stdvectorc jx_d = jx.times_z_derivatives();
-      
+
       spherical_bessel jmx(m*x,n_terms_);  
       stdvectorc jmx_t = jmx.terms();
       stdvectorc jmx_d = jmx.times_z_derivatives();
-      
+
       spherical_hankel hx(x,n_terms_);
       stdvectorc hx_t = hx.terms();
       stdvectorc hx_d = hx.times_z_derivatives();
@@ -145,7 +156,7 @@ namespace flick
 
       stdvectorc a = (pow(m,2)*A-B)/(pow(m,2)*C-D);
       stdvectorc b = (A-B)/(C-D);
-      
+
       return {a, b};      
     }
     std::tuple<stdvectorc,stdvectorc> s_functions() const {

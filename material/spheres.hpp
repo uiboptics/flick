@@ -24,6 +24,7 @@ namespace material {
     mutable Monodispersed_mie mono_mie_;
     mutable polydispersed_mie<Monodispersed_mie,Size_distribution> poly_mie_;
     mutable bool has_changed_{true};
+    bool phase_function_only_{false};
   public:
     spheres(const spheres&) = delete;
     spheres& operator=(const spheres&) = delete;
@@ -70,9 +71,15 @@ namespace material {
       return poly_mie_.scattering_cross_section()
 	      * size_distribution_.particles_per_volume(volume_fraction_);
     }
+    void phase_function_only(bool tf) {
+      phase_function_only_ = tf;
+    }
     mueller mueller_matrix(const unit_vector& scattering_direction) const override {
       if (has_changed_) {
-	for (size_t i=0; i < row_.size(); ++i) {
+	if (phase_function_only_) {
+	  scattering_matrix_elements_.resize(1);
+	}
+	for (size_t i=0; i < scattering_matrix_elements_.size(); ++i) {
 	  scattering_matrix_elements_[i] =
 	    pl_function(mono_mie_.angles(),
 			poly_mie_.scattering_matrix_element(row_[i],col_[i]));
@@ -83,7 +90,6 @@ namespace material {
       mueller m;
       double c = poly_mie_.scattering_cross_section();
       for (size_t i=0; i<scattering_matrix_elements_.size(); ++i) {
-	
 	double s = scattering_matrix_elements_[i].value(theta);
 	m.add(row_[i],col_[i],s/c);
       }

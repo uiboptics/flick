@@ -114,8 +114,8 @@ namespace flick {
       double step_factor = max_step_factor;
       double x0 = log(bq.sd().center());
       accumulated_integral_vector ai(bq, 100*accuracy_);
-      if (bq.sd().width() > 0.5 && accuracy_ >= 0.05)
-	return bq.center_approximation_total();
+      //if (bq.sd().width() > 0.5 && accuracy_ >= 0.05)
+      //	return bq.center_approximation_total();
       stdvector a0 = bq.center_subtraction_total();
       ai.set_total(a0);
       ai.keep_integration_points(keep_integration_points_);

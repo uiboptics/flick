@@ -153,7 +153,7 @@ namespace flick {
       has_converged_in_one_iteration_ = false;
     }
   private:
-    void update_convergence(double error, size_t n) {	
+    void update_convergence(double error, size_t n) {
       if (error < percent_accuracy_)
 	has_converged_ = true;
       else

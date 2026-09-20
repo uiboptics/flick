@@ -29,14 +29,12 @@ namespace flick {
   void show_time_1() {
     auto time = std::chrono::system_clock::now();
     std::chrono::duration<double> duration = time - time_1;
-    //std::cout <<" - "<< std::format("{:.2}",duration.count()) << " s\n";
     std::cout <<" - "<< std::setprecision(2) << duration.count() << " s\n";
     std::cout << std::setprecision(6);
   }
   void show_time_2() {
     auto time = std::chrono::system_clock::now();
     std::chrono::duration<double> duration = time - time_2;
-    //std::cout << std::format("{:.1}",1000*duration.count()) << " ms";
     std::cout << std::setprecision(1) << 1000*duration.count() << " ms";
     std::cout << std::setprecision(6);
   }
@@ -129,7 +127,6 @@ namespace flick {
       if (duration > std::chrono::duration<double>(max_time)) {
 	write_begin(s);
 	std::cout << "Runtime of "
-	  //<< std::format("{:.2}", duration.count())
 		  << std::setprecision(2) << duration.count()
 		  << " s is slower than the accepted " << max_time
 		  << " s";

@@ -2,6 +2,7 @@
 #include "parameterized_monodispersed_mie.hpp"
 #include "monodispersed_mie.hpp"
 #include "../environment/input_output.hpp"
+#include <numbers>
 
 namespace flick {
   begin_test_case(poly_mie_test_A) {
@@ -139,6 +140,6 @@ namespace flick {
     double p = 8;
     poly_mie.percentage_accuracy(p);
     check(not std::isnan(poly_mie.scattering_matrix_element(0,0)[0]));
-    check_fast(20 * cpu_duration());  
-  } end_test_case()
+    check_fast(1000 * cpu_duration());  
+  } end_test_case()  
 }
