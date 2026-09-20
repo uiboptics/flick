@@ -4,7 +4,8 @@
 int main() {
   using namespace flick;
   unit_test t("water");
-  t.include<refractive_index_test>();
+  t.include<refractive_index_test_A>();
+  t.include<refractive_index_test_B>();
   t.run_test_cases();
   return 0;
 }

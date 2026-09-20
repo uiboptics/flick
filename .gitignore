@@ -17,3 +17,4 @@ log
 tmp*.txt
 flick
 generate_smooth_input
+Example/make_tabulated_iops/*.txt
