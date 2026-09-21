@@ -15,6 +15,9 @@ namespace flick
   // scattering in an absorbing host medium. II: Improved stability of
   // the numerical algorithm. Journal of Quantitative Spectroscopy and
   // Radiative Transfer, 217, pp.274-277.
+  //
+  // Two numerical stability improvements have been added to the
+  // implementation of the spherical Bessel functions.
 {
   class special_function {
   protected:
@@ -54,8 +57,7 @@ namespace flick
   class spherical_bessel : public special_function {    
     stdcomplex r_asymptotic(const stdcomplex& z, size_t large_n) {
       return z/(2*large_n+1.);
-    }
-        
+    }    
     stdvectorc r(const stdcomplex& z, size_t n_terms_high, int n_terms_low) {
       stdvectorc v(n_terms_high);
       v.end()[-1] = r_asymptotic(z,n_terms_high-1);
@@ -63,6 +65,14 @@ namespace flick
 	v[n] = 1./((2*n+1.)/z - v[n+1]);
       }
       return v;
+    }
+    stdcomplex taylor_expansion(const stdcomplex& z, size_t term_no) {
+      if (term_no==0)
+	return 1.0-pow(z,2)/6.0+pow(z,4)/120.0-pow(z,6)/5040.0+pow(z,8)/362880.0;
+      else if (term_no==1)
+	return z*(1.0/3.0-pow(z,2)/30.0+pow(z,4)/840.0-pow(z,6)/45360.0+pow(z,8)/3991680.0);
+      else
+	throw std::invalid_argument("spherical_bessel");
     }
   public:
     spherical_bessel(const stdcomplex& z, int n_terms)
@@ -77,17 +87,14 @@ namespace flick
 	r_previous = r_high;
       }
       stdvectorc r_stable = r(z,n_terms+n_extra,2);
-      /* f_[1] calculated to void instability when sin(z)=0 */
+      /* Stability improvements: f_[1] is calculated separately to
+	 avoid numerical instability at sin(z) = 0. f_[0] and f_[1]
+	 loses precision near z = 0, so a Taylor expansion is used
+	 there. */ 
       if (std::abs(z) < 0.1) {
-	/* The recursion loses precision near zero, using
-	   Taylor expansion there */
-	const stdcomplex z2 = z*z;
-	f_[0] = 1.0-z2/6.0+z2*z2/120.0-z2*z2*z2/5040.0
-	  +z2*z2*z2*z2/362880.0;
-	f_[1] = z*(1.0/3.0-z2/30.0+z2*z2/840.0
-	  -z2*z2*z2/45360.0+z2*z2*z2*z2/3991680.0);
-      }
-      else {
+	f_[0] = taylor_expansion(z,0);
+	f_[1] = taylor_expansion(z,1);
+      } else {
 	f_[0] = sin(z)/z;
 	f_[1] = sin(z)/pow(z,2)-cos(z)/z; 
       }
