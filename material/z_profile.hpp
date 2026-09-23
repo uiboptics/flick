@@ -89,6 +89,9 @@ namespace material {
       m_->set_wavelength(wl);
       make_iop_profile();
     }
+    void set_angles(const stdvector& angles) override {
+      m_->set_angles(angles);
+    }
     void make_iop_profile() {
       z_profile<Function>::real_refractive_index_ = m_->real_refractive_index();
       stdvector a(z_.size());
