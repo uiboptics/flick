@@ -216,8 +216,9 @@ Radius of sea ice brine pocket inclusions [m].
       auto_update_iops(true);
       auto e_names = c_.get_vector<std::string>("concentration_exception_names");
       
-      for (size_t i =0; i < e_names.size(); ++i) {	
-	if (has_content(e_names[i]) and not exists(e_names[i])) {
+      for (size_t i =0; i < e_names.size(); ++i) {
+	std::string& s = e_names[i];
+	if (has_content(s) and not e_names[0].starts_with("/*") and not exists(s)) {
 	  std::string names;
 	  for (const auto& s : material_ids())
 	    names += s + "\n";
@@ -388,7 +389,6 @@ Radius of sea ice brine pocket inclusions [m].
       if (not b)
 	throw std::runtime_error("ocean "+s+" error");
     }
-
     bool has_content(const std::string s) {
       return std::any_of(s.begin(), s.end(),
 			 [](unsigned char c) { return !std::isspace(c); });

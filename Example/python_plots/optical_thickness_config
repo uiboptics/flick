@@ -103,8 +103,11 @@ cloud_liquid = 0
 Space-separated list of material names that is scaled by the factors
 listed by the concentration_exception_scaling_factors. Valid material
 names are: cdom, phytoplankton, nap, bubbles, and any names listed by
-the variables `ti_names`, `mp_names`, or `mcdom_names`. The latter
-three must use the respective prefixes `ti_`, `mp_`, and `mcdom_`.
+the variables `ti_names`, `mp_names`, or `mcdom_names`. For the latter
+three material name groups, the respective prefixes `ti_`, `mp_`, and
+`mcdom_` must be added to the original name to avoid name
+clashes. These prefixes are only needed here in this
+concentration_exception_names variable.
 */
 
 concentration_exception_names =   
@@ -367,11 +370,21 @@ Atmosphere ground pressure [Pa].
 pressure = 100000 
 
 /*
-Option for printing of inherent optical properties to screen during
-runtime. Valid options are ‘true’ or ‘false’.  
+Option for printing of inherent optical properties in the
+flick_tmp_directory during runtime. Valid options are ‘true’ or
+‘false’.
 */
 
 print_iops = false 
+
+/*
+Should normally be set to one, but can be changed to examine the
+contribution of pure water to radiative quantities. If set to zero,
+absorption and scattering by pure water are removed, but the
+refractive index of the lower slab is still that of water.
+*/
+
+pure_water_volume_fraction = 1 
 
 /*
 All radiation output is expressed relative to the reference plane
