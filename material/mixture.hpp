@@ -123,10 +123,10 @@ namespace material {
       }
       return ids;
     }
-  private:
     bool exists(const std::string& name) const {
       return (materials_.find(name) != materials_.end());
     }
+  private:
     template<class Material>
     std::string id() const {
       return typeid(Material).name();

@@ -214,6 +214,17 @@ Radius of sea ice brine pocket inclusions [m].
       add_marine_particles();
       add_marine_cdom(); 
       auto_update_iops(true);
+      auto e_names = c_.get_vector<std::string>("concentration_exception_names");
+      
+      for (size_t i =0; i < e_names.size(); ++i) {	
+	if (has_content(e_names[i]) and not exists(e_names[i])) {
+	  std::string names;
+	  for (const auto& s : material_ids())
+	    names += s + "\n";
+	  ensure(false,"concentration exception name '"
+		 +e_names[i]+"' not found. Valid material names are:\n"+names);
+	}
+      }
     }
     static stdvector height_grid(const basic_configuration& c) {
       double epsilon = 1e-6;      
@@ -376,6 +387,11 @@ Radius of sea ice brine pocket inclusions [m].
     void ensure(bool b, const std::string& s) {
       if (not b)
 	throw std::runtime_error("ocean "+s+" error");
+    }
+
+    bool has_content(const std::string s) {
+      return std::any_of(s.begin(), s.end(),
+			 [](unsigned char c) { return !std::isspace(c); });
     }
   };
 }
