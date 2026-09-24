@@ -43,7 +43,7 @@ of all ocean materials listed by the `concentration_exception_materials`
 variable.
 )");
 
-	add<std::string>("concentration_exception_names", " ", R"(
+	add<std::string>("concentration_exception_names", "", R"(
 Space-separated list of material names that is scaled by the factors
 listed by the concentration_exception_scaling_factors. Valid material
 names are: cdom, phytoplankton, nap, bubbles, and any names listed by
@@ -218,7 +218,8 @@ Radius of sea ice brine pocket inclusions [m].
       
       for (size_t i =0; i < e_names.size(); ++i) {
 	std::string& s = e_names[i];
-	if (has_content(s) and not e_names[0].starts_with("/*") and not exists(s)) {
+	//if (has_content(s) and not e_names[0].starts_with("/*") and not exists(s)) {
+	if (not s.empty() and not exists(s)) {
 	  std::string names;
 	  for (const auto& s : material_ids())
 	    names += s + "\n";
@@ -388,10 +389,6 @@ Radius of sea ice brine pocket inclusions [m].
     void ensure(bool b, const std::string& s) {
       if (not b)
 	throw std::runtime_error("ocean "+s+" error");
-    }
-    bool has_content(const std::string s) {
-      return std::any_of(s.begin(), s.end(),
-			 [](unsigned char c) { return !std::isspace(c); });
     }
   };
 }

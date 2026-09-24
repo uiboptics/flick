@@ -95,11 +95,14 @@ namespace flick {
     void read(std::istream &is, [[maybe_unused]] const std::string& name) {
       p_.clear();
       T x;
+      is >> std::ws;
       while(is.peek() != begin_qualifier_.at(0) and is.peek() != EOF) {
 	is >> x;
 	p_.push_back(x);
 	is >> std::ws;
       }
+      if (p_.empty())
+	p_.resize(1);
     }  
   };
   

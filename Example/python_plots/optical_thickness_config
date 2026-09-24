@@ -110,7 +110,7 @@ clashes. These prefixes are only needed here in this
 concentration_exception_names variable.
 */
 
-concentration_exception_names =   
+concentration_exception_names =  
 
 /*
 Space-separated list of scaling factors that scale the concentration

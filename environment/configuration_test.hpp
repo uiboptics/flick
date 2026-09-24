@@ -72,4 +72,21 @@ very long description text.)");
     check_close(c.get<double>("b"),2);
     check_close(c.get<double>("c"),3);
   } end_test_case()
+  
+  begin_test_case(configuration_test_D) {
+    // Check reading of empty strings
+    basic_configuration c;
+    c.add<std::string>("a","s");
+    c.add<std::string>("b","s1 s2");
+    c.add<std::string>("c","s3");
+    std::stringstream ss("/* text a*/ \na =\n/*text b */\nb =  /**/\nc =  \n \n /**/");
+    ss >> c;
+    check(c.get<std::string>("a")=="");
+    check(c.get_vector<std::string>("a").at(0).empty());
+    check(c.get<std::string>("b")=="");
+    check(c.get_vector<std::string>("b").at(0).empty());
+    check(c.get<std::string>("c")=="");
+    check(c.get_vector<std::string>("c").at(0).empty());
+
+  } end_test_case()
 }
