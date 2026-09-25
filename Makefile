@@ -46,12 +46,17 @@ test:
 	@cd polarization; make test
 	@cd component; make test
 	@cd material; make test
+	@cd material/water; make test
+	@cd material/water/refractive_index; make test 
 	@cd material/gas; make test
 	@cd material/aerosols; make test
 	@cd material/water; make test
 	@cd material/ice; make test
 	@cd material/marine_cdom; make test
 	@cd material/marine_particles; make test
+	@cd accurt_api; make test
+	@cd model; make test
+
 ifdef ACCURT_PATH
 	@cd accurt_api; make test
 endif
@@ -76,6 +81,7 @@ clean:
 	cd material/gas; make clean
 	cd material/aerosols; make clean
 	cd material/water; make clean
+	cd material/water/refractive_index; make clean
 	cd material/ice; make clean
 	cd material/marine_particles; make clean
 	cd material/marine_cdom; make clean

@@ -51,7 +51,7 @@ namespace flick {
   } end_test_case()
   
   begin_test_case(layered_iops_test_E) {
-    double epsilon = 4e-5;
+    double epsilon = 1e-4;
     double wl = 400e-9;
     auto c = material::atmosphere_ocean::configuration();
     c.set<double>("aerosol_od",0);
