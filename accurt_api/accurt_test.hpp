@@ -108,7 +108,8 @@ namespace flick {
     size_t n_angles = 40;
     accurt::configuration ac;
     ac.set<size_t>("stream_upper_slab_size",ac.to_streams(n_angles));
-    ac.set<double>("detector_wavelengths",500e-9);
+    ac.set<std::string>("integrate_before_ratio","true");
+    ac.set<double>("detector_wavelengths",{499e-9, 501e-9});
     ac.set<std::string>("detector_orientation","down");
     ac.set<std::string>("detector_type","radiance");
     ac.set<double>("detector_height",0.01);
@@ -120,7 +121,9 @@ namespace flick {
     mc.set<double>("nap_concentration",1e-3);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
     auto a =  accurt(ac, m);
-    double Rrs = a.relative_radiation().y().at(0);
+    pp_function f = a.relative_radiation();
+    check(f.size()==1);
+    double Rrs = f.y()[0];
     check_close(Rrs, 0.0397, 0.3_pct);
   } end_test_case()
   
@@ -191,13 +194,13 @@ namespace flick {
     ac.set<double>("bottom_boundary_surface_scaling_factor",0);
     ac.set<std::string>("detector_orientation","down");
     ac.set<double>("reference_detector_height",1);
+    ac.set<std::string>("integrate_before_ratio","true");
     
     ac.set<std::string>("print_iops","true");
     material::atmosphere_ocean::configuration mc;
 
     mc.set<double>("pure_water_volume_fraction",0);
     mc.set<double>("bubble_volume_fraction", 1e-5);
-    //mc.set<std::string>("bubble_calculator","parameterized_mie");
     mc.set<std::string>("bubble_calculator","full_mie");
     mc.set<double>("bubble_radius",1e-7);
     mc.set<double>("bubble_sigma",0);

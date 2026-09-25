@@ -274,6 +274,17 @@ variable, that include sea ice.
 ice_depths = 0 
 
 /*
+Option for spectral integration of the radiation in both the detector
+and the reference detector before the ratio is calculated. Use this
+option, e.g., to calculate the ratio of total upward to downward
+energy. Valid options are ‘true’ or ‘false’. If set to ‘true’, a
+single ratio value with a corresponding median wavelength is
+returned.  
+*/
+
+integrate_before_ratio = false 
+
+/*
 Name of the material that defines the inherent optical properties used in
 the radiative transfer calculations. Valid options are ‘atmosphere’ or
 ‘atmosphere_ocean’.

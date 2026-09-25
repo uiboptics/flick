@@ -194,6 +194,14 @@ Option for printing of inherent optical properties in the
 flick_tmp_directory during runtime. Valid options are ‘true’ or
 ‘false’.
 )");
+	add<std::string>("integrate_before_ratio","false", R"(
+Option for spectral integration of the radiation in both the detector
+and the reference detector before the ratio is calculated. Use this
+option, e.g., to calculate the ratio of total upward to downward
+energy. Valid options are ‘true’ or ‘false’. If set to ‘true’, a
+single ratio value with a corresponding median wavelength is
+returned.  
+)");
 	
       }
       size_t to_streams(size_t n_angles) {
@@ -329,8 +337,24 @@ flick_tmp_directory during runtime. Valid options are ‘true’ or
 	    L[i][j][k] = g.f[n_detector_][i][j][k];
 	  }
 	}
-      }    
-      return L;
+      }
+      // Relative to reference:
+      std::vector<std::vector<std::vector<double>>> L_r = L;
+      stdvector f(wavelengths_.size());
+      for (size_t j=0; j<n_polar; j++) {
+	for (size_t k=0; k<n_azimuth; k++) {
+	  for (size_t i=0; i<wls.size(); i++) {
+	    f[i] = L[i][j][k];
+	  }
+	  stdvector rr = radiation_ratio(f).y();
+	  if (rr.size()==1 && L_r.size()>1)
+	    L_r.resize(rr.size());
+	  for (size_t i=0; i<rr.size(); ++i) {
+	    L_r[i][j][k] = rr[i];
+	  }
+	}
+      }
+      return L_r;
     }
     void print_iops(std::ostream& os = std::cout) {
       make_material_files();
@@ -376,7 +400,8 @@ flick_tmp_directory during runtime. Valid options are ‘true’ or
     }
     void make_material_files() {        
       size_t n_terms = c_.get<size_t>("stream_upper_slab_size");
-      stdvector b = depths_to_boundaries(c_.get_vector<double>("layer_depths_upper_slab"));
+      stdvector b =
+	depths_to_boundaries(c_.get_vector<double>("layer_depths_upper_slab"));
       layered_upper_slab_ = std::make_shared<layered_iops>(material_,b,
 							       n_terms);
       write(accurt_user_specified(layered_upper_slab_, wavelengths_),
@@ -398,16 +423,26 @@ flick_tmp_directory during runtime. Valid options are ‘true’ or
       layer_boundaries.push_back(max_height_);
       return layer_boundaries;
     }
+    pp_function radiation_ratio(const stdvector& radiation) {
+      if (c_.get_boolean("integrate_before_ratio")) {
+	auto f1 = pp_function{wavelengths_,radiation};
+	auto f2 = pp_function{wavelengths_,reference_detector_irradiance()};
+	double median_wl = wavelengths_[wavelengths_.size()/2];
+	if (wavelengths_.size()==1)
+	  return pp_function{{median_wl},{f1.y()[0]/f2.y()[0]}};
+	return pp_function{{median_wl},{f1.integral()/f2.integral()}};
+      } 
+      return pp_function{wavelengths_,radiation/reference_detector_irradiance()};
+    }
     pp_function relative_plane_irradiance() {
       run();
-      return pp_function{wavelengths_,
-	detector_plane_irradiance()/reference_detector_irradiance()};	  
+      return radiation_ratio(detector_plane_irradiance());
     }
+
     pp_function relative_scalar_irradiance() {
       c_.set<std::string>("save_scalar_irradiance","true");  
       run();
-      return pp_function{wavelengths_,
-	detector_scalar_irradiance()/reference_detector_irradiance()};	  
+      return radiation_ratio(detector_scalar_irradiance());
     }
     pp_function relative_radiance() {
       if (detector_orientation_override()) {
@@ -419,8 +454,7 @@ flick_tmp_directory during runtime. Valid options are ‘true’ or
 	set_vertical_radiance();
       }
       run();
-      return pp_function{wavelengths_,
-	detector_radiance()/reference_detector_irradiance()};	  
+      return radiation_ratio(detector_radiance());
     }
     stdvector detector_radiance() {
       grid_4d g = read_radiance(output_+"/radiance.txt");
@@ -492,7 +526,8 @@ flick_tmp_directory during runtime. Valid options are ‘true’ or
     }
     void add_layer_depths() {
       stdvector h = {-bottom_depth_, 0, max_height_};
-      material::z_profile<pe_function>* zp = dynamic_cast<material::z_profile<pe_function>*>(&*material_);
+      material::z_profile<pe_function>* zp =
+	dynamic_cast<material::z_profile<pe_function>*>(&*material_);
       if (zp != NULL) {
 	h = zp->height_grid();
       }      
