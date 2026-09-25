@@ -60,6 +60,7 @@ endif
 	@cd model; make test
 	@cd radiator; make test
 clean:
+	cd external; rm -fr eigen
 	cd environment; make clean
 	cd astronomy; make clean	
 	cd numeric/linalg; make clean
@@ -101,7 +102,7 @@ EIGEN_REPO = https://gitlab.com/libeigen/eigen.git
 check-eigen:
 	@if [ ! -d "$(EIGEN_DIR)" ]; then \
 		echo "Eigen not found. Cloning from $(EIGEN_REPO)..."; \
-		git clone $(EIGEN_REPO) $(EIGEN_DIR); \
+		git clone --depth 1 $(EIGEN_REPO) $(EIGEN_DIR); \
 	else \
 		echo "Eigen already exists in $(EIGEN_DIR)."; \
 	fi
