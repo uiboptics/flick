@@ -4,6 +4,7 @@
 #include "basic_monodispersed_mie.hpp"
 #include "../numeric/legendre/legendre.hpp"
 #include <cstddef>
+#include <utility>
 
 namespace flick
   // Implementation based on the following two papers: (1) Mishchenko,
