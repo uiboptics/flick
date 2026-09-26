@@ -522,10 +522,18 @@ namespace flick {
 
   template<class I>
   function<I> scale_to_integral(function<I> f, double integral_value) {
+    double eps = 1000*std::numeric_limits<double>::min();
     double fi = f.integral();
-    if (fabs(fi-integral_value) > std::numeric_limits<double>::epsilon())
-      return f.scale_y(integral_value/fi);
-    return f;
+
+    /* No scaling for zero profiles */
+    if (std::abs(integral_value) < eps || std::abs(fi-integral_value) < eps)
+      return f;
+    
+    double factor = integral_value/fi;
+    if (!std::isfinite(factor))
+      throw std::runtime_error("scale_to_integral, scaling factor "+
+			       std::to_string(factor));
+    return f.scale_y(factor);
   }
   
   template<class I>

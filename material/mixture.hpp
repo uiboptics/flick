@@ -141,11 +141,13 @@ namespace material {
 	s.append({z,material.scattering_coefficient()});
       }
       a = a.zero_extrapolation();
-      s = s.zero_extrapolation();  
+      s = s.zero_extrapolation();
       material.set_position({0,0,heights_[n_low]});
       double dz = heights_[n_high] - heights_[n_low];
-      a = scale_to_integral(a,material.absorption_optical_depth(dz));
-      s = scale_to_integral(s,material.scattering_optical_depth(dz));
+      double od_a = material.absorption_optical_depth(dz);
+      double od_s = material.scattering_optical_depth(dz);
+      a = scale_to_integral(a,od_a);
+      s = scale_to_integral(s,od_s);
       a_profile_.add(iop_z_profile<Function>(a), heights_);
       s_profile_.add(iop_z_profile<Function>(s), heights_);
     }
