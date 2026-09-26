@@ -1,97 +1,60 @@
 
 # Read README.md for information on compilation and running
 
+MODULE_DIRS := \
+	environment \
+	astronomy \
+	numeric/linalg \
+	numeric \
+	numeric/legendre \
+	numeric/wigner \
+	numeric/spherical_harmonics \
+	mie \
+	geometry \
+	polarization \
+	component \
+	material \
+	coating \
+	material/gas \
+	material/aerosols \
+	material/water \
+	material/water/refractive_index \
+	material/ice \
+	material/marine_cdom \
+	material/marine_particles \
+	accurt_api \
+	transporter \
+	radiator \
+	model \
+	main \
+	main/commands \
+	Example/single_layer_slab
+
+TEST_DIRS := $(filter-out main,$(MODULE_DIRS))
+CLEAN_DIRS := $(MODULE_DIRS) material/gas/smooth_input
+
+.PHONY: all with-python build test clean python check-eigen check-env
 
 all:	check-env check-eigen build test
 
 with-python:	all python
 
 build:
-	cd environment; make obj link
-	cd astronomy; make obj link
-	cd numeric/linalg; make obj link
-	cd numeric; make obj link
-	cd numeric/legendre; make obj link
-	cd numeric/wigner; make obj link
-	cd numeric/spherical_harmonics; make obj link
-	cd mie; make obj link
-	cd geometry; make obj link
-	cd polarization; make obj link
-	cd component; make obj link
-	cd material; make obj link
-	cd coating; make obj link
-	cd material/gas; make obj link
-	cd material/aerosols; make obj link
-	cd material/water; make obj link
-	cd material/water/refractive_index; make obj link	
-	cd material/ice; make obj link	
-	cd material/marine_cdom; make obj link	
-	cd material/marine_particles; make obj link
-	cd accurt_api; make obj link
-	cd transporter; make obj link
-	cd radiator; make obj link
-	cd model; make obj link
-	cd main; make obj link
+	@set -e; for dir in $(MODULE_DIRS); do \
+		$(MAKE) -C "$$dir" obj link; \
+	done
 
 test:
-	@cd environment; make test
-	@cd astronomy; make test
-	@cd numeric/linalg; make test
-	@cd numeric; make test
-	@cd numeric/legendre; make test
-	@cd numeric/wigner; make test
-	@cd numeric/spherical_harmonics; make test
-	@cd mie; make test
-	@cd geometry; make test
-	@cd polarization; make test
-	@cd component; make test
-	@cd material; make test
-	@cd material/water; make test
-	@cd material/water/refractive_index; make test 
-	@cd material/gas; make test
-	@cd material/aerosols; make test
-	@cd material/water; make test
-	@cd material/ice; make test
-	@cd material/marine_cdom; make test
-	@cd material/marine_particles; make test
-	@cd accurt_api; make test
-	@cd model; make test
+	@set -e; for dir in $(TEST_DIRS); do \
+		$(MAKE) -C "$$dir" test; \
+	done
 
-ifdef ACCURT_PATH
-	@cd accurt_api; make test
-endif
-	@cd coating; make test
-	@cd transporter; make test
-	@cd model; make test
-	@cd radiator; make test
 clean:
-	cd external; rm -fr eigen
-	cd environment; make clean
-	cd astronomy; make clean	
-	cd numeric/linalg; make clean
-	cd numeric; make clean
-	cd numeric/legendre; make clean
-	cd numeric/wigner; make clean
-	cd numeric/spherical_harmonics; make clean
-	cd mie; make clean
-	cd geometry; make clean
-	cd polarization; make clean
-	cd component; make clean	
-	cd material; make clean
-	cd material/gas; make clean
-	cd material/aerosols; make clean
-	cd material/water; make clean
-	cd material/water/refractive_index; make clean
-	cd material/ice; make clean
-	cd material/marine_particles; make clean
-	cd material/marine_cdom; make clean
-	cd accurt_api; make clean
-	cd coating; make clean
-	cd transporter; make clean
-	cd radiator; make clean
-	cd model; make clean
-	cd main; make clean
-	rm -f *~
+	@set -e; for dir in $(CLEAN_DIRS); do \
+		$(MAKE) -C "$$dir" clean; \
+	done
+	@rm -rf external/eigen
+	@rm -f *~
 python:	
 	@echo ''
 	@echo 'Testing all python scripts. May take an hour ...'
@@ -102,8 +65,6 @@ python:
 
 EIGEN_DIR = external/eigen
 EIGEN_REPO = https://gitlab.com/libeigen/eigen.git
-
-.PHONY: check-eigen
 
 check-eigen:
 	@if [ ! -d "$(EIGEN_DIR)" ]; then \
@@ -119,5 +80,4 @@ check-env:
 		./update_shell.sh; \
 		false; \
 	fi
-
 
