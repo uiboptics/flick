@@ -2,6 +2,7 @@
 #define flick_surface
 
 #include <iostream>
+#include <memory>
 #include "../numeric/vector.hpp"
 #include "../numeric/pose.hpp"
 
