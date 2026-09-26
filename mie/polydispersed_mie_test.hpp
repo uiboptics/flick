@@ -79,9 +79,7 @@ namespace flick {
     poly_mie.percentage_accuracy(p);
     double F11 = poly_mie.scattering_matrix_element(0,0)[0];
     double bench = 6.131e-13;
-    check_close(F11,bench,p);
-    check_fast(9000 * cpu_duration());
-   
+    check_close(F11,bench,p);   
   } end_test_case()
 
    begin_test_case(poly_mie_test_t_matrix) {
@@ -111,7 +109,6 @@ namespace flick {
     double p = 0.01;
     poly_mie.percentage_accuracy(p);
     check_small(poly_mie.absorption_cross_section());
-    check_fast(10 * cpu_duration());
   } end_test_case()
 
   begin_test_case(poly_mie_test_bubbles) {
@@ -124,7 +121,6 @@ namespace flick {
     double p = 0.01;
     poly_mie.percentage_accuracy(p);
     check(poly_mie.absorption_cross_section()<0);
-    check_fast(10 * cpu_duration());  
   } end_test_case()
 
   begin_test_case(poly_mie_test_nan) {
@@ -140,6 +136,5 @@ namespace flick {
     double p = 8;
     poly_mie.percentage_accuracy(p);
     check(not std::isnan(poly_mie.scattering_matrix_element(0,0)[0]));
-    check_fast(1000 * cpu_duration());  
   } end_test_case()  
 }

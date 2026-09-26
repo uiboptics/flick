@@ -122,7 +122,7 @@ namespace flick {
     stdvector angles = range(0,constants::pi,5).linspace();;
     stdvector z = {-100, -50, -1e-6};      
     stdvector f = {0, 0, 1};      
-    material::mixture<pe_function> m(angles,z);
+    material::mixture<pl_function> m(angles,z);
     double volume_fraction = 0.01;
     double mu = log(1e-7);
     double sigma = 0.01;
