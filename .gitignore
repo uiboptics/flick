@@ -16,5 +16,6 @@ output
 log
 tmp*.txt
 flick
+single_layer_slab
 generate_smooth_input
 Example/make_tabulated_iops/*.txt

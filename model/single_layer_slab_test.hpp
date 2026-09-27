@@ -169,20 +169,19 @@ namespace flick {
   } end_test_case()
 
    begin_test_case(single_layer_slab_test_I) {
-    /*
+    // Total internal reflection
     const double pi = constants::pi;
     using namespace flick;
     absorption_coefficient a{0};
     scattering_coefficient b{0};
     asymmetry_factor g{0.0};
     real_refractive_index n{1/1.33};
-    double theta0 = pi/4;
+    double theta0 = pi/3;
     model::single_layer_slab slab{thickness{1}};
     slab.adjust_accuracy(percentage{5});    
     slab.initiate_source(stokes::s_polarized());
     slab.orient_source(zenith_angle{theta0});
     slab.fill<material::henyey_greenstein>(a,b,g,n());  
     check_close(slab.hemispherical_reflectance(),1,0.0001);
-    */
   } end_test_case()
 }

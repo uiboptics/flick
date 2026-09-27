@@ -155,7 +155,7 @@ namespace flick {
       }
       test_cases_.push_back(std::make_shared<T>(name));
     }
-    void run_test_cases() {
+    int run_test_cases() {
       start_time_1();
       std::string s;
       if (test_cases_.size() > 1)
@@ -195,6 +195,7 @@ namespace flick {
       else
 	std::cout << green_start << ss.str() << color_end;
       show_time_1();
+      return errors;
     }
   };
 }
