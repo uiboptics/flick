@@ -9,6 +9,7 @@
 #include "../numeric/distribution.hpp"
 #include "../environment/exception.hpp"
 #include "radiator.hpp"
+#include <algorithm>
 
 namespace flick {
   namespace filter {     

@@ -45,9 +45,16 @@ build:
 	done
 
 test:
-	@set -e; for dir in $(TEST_DIRS); do \
-		$(MAKE) -C "$$dir" test; \
-	done
+	@status=0; failed=""; for dir in $(TEST_DIRS); do \
+		if ! $(MAKE) -C "$$dir" test; then \
+			status=1; \
+			failed="$$failed $$dir"; \
+		fi; \
+	done; \
+	if [ $$status -ne 0 ]; then \
+		echo "Tests failed in:$$failed"; \
+	fi; \
+	exit $$status
 
 clean:
 	@set -e; for dir in $(CLEAN_DIRS); do \
@@ -80,4 +87,3 @@ check-env:
 		./update_shell.sh; \
 		false; \
 	fi
-

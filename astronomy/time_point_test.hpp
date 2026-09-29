@@ -20,7 +20,6 @@ namespace flick {
     time_point tp1 = {2024,1,25,13,37,1};
     double jd = tp1.julian_date();
     time_point tp2 = make_time_point(jd);
-    std::cout << tp2;
     check(tp1.year()==tp2.year());
     check(tp1.month()==tp2.month());
     check(tp1.day()==tp2.day());
@@ -44,7 +43,6 @@ namespace flick {
   begin_test_case(time_point_test_E) {
     time_point tp1 = {2024,1,26,0,0,1};
     time_point tp2 = make_time_point(tp1.julian_date());
-    std::cout << tp2;
     check(tp1.year()==tp2.year());
     check(tp1.month()==tp2.month());
     check(tp1.day()==tp2.day());
