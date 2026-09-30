@@ -20,14 +20,12 @@ namespace flick {
     double value(double mu) const
     // Note that integral over 4*pi equals one 
     {
-      double epsilon = 1e-6;
-      ensure(mu > -1-epsilon && mu < 1+epsilon);
       double g = asymmetry_factor_;
       double arg = 1+pow(g,2)-2*g*mu;
       return 1/(4*constants::pi)*(1-pow(g,2))/pow(arg,3./2);
     }
     double inverted_accumulated_angle(double fraction) const 
-    // Note that fraction has range [0 1], and range value zero
+    // Note that fraction has range [0, 1], and range value zero
     // corresponds to angle zero
     {
       double g = asymmetry_factor_;

@@ -47,12 +47,12 @@ namespace flick {
     double phi() const
     // [0, 2*pi]
     {
-      double hyp = s();
-      if (hyp < std::numeric_limits<double>::epsilon())
-      	return 0;
+      double phi =  acos(x_/s());
+      if (!std::isfinite(phi))
+	return 0;
       if (y_ > 0)
-    	return acos(x_/hyp);
-      return 2*constants::pi-acos(x_/hyp);
+    	return phi;
+      return 2*constants::pi-phi;
     }
     vector& operator+=(const vector& v) {
       x_ += v.x();
@@ -79,6 +79,7 @@ namespace flick {
       return *this;
     }  
   };
+  
   vector operator*(double k, const vector& v) {
     return vector(k*v.x(), k*v.y(), k*v.z());
   }
@@ -118,7 +119,6 @@ namespace flick {
 		 (a.z()-b.z())*(a.z()-b.z()))/3);
   }
 
-  
   class unit_vector : public vector {
   public:
     unit_vector() : vector{0,0,1} {}
@@ -131,10 +131,6 @@ namespace flick {
       y_ /= r;
       z_ /= r;
     }
-    // unit_vector(double mu) {
-    //  vector{sqrt(fabs(1-mu*mu)), 0, mu};
-    // }
-
     double mu() const {
       return z_/r();
     }
@@ -164,4 +160,5 @@ namespace flick {
     return std::valarray<double>{v.x(),v.y(),v.z()};
   }
 }
+
 #endif

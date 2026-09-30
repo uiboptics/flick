@@ -1,5 +1,5 @@
 
-# Read README.md for information on compilation and running
+# Read README.md for information about compilation and running
 
 MODULE_DIRS := \
 	environment \
@@ -62,9 +62,10 @@ clean:
 	done
 	@rm -rf external/eigen
 	@rm -f *~
+
 python:	
 	@echo ''
-	@echo 'Testing all python scripts. May take an hour ...'
+	@echo 'Testing all python scripts. May take a while ...'
 	cd Example/python_plots; python3 test_all.py
 	cd Example/accurt_calls/logo; python3 test_all.py
 	cd Example/accurt_calls/atmosphere_ocean; python3 test_all.py
@@ -80,7 +81,6 @@ check-eigen:
 	else \
 		echo "Eigen already exists in $(EIGEN_DIR)."; \
 	fi
-
 
 check-env:
 	@if ! env | grep -q '^FLICK_PATH=' || [ -z "$${FLICK_PATH:-}" ]; then \

@@ -1,6 +1,10 @@
 #include "accurt_test.hpp"
 
 int main() {
+  if (!getenv("ACCURT_PATH")) {
+    std::cout << "\nAccuRT is not installed. Therefore, only limited tests are\n";
+    std::cout << "performed for the accurt_api module.\n" << std::endl;
+  }
   using namespace flick;
   unit_test t("accurt");
   t.include<accurt_test_A>();
