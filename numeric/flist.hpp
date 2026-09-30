@@ -6,8 +6,9 @@
 
 namespace flick {
   template<class Interpolation>
-  class flist {
-    // List of functions
+  class flist
+  /* List of functions */
+  {
     std::string header_;
     std::vector<function<Interpolation>> functions_;
     linalg::matrix all_values_;
@@ -21,14 +22,6 @@ namespace flick {
     const linalg::matrix& matrix() {
       return all_values_;
     }
-    /*
-    auto& add_extrapolation_points(double weight=1,double dx_scaling_factor=1) {
-      for (size_t i=0; i<functions_.size(); i++) {
-	functions_.add_extrapolation_points(weight,dx_scaling_factor);
-      }
-      return *this;
-    }
-    */
   private:
     friend std::ostream& operator<<(std::ostream& os, const flist<Interpolation>& fl) {
       using namespace linalg;

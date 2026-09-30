@@ -8,7 +8,7 @@
 namespace flick {
   template<class Source_spectrum>
   class absorption_smoother
-  // Smooths atmospheric absorption spectra, assuming no scattering
+  /* Smooths atmospheric absorption spectra, assuming no scattering */
   {
     atmospheric_state atm_;
     const double atmosphere_thickness_ = 100e3;

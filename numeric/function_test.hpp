@@ -113,7 +113,6 @@ namespace flick {
     check_close(*fn.integral_limit_b(-4,10),6);
     check_close(*fn.integral_limit_b(6,-10),-4);
     fn = fn.zero_extrapolation();
-    //fn.add_extrapolation_points(0);
     check_small(fn.value(-5));
        
     function<piecewise_linear> fo{{-2,-1,5},{0,0,0}};
@@ -215,7 +214,7 @@ namespace flick {
     check_close(cdf.y().back(),1);
     cdf = remove_non_increasing_values(cdf);
     pl_function quantile = invert(cdf);
-    //check_close(quantile.value(1),exp(1));  
+    check_small(quantile.value(1));
     
   } end_test_case()
   

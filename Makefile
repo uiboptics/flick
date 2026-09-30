@@ -1,6 +1,32 @@
 
 # Read README.md for information about compilation and running
 
+# Keep the first build usable before the shell profile has been reloaded.
+# update_shell.sh persists these values for future shells, while these exports
+# make them available to recursive makes and tests in the current invocation.
+FLICK_ENV_MISSING := $(if $(strip $(FLICK_PATH)),,1)
+
+ifeq ($(FLICK_ENV_MISSING),1)
+FLICK_PATH := $(CURDIR)
+endif
+
+ifeq ($(strip $(FLICK_COMPILER)),)
+ifeq ($(shell uname -s),Darwin)
+FLICK_COMPILER := clang++ -std=c++20
+else
+FLICK_COMPILER := g++ -std=c++20
+endif
+endif
+
+ifeq ($(strip $(EIGEN_PATH)),)
+EIGEN_PATH := $(FLICK_PATH)/external/eigen
+endif
+
+CPLUS_INCLUDE_PATH := $(FLICK_PATH):$(EIGEN_PATH):$(CPLUS_INCLUDE_PATH)
+PATH := $(FLICK_PATH)/main:$(PATH)
+
+export FLICK_PATH FLICK_COMPILER EIGEN_PATH CPLUS_INCLUDE_PATH PATH
+
 MODULE_DIRS := \
 	environment \
 	astronomy \
@@ -16,6 +42,7 @@ MODULE_DIRS := \
 	material \
 	coating \
 	material/gas \
+	material/gas/smooth_input \
 	material/aerosols \
 	material/water \
 	material/water/refractive_index \
@@ -30,8 +57,8 @@ MODULE_DIRS := \
 	main/commands \
 	Example/single_layer_slab
 
-TEST_DIRS := $(filter-out main,$(MODULE_DIRS))
-CLEAN_DIRS := $(MODULE_DIRS) material/gas/smooth_input
+TEST_DIRS := $(filter-out main Example/% material/gas/smooth_input,$(MODULE_DIRS))
+CLEAN_DIRS := $(MODULE_DIRS) 
 
 .PHONY: all with-python build test clean python check-eigen check-env
 
@@ -83,7 +110,6 @@ check-eigen:
 	fi
 
 check-env:
-	@if ! env | grep -q '^FLICK_PATH=' || [ -z "$${FLICK_PATH:-}" ]; then \
+	@if [ "$(FLICK_ENV_MISSING)" = "1" ]; then \
 		./update_shell.sh; \
-		false; \
 	fi

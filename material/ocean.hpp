@@ -218,7 +218,6 @@ Radius of sea ice brine pocket inclusions [m].
       
       for (size_t i =0; i < e_names.size(); ++i) {
 	std::string& s = e_names[i];
-	//if (has_content(s) and not e_names[0].starts_with("/*") and not exists(s)) {
 	if (not s.empty() and not exists(s)) {
 	  std::string names;
 	  for (const auto& s : material_ids())

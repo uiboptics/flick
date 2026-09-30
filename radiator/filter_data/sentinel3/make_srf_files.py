@@ -5,7 +5,6 @@ import matplotlib.ticker as mticker
 import netCDF4
 
 nc = netCDF4.Dataset('./S3A_OL_SRF_20160713_mean_rsr.nc4')
-#nc = netCDF4.Dataset('./S3B_OL_SRF_0_20180109_mean_rsr.nc4')
 
 n_bands = 21;
 center_wl = np.zeros((n_bands,2))

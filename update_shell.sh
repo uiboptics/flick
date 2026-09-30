@@ -22,7 +22,7 @@ else
 fi
 
 # Check if FLICK_PATH already exists in the profile
-if grep -q 'FLICK_PATH' "$PROFILE"; then
+if [ -f "$PROFILE" ] && grep -q 'FLICK_PATH' "$PROFILE"; then
     echo ""
     echo "ℹ️  Flick environment variables already found in $PROFILE."
     echo "    No changes made."
@@ -42,12 +42,4 @@ else
     echo ""
     echo "✅ Flick environment variables added to $PROFILE"
     echo ""
-    echo "Now run:"
-    echo
-    echo "  source $PROFILE"
-    echo
-    echo "then:"
-    echo
-    echo "  make"
-    echo
 fi
