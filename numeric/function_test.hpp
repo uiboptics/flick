@@ -276,5 +276,14 @@ namespace flick {
     double b = -99.9;
     pe_function f{{x1, x2},{y1,y2}};
     check_close(f.integral(a,b),(f.value(a)+f.value(b))/2*(b-a));
-  } end_test_case()  
+  } end_test_case()
+  
+  begin_test_case(function_test_K) {
+    /* reading of nan and inf without stopping */
+    std::istringstream s("/* test stream */ 1 nan 2 2 3 3 inf 4 5 -inf 6 +inf 7 7");
+    pl_function f;
+    s >> f;
+    check_close(f.value(7),7,1e-9);
+    check(f.size()==3);
+  } end_test_case()
 }

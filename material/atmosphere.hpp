@@ -4,6 +4,7 @@
 #include "gas/air.hpp"
 #include "gas/atmospheric_state.hpp"
 #include "aerosols/aerosols.hpp"
+#include "snow_impurity/snow_impurity.hpp"
 #include "spheres.hpp"
 #include "mixture.hpp"
 #include "../environment/configuration.hpp"
@@ -64,24 +65,21 @@ the snow grains.
 	add<double>("snow_radius", 100e-6, R"(
 Average snow grain radius [m].
 )");
-
-	/*
-	add<std::string>("snow_impurity_names", "flick_sand flick_soot", R"(
-Space-separated list of names of snow impurity types, each
-corresponding to an ASCII file containing refractive-index data,
-stored either in the current directory or in
-Flick/material/continium/refractive_index.
+	
+	add<std::string>("snow_impurity_names", "EIK1", R"(
+Space-separated list of names of snow impurity data directories, each
+containing ASCII data files for particle and CDOM absorption spectra
+and one file containing particle mass concentrations. These
+directories can be located either in the current directory or in
+`flick/material/snow_impurity/iops/`. See the latter for the default
+EIK1 data.
 )");
 	
-	add<double>("snow_impurity_volume_fractions", 0, R"(
-Space-separated list of volume fractions for each snow impurity type,
-where the impurity types are defined by ASCII refractive-index files
-located either in the current directory or in
-flick/material/continium/refractive_index. Impurity volume fraction would be
-1 if the entire volume was occupied by impurities (with no room for
-snow grains).  
+	add<double>("snow_impurity_scaling_factors", 1, R"(
+Space-separated list of concentration scaling factors corresponding to
+the snow impurities listed in the `snow_impurity_names` variable.
 )");
-	*/
+	
 	add<std::string>("gases", {"o3","o2","h2o"}, R"(
 Space-separated list of absorbing gases included in the
 atmosphere. Valid options are ‘o3’, ‘o2’, ‘h2o’, ‘no2’, and ‘co2’.
@@ -114,6 +112,7 @@ wavelength.
       add_aerosols();
       add_clouds();
       add_snow();
+      add_snow_impurity();
       auto_update_iops(true);
     }
     static stdvector height_grid(const basic_configuration& c) {
@@ -194,7 +193,6 @@ wavelength.
 	set_range<cloud>(n_base,n_top);
       }
     }
-    
     void add_snow() {
       double ice_depth = c_.get<double>("snow_ice");
       if (ice_depth > 0) {
@@ -210,21 +208,22 @@ wavelength.
 	set_range<snow>(n_base,n_top);
       }
     }
-    /*
     void add_snow_impurity() {
-      std::vector<std::string> names = c_.get_vector<std::string>("simpurity_names");
-      stdvector scaling_factors = c_.get_vector<double>("simpurity_scaling_factors");
+      std::vector<std::string> names = c_.get_vector<std::string>("snow_impurity_names");
+      stdvector scaling_factors = c_.get_vector<double>("snow_impurity_scaling_factors");
       ensure(names.size()==scaling_factors.size(), "snow impurity");
+      double ice_depth = c_.get<double>("snow_ice");
       for (size_t i = 0; i<names.size(); i++) {
-	if (scaling_factors.at(i) > 0) {
-	  auto m = std::make_shared<snow_impurity>(names[i], at_or_last(scaling_factors,i));
+	if (ice_depth > 0 and scaling_factors.at(i) > 0) {
+	  auto m = std::make_shared<snow_impurity>(names[i],scaling_factors[i]);
 	  auto name = "snow_impurity_"+names[i];
 	  add_material(m,name);
+	  size_t n_base = 0;
+	  size_t n_top = 1;
 	  set_range(n_base,n_top, name);
 	}
       }
     }
-    */
   private:
     template<class T>
     T at_or_last(const std::vector<T>& v, size_t i) {

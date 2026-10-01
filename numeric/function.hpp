@@ -424,9 +424,12 @@ namespace flick {
     friend std::istream& operator>>(std::istream &is,
 				    function<I>& f) {
       f.header(read_header(is));
-      double x, y;
-      while(is >> x >> y) {
-	f.append(point{x,y});
+      std::string sx, sy;
+      while(is >> sx >> sy) {
+	double x = std::stod(sx);
+	double y = std::stod(sy);
+	if (std::isfinite(x) && std::isfinite(y))
+	  f.append(point{x, y});
       }
       return is;
     }

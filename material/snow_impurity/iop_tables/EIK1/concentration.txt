@@ -1,0 +1,7 @@
+/* 
+Mass concentration of suspended particulate matter [g/m3] for the EIK1 station.
+
+Sara Wergeland, Master thesis, UiB, expected November 2026. 
+*/
+
+4.9200

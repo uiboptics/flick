@@ -26,6 +26,7 @@ int main() {
   t.include<function_test_H>(); 
   t.include<function_test_I>();
   t.include<function_test_J>();
+  t.include<function_test_K>();
   t.include<direction_generator_test>();
   t.include<vector_test>();
   t.include<histogram_test>();

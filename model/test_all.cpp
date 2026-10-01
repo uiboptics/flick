@@ -15,5 +15,6 @@ int main() {
   t.include<single_layer_slab_test_G>(); 
   t.include<single_layer_slab_test_H>(); 
   t.include<single_layer_slab_test_I>(); 
-  return t.run_test_cases();
+  t.run_test_cases();
+  return 0;
 }

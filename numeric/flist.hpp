@@ -34,7 +34,7 @@ namespace flick {
       fl.functions_.clear();
       fl.header_ = read_header(is);
       is >> fl.all_values_;
-      linalg::matrix m = t(fl.all_values_);
+      linalg::matrix m = linalg::t(fl.all_values_);
       for (size_t i=1; i<m.size(); i++) {
 	fl.functions_.push_back(function<Interpolation>(m.at(0),m.at(i)));
       }
