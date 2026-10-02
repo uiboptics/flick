@@ -14,14 +14,23 @@ namespace flick {
       accurt() : basic_command("accurt") {};
       void run() {
 	if (size() == 4 && a(1) == "-g" ) {
-	  if (a(2) == "toa_reflectance") {
+	  if (a(2) == "atmosphere") {
+	    configuration_template::atmosphere().write(a(3));
+	  }
+	  else if (a(2) == "boa_transmittance") {
+	    configuration_template::boa_transmittance().write(a(3));
+	  }
+	  else if (a(2) == "atmosphere_ocean") {
+	    configuration_template::atmosphere_ocean().write(a(3));
+	  }
+	  else if (a(2) == "default") {
+	    configuration_template::atmosphere_ocean().write(a(3));
+	  }
+	  else if (a(2) == "toa_reflectance") {
 	    configuration_template::toa_reflectance().write(a(3));
 	  }
 	  else if (a(2) == "ocean_radiance") {
 	    configuration_template::ocean_radiance().write(a(3));
-	  }
-	  else if (a(2) == "boa_transmittance") {
-	    configuration_template::boa_transmittance().write(a(3));
 	  }
 	  else if (a(2) == "rs_reflectance") {
 	    configuration_template::rs_reflectance().write(a(3));

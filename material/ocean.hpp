@@ -66,8 +66,7 @@ this unit is an exception to the SI mks unit convention.
 	add<double>("pure_water_volume_fraction", 1, R"(
 Should normally be set to one, but can be changed to examine the
 contribution of pure water to radiative quantities. If set to zero,
-absorption and scattering by pure water are removed, but the
-refractive index of the lower slab is still that of water.
+the water is replaced by a vacuum with a refractive index of 1.0.
 )");
 		    	
 	add<double>("chl_concentration", 0, R"(
@@ -268,14 +267,18 @@ Radius of sea ice brine pocket inclusions [m].
     }
     void add_pure_water() {
       double vf = c_.get<double>("pure_water_volume_fraction");
-      double S = c_.get<double>("water_salinity");
-      double T = c_.get<double>("water_temperature");
-      size_t n_ice_depths = c_.get<int>("ice_depths");
-      size_t n_total = c_.get_vector<double>("concentration_relative_depths").size();
-      stdvector vol_frac(n_ice_depths, 0.0);
-      vol_frac.resize(n_total, vf);
-      auto m = std::make_shared<pure_water>(S,T);
-      add_profile(m,vol_frac,"pure water");
+      if (vf > 0) {
+	double S = c_.get<double>("water_salinity");
+	double T = c_.get<double>("water_temperature");
+	size_t n_ice_depths = c_.get<int>("ice_depths");
+	size_t n_total = c_.get_vector<double>("concentration_relative_depths").size();
+	stdvector vol_frac(n_ice_depths, 0.0);
+	vol_frac.resize(n_total, vf);
+	auto m = std::make_shared<pure_water>(S,T);
+	add_profile(m,vol_frac,"pure water");
+      } else {
+	add_material<vacuum>();
+      }
     }
     void add_cdom() {
       double a440 = c_.get<double>("cdom_440");
