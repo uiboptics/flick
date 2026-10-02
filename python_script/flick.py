@@ -484,6 +484,16 @@ class relative_radiation(basic_radiation):
 
 
 class absolute_radiation(basic_radiation):
+    def to_mW_per_m2_nm_sr(self,spectrum):
+        spectrum[:,0] = spectrum[:,0]*1e9
+        spectrum[:,1] = spectrum[:,1]*1e-6
+        return spectrum
+
+    def to_W_per_m2_nm(self,spectrum):
+        spectrum[:,0] = spectrum[:,0]*1e9
+        spectrum[:,1] = spectrum[:,1]*1e-9
+        return spectrum
+    
     def spectrum(self,wl_grid, wl_width, time_point_utc=0,
                                        latitude=0, longitude=0):
         return self._absolute_spectrum(wl_grid, wl_width, time_point_utc,
@@ -497,11 +507,6 @@ class radiance(absolute_radiation):
         self.set("detector_orientation_override",[polar_viewing_angle,
                                                   azimuth_viewing_angle])
 
-    def to_mW_per_m2_nm_sr(self,spectrum):
-        spectrum[:,0] = spectrum[:,0]*1e9
-        spectrum[:,1] = spectrum[:,1]*1e-6
-        return spectrum
-
     
 class plane_irradiance(absolute_radiation):
     def __init__(self,tmpdir="flick_tmp"):
@@ -509,11 +514,6 @@ class plane_irradiance(absolute_radiation):
         self.set("detector_type","plane_irradiance")
         self.set("detector_orientation","up")
         self.set_n_angles(16**1.6)
-        
-    def to_W_per_m2_nm(self,spectrum):
-        spectrum[:,0] = spectrum[:,0]*1e9
-        spectrum[:,1] = spectrum[:,1]*1e-9
-        return spectrum
     
     
 class toa_radiance(radiance):

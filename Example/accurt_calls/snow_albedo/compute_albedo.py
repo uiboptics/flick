@@ -20,9 +20,10 @@ f.set("snow_radius", 1e-3)
 f.set("snow_impurity_names", "EIK1")
 f.set("snow_impurity_scaling_factors", 1)
 
-wavelengths = np.linspace(300e-9, 900e-9, 7)  
-source_zenith_angle = 60  
-albedo = f.spectrum(wavelengths, source_zenith_angle)
+n_wl = 7 # Increase to improve spectral resolution
+wavelengths = np.linspace(300e-9, 900e-9, n_wl) 
+solar_zenith_angle = 60  
+albedo = f.spectrum(wavelengths, solar_zenith_angle)
 
 albedo[:,0] *= 1e9 # [nm]
 if not os.path.exists('output'):
