@@ -391,8 +391,7 @@ print_iops = false
 /*
 Should normally be set to one, but can be changed to examine the
 contribution of pure water to radiative quantities. If set to zero,
-absorption and scattering by pure water are removed, but the
-refractive index of the lower slab is still that of water.
+the water is replaced by a vacuum with a refractive index of 1.0.
 */
 
 pure_water_volume_fraction = 1 
@@ -428,6 +427,24 @@ the snow grains.
 */
 
 snow_ice = 0 
+
+/*
+Space-separated list of names of snow impurity data directories, each
+containing ASCII data files for particle and CDOM absorption spectra
+and one file containing particle mass concentrations. These
+directories can be located either in the current directory or in
+`flick/material/snow_impurity/iops/`. See the latter for the default
+EIK1 data.
+*/
+
+snow_impurity_names = EIK1 
+
+/*
+Space-separated list of concentration scaling factors corresponding to
+the snow impurities listed in the `snow_impurity_names` variable.
+*/
+
+snow_impurity_scaling_factors = 1 
 
 /*
 Average snow grain radius [m].
