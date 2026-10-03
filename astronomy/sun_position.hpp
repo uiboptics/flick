@@ -2,6 +2,8 @@
 #define flick_sun_position
 
 #include <numbers>
+#include <vector>
+#include <limits>
 #include "time_point.hpp"
 #include "../numeric/constants.hpp"
 
@@ -52,15 +54,21 @@ namespace flick {
       : time_point_{t}, latitude_{latitude}, longitude_{longitude},
        	earth_orbit_{t.year(),t.day_of_year()} {
       S_ = sun_direction();      
+      ensure(valid());
     }
     double zenith_angle() const { 
       return acos(S_[2]);
     }
-    double azimuth_angle() const { 
-      // South-clockwise convention, [-pi, pi] radians. Zero
-      // corresponds to the Sun in the South; positive angles toward
-      // the West and negative angles toward the East
+    double azimuth_angle() const {
+      /* South-clockwise convention, [-pi, pi] radians. Zero
+   corresponds to the Sun being due South (as observed from the
+   Northern Hemisphere); positive angles correspond to the Sun being
+   observed toward the West, and negative angles toward the East. */
       return std::atan2(-S_[0],-S_[1]);
+    }
+    friend std::ostream& operator<<(std::ostream& os, const sun_position& sp) {
+      os << sp.zenith_angle() << " " << sp.azimuth_angle();
+      return os;
     }
   private:
     double latitude_of_subsolar_point() const {
@@ -83,6 +91,18 @@ namespace flick {
       S[1] = cos(phi_0)*sin(phi_s)-sin(phi_0)*cos(phi_s)*cos(dl);
       S[2] = sin(phi_0)*sin(phi_s)+cos(phi_0)*cos(phi_s)*cos(dl);
       return S;
+    }
+    bool valid() const {
+      double pi = std::numbers::pi+10*std::numeric_limits<double>::epsilon();
+	return latitude_ >= -pi/2 && latitude_ <= pi/2 &&
+	  longitude_ >= -pi && longitude_ <= pi;
+    }
+    void ensure(bool b) const {
+      if (not b) {
+	std::ostringstream os;
+	os << "sun_position " << *this;
+	throw std::runtime_error(os.str());
+      }
     }
   };
 }

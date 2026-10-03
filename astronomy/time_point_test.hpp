@@ -50,4 +50,16 @@ namespace flick {
     check(tp1.minute()==tp2.minute());
     check_close(tp1.second(),tp2.second(),0.0006_pct);
   } end_test_case()
+  
+  begin_test_case(time_point_test_F) {
+    /* Time point stream */ 
+    std::istringstream s1("2026 10 03 10 07 0");
+    time_point tp1;
+    s1 >> tp1;
+    check(tp1.minute()==7);
+    std::istringstream s2("2026 10 3 10 7 0");
+    time_point tp2;
+    s2 >> tp2;
+    check(tp2.day()==3);
+  } end_test_case()
 }
