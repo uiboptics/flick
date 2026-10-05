@@ -10,6 +10,8 @@
 #include "../material/material.hpp"
 #include "../material/layered_iops.hpp"
 #include "../material/z_profile.hpp"
+#include "toa_sun.hpp"
+
 
 namespace flick {
   class accurt_user_specified {
@@ -163,10 +165,11 @@ output represents the atmospheric transmissivity.
 Reference detector vertical orientation, either ‘up’ or ‘down’.
 )");
 			 
-	add<double>("source_zenith_angle", 0, R"(
+	add<double>("source_zenith_angle", 0, R"( 
 Source zenith angle [degrees], where 0 corresponds to vertically
 downward-directed incident irradiance. The source is typically the
-solar beam.
+solar beam. Note that this varibale may be automatically overwritten
+if the ‘toa_solar_multiplication‘ variable is set to ‘true‘.  
 )");
 	
 	add<double>("bottom_boundary_surface_scaling_factor", 1, R"(
@@ -194,15 +197,37 @@ Option for printing of inherent optical properties in the
 flick_tmp_directory during runtime. Valid options are ‘true’ or
 ‘false’.
 )");
+	
 	add<std::string>("integrate_before_ratio","false", R"(
 Option for spectral integration of the radiation in both the detector
-and the reference detector before the ratio is calculated. Use this
-option, e.g., to calculate the ratio of total upward to downward
-energy. Valid options are ‘true’ or ‘false’. If set to ‘true’, a
-single ratio value with a corresponding median wavelength is
-returned.  
+and the reference detector before the ratio is calculated. Valid
+options are ‘true’ or ‘false’. If set to ‘true’, a single ratio value
+with a corresponding median wavelength is returned.  
 )");
 	
+	add<std::string>("toa_solar_input",
+			 "2026 6 21 11 40 0.0 60.391 5.322 0", R"(
+Input string needed to obtain the top-of-atmosphere solar irradiance
+spectrum with the correct solar zenith angle and Sun–Earth
+distance. The format is a space-separated list of: ‘year, month, day,
+hour, minutes, seconds, latitude (deg), longitude (deg), and output
+spectral bandwidth (nm)’. Time must be given in UTC. See the default
+input string for a high-resolution midsummer solar irradiance spectrum
+above Bergen, Norway. See also the ‘toa_solar_multiplication‘
+variable.  
+)");
+	
+	add<std::string>("toa_solar_multiplication","false", R"(
+The default output ratio between the detector and reference detector
+radiation spectra may be multiplied by the top-of-atmosphere solar
+irradiance spectrum. Valid options are ‘true’ or ‘false’. If set to
+‘true’, the output spectrum will have SI base units of W/m^3 or
+W/m^3/sr, depending on whether an irradiance or radiance detector is
+selected. If set to ‘true’, any value set for the
+‘source_zenith_angle’ variable will be automatically overwritten by
+the angle calculated from the time and location given in the
+‘toa_solar_input’ variable.
+)");	
       }
       size_t to_streams(size_t n_angles) {
 	size_t n_streams = pow(n_angles,1/1.6); 
@@ -434,15 +459,24 @@ returned.
       } 
       return pp_function{wavelengths_,radiation/reference_detector_irradiance()};
     }
+    pp_function weighted_radiation(const stdvector& radiation) {
+      auto ratio = radiation_ratio(radiation);
+      if (c_.get_boolean("toa_solar_multiplication")) {
+	std::string arg = c_.get<std::string>("toa_solar_input");
+	toa_sun ts(arg);
+	c_.set<double>("source_zenith_angle",ts.zenith_angle());
+	return toa_sun(arg).multiply_with(ratio);
+      }
+      return ratio;
+    }
     pp_function relative_plane_irradiance() {
       run();
-      return radiation_ratio(detector_plane_irradiance());
+      return weighted_radiation(detector_plane_irradiance());
     }
-
     pp_function relative_scalar_irradiance() {
       c_.set<std::string>("save_scalar_irradiance","true");  
       run();
-      return radiation_ratio(detector_scalar_irradiance());
+      return weighted_radiation(detector_scalar_irradiance());
     }
     pp_function relative_radiance() {
       if (detector_orientation_override()) {
@@ -454,7 +488,7 @@ returned.
 	set_vertical_radiance();
       }
       run();
-      return radiation_ratio(detector_radiance());
+      return weighted_radiation(detector_radiance());
     }
     stdvector detector_radiance() {
       grid_4d g = read_radiance(output_+"/radiance.txt");

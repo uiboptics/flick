@@ -233,4 +233,33 @@ namespace flick {
       check(f < 1);
     }
   } end_test_case()
+
+  begin_test_case(accurt_test_I) {
+    // Check source angle dependence
+    size_t n_angles = 50;
+    accurt::configuration ac;
+    ac.set<double>("source_zenith_angle",0);
+    ac.set<size_t>("stream_upper_slab_size",ac.to_streams(n_angles));
+    ac.set<double>("detector_wavelengths",300e-9);
+    ac.set<std::string>("detector_orientation","up");
+    ac.set<std::string>("reference_detector_orientation","up");
+    ac.set<std::string>("detector_type","plane_irradiance");
+    ac.set<double>("detector_height",1);
+    ac.set<double>("reference_detector_height",120e3);
+    material::atmosphere_ocean::configuration mc;
+    mc.set<size_t>("n_angles",n_angles);
+    mc.set<size_t>("n_heights",3);
+    mc.set<double>("aerosol_od",0);
+    mc.set<double>("nap_concentration",1e-3);
+    auto m = std::make_shared<material::atmosphere_ocean>(mc);
+    if (getenv("ACCURT_PATH")) {
+      auto a_high =  accurt(ac, m);
+      double r_high = a_high.relative_radiation().y()[0];
+      ac.set<double>("source_zenith_angle",85);
+      auto a_low =  accurt(ac, m);
+      double r_low = a_low.relative_radiation().y()[0];
+      check(r_high > 100*r_low);
+    }
+  } end_test_case()
+
 }

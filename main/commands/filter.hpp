@@ -82,21 +82,21 @@ namespace flick {
 	else if (a(2)=="gaussian_mean") {
 	  double wl0 = std::stod(a(3));
 	  double fwhm = std::stod(a(4));
-	  std::cout << flick::gaussian_mean(f,wl0,fwhm);
+	  std::cout << flick::filter::gaussian(wl0,fwhm).weighted_average(f);
 	}
 	else if (a(2)=="triangular") {
 	  double wl0 = std::stod(a(3));
 	  double fwhm = std::stod(a(4));
-	  std::cout << flick::triangular(f,wl0,fwhm);
+	  std::cout << flick::filter::triangular(wl0,fwhm).weighted_average(f);
 	}
 	else if (a(2)=="weighted_integral") {
 	  std::string fname = a(3);
 	  auto f2 = flick::read<flick::pl_function>(fname);
-	  std::cout << flick::weighted_integral(f,f2);
+	  std::cout << flick::filter::tabulated(f2).transmission(f).integral();
 	}
 	else if (a(2)=="sentinel3") {
 	  double wl0 = std::stod(a(3));
-	  std::cout << flick::sentinel3(f,wl0);
+	  std::cout << flick::filter::sentinel3(wl0).transmission(f).integral();
 	}
 	else
 	  error();

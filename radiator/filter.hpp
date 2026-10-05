@@ -13,35 +13,56 @@
 
 namespace flick {
   namespace filter {     
-    class filter {
+    class filter {      
     public:
       virtual ~filter() = default;
       virtual double transmittance(double wavelength) const = 0;
-    };
-    
-    class gaussian : public filter {
-      double wl0_;
-      double sigma_; 
-    public:
-      gaussian(double center_wavelength, double fwhm) {
-	wl0_ = center_wavelength;
-	sigma_ = fwhm/(2*sqrt(2*log(2)));
+      virtual std::vector<double> extract_range(const std::vector<double>& wl) const {
+	return wl;
       }
-      double transmittance(double wavelength) const {
-	using namespace constants;
-	return 1/(sigma_*sqrt(2*pi))*exp(-0.5*pow((wavelength-wl0_)/sigma_,2));
+      template<typename Function>
+      Function transmission(const Function& radiation_spectrum) const {
+	Function ts = transmittance_spectrum<Function>(radiation_spectrum.x());
+	return multiply(ts, radiation_spectrum, ts.x());
+      } 
+      template<typename Function>
+      double weighted_average(const Function& radiation_spectrum) const {
+	const Function &f = radiation_spectrum;
+	return transmission(f).integral() /
+	  transmittance_spectrum<Function>(f.x()).integral();
+      }
+    private:
+      template<typename Function>
+      Function transmittance_spectrum(const std::vector<double>& wl) const {
+	auto wle = extract_range(wl);
+	Function t;
+	for (size_t i=0; i < wle.size(); ++i) {
+	  t.append({wle[i], transmittance(wle[i])});
+	}
+	return t;	
       }
     };
 
-    class triangular : public filter {
-      distribution::triangular t_;
+    class band_filter : public filter {
+    protected:
+      double wl0_{500e-9};
+      double fwhm_{10e-9};
     public:
-      triangular(double center_wavelength, double fwhm)
-	: t_(center_wavelength-fwhm,center_wavelength+fwhm,center_wavelength) {
- 
+      band_filter(double center_wavelength, double fwhm)
+	: wl0_{center_wavelength}, fwhm_{fwhm} {
+	if (fwhm <= 0)
+	  throw std::invalid_argument("band_filter: fwhm must be positive");
       }
-      double transmittance(double wavelength) const {
-	return t_.pdf(wavelength);
+    private:
+      std::vector<double> extract_range(const std::vector<double>& wl) const override {
+	double dwl = 3*fwhm_/2;
+	auto first = std::lower_bound(wl.begin(), wl.end(), wl0_-dwl);
+	auto last  = std::upper_bound(wl.begin(), wl.end(), wl0_+dwl);
+	if (first != wl.begin())
+	  --first;
+	if (last != wl.end())
+	  ++last;
+	return std::vector<double>(first, last);
       }
     };
     
@@ -51,7 +72,7 @@ namespace flick {
     public:
       cut_ends(double lower_edge, double upper_edge)
 	: l_{lower_edge},u_{upper_edge} {}
-      double transmittance(double wavelength) const {
+      double transmittance(double wavelength) const override {
 	if (wavelength < l_ or wavelength > u_)
 	  return 0;	
 	return 1;
@@ -65,7 +86,7 @@ namespace flick {
     //  Photobiological Sciences, 1, pp.251-268.
     {
     public:
-      double transmittance(double wavelength) const {
+      double transmittance(double wavelength) const override {
 	if (wavelength < 298e-9)
 	  return 1;
 	else if (wavelength < 328e-9)
@@ -79,7 +100,7 @@ namespace flick {
     // Converts to number of photons per wavelength
     {
     public:
-      double transmittance(double wavelength) const {
+      double transmittance(double wavelength) const override {
 	using namespace constants;
 	return wavelength / (h * c);
       }
@@ -92,7 +113,7 @@ namespace flick {
       tabulated(const pl_function& filter_transmittance)
 	: t_{filter_transmittance} {
       }
-      double transmittance(double wavelength) const {
+      double transmittance(double wavelength) const override {
 	return t_.value(wavelength-wavelength_shift_);
       }
       void shift(double wavelength) {
@@ -114,7 +135,7 @@ namespace flick {
       const std::vector<double>& wavelength_grid() const {
 	return f.x();
       }
-      double transmittance(double wavelength) const {
+      double transmittance(double wavelength) const override {
 	return f.value(wavelength);
       }
       friend std::ostream& operator<<(std::ostream &os, const cone_lms<Lms_no>& c) {
@@ -151,7 +172,7 @@ namespace flick {
 	  f.append(point(x[i]*1e-9,y));
 	}
       }
-      double transmittance(double wavelength) const {
+      double transmittance(double wavelength) const override {
 	return f.value(wavelength);
       }
       friend std::ostream& operator<<(std::ostream &os, const xyz_bar<Xyz_no>& c) {
@@ -181,10 +202,10 @@ namespace flick {
 	srf_ = std::make_shared<tabulated>(tabulated(f));
 	srf_->shift(user_center_wavelength_-centers_.x()[n]);
       }
-      double transmittance(double wavelength) const {
+      double transmittance(double wavelength) const override {
 	return srf_->transmittance(wavelength);
       }
-      size_t closest_srf() {
+      size_t closest_srf() const {
 	double n = centers_.value(user_center_wavelength_);
 	if (n > centers_.size()-1)
 	  return centers_.size()-1;
@@ -193,42 +214,57 @@ namespace flick {
 	return std::round(n);
       }
     };
-  }
 
-  template<typename Function>
-  pl_function transmit(const Function& radiation_spectrum, const filter::filter &f,
-		    const std::vector<double>& wavelengths={}) {
-    std::vector<double> wl = wavelengths;
-    if (wl.empty())
-      wl = radiation_spectrum.x();
-    pl_function new_rs;
-    for (size_t i=0; i < wl.size(); ++i)
-      new_rs.append({wl[i], radiation_spectrum.value(wl[i])*f.transmittance(wl[i])});
-    return new_rs;
-  }
+      class gaussian : public band_filter {
+    public:
+      using band_filter::band_filter;
+      double transmittance(double wavelength) const override {
+	using namespace constants;
+	double sigma = fwhm_/(2*sqrt(2*log(2)));
+	return 1/(sigma*sqrt(2*pi))*exp(-0.5*pow((wavelength-wl0_)/sigma,2));
+      }
+    };
 
+    class triangular : public band_filter {
+    public:
+      using band_filter::band_filter;
+      double transmittance(double wavelength) const override {
+	return distribution::triangular(wl0_-fwhm_,wl0_+fwhm_,wl0_).pdf(wavelength);
+      }
+    };
+
+    class square : public band_filter {
+    public:
+      using band_filter::band_filter;
+      double transmittance(double wavelength) const override {
+	return cut_ends(wl0_-fwhm_/2, wl0_+fwhm_/2).transmittance(wavelength)/fwhm_;
+      }
+    };
+  }
+  
   template<typename Function>
-  double n_photons(const Function& radiation_spectrum, double wl_low, double wl_high) {
-    return transmit(radiation_spectrum, filter::photons()).integral(wl_low, wl_high);
+  inline double n_photons(const Function& radiation_spectrum, double wl_low,
+			  double wl_high) {
+    return filter::photons().transmission(radiation_spectrum).integral(wl_low, wl_high);
   }
-  double uv_index(const pl_function& radiation_spectrum) {
-    return 40*transmit(radiation_spectrum, filter::erythema()).integral();
+  inline double uv_index(const pl_function& radiation_spectrum) {
+    return 40*filter::erythema().transmission(radiation_spectrum).integral();
   }
-  double uva_index(const pl_function& radiation_spectrum) {
-    return 40*transmit(radiation_spectrum, filter::erythema()).integral(315e-9,400e-9);
+  inline double uva_index(const pl_function& radiation_spectrum) {
+    return 40*filter::erythema().transmission(radiation_spectrum).integral(315e-9,400e-9);
   }
-  double uvb_index(const pl_function& radiation_spectrum) {
-    return 40*transmit(radiation_spectrum, filter::erythema()).integral(280e-9,315e-9);
+  inline double uvb_index(const pl_function& radiation_spectrum) {
+    return 40*filter::erythema().transmission(radiation_spectrum).integral(280e-9,315e-9);
   }
   template<typename Function>
-  std::vector<double> chromaticity(const Function& radiation_spectrum) {
+  inline std::vector<double> chromaticity(const Function& radiation_spectrum) {
     double wl1 = 380e-9;
     double wl2 = 780e-9;
     const Function& s = radiation_spectrum;
     std::vector<double> xyz(3);
-    xyz[0] = transmit(s, filter::xyz_bar<0>()).integral(wl1,wl2);
-    xyz[1] = transmit(s, filter::xyz_bar<1>()).integral(wl1,wl2);
-    xyz[2] = transmit(s, filter::xyz_bar<2>()).integral(wl1,wl2);
+    xyz[0] = filter::xyz_bar<0>().transmission(s).integral(wl1,wl2);
+    xyz[1] = filter::xyz_bar<1>().transmission(s).integral(wl1,wl2);
+    xyz[2] = filter::xyz_bar<2>().transmission(s).integral(wl1,wl2);
     double sum = 0;
     for (size_t i = 0; i < xyz.size(); i++)
       sum += xyz[i];
@@ -238,7 +274,7 @@ namespace flick {
     return xyz;
   }
   template<typename Function>
-  std::vector<double> rgb(const Function& radiation_spectrum) {
+  inline std::vector<double> rgb(const Function& radiation_spectrum) {
     using namespace linalg;
     linalg::matrix sRGB_D65 =  // White for CIE D65 spectrum 
       {{3.2404542,-1.5371385,-0.4985314},
@@ -254,23 +290,20 @@ namespace flick {
     }
     return rgb;
   }
-  double gaussian_mean(const pl_function& radiation_spectrum, double wl0, double fwhm) {
-    return transmit(radiation_spectrum, filter::gaussian(wl0,fwhm)).integral();
+
+  template<typename Band_filter, typename Function>
+  inline Function smooth(const Function& radiation_spectrum, double fwhm) {
+    if (fwhm > 0) {
+      auto& f = radiation_spectrum;
+      auto& wl = f.x();
+      std::vector<double> y(f.size());
+      for (size_t i=0; i<wl.size(); ++i) {
+	y[i] = Band_filter(wl[i],fwhm).weighted_average(f);
+      }
+      return Function(wl,y);
+    }
+    return radiation_spectrum;
   }
-  double triangular(const pl_function& radiation_spectrum, double wl0, double fwhm) {
-    return transmit(radiation_spectrum, filter::triangular(wl0,fwhm)).integral();
-  }
-  double square_mean(const pl_function& radiation_spectrum, double wl0, double full_width) {
-    return transmit(radiation_spectrum, filter::cut_ends(wl0-full_width/2,wl0+full_width/2)).integral()/full_width;
-  }
-  double weighted_integral(const pl_function& radiation_spectrum,
-			  const pl_function& filter_transmittance) {
-    return transmit(radiation_spectrum, filter::tabulated(filter_transmittance)).integral();
-  }
-  double sentinel3(const pl_function& radiation_spectrum, double wl0) {
-    return transmit(radiation_spectrum, filter::sentinel3(wl0)).integral();
-  }  
 }
 
 #endif
-

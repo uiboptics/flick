@@ -12,6 +12,7 @@ int main() {
   t.include<filter_test_B>();
   t.include<filter_test_C>();
   t.include<filter_test_D>();
+  t.include<filter_test_E>();
   t.run_test_cases();
   return 0;
 }

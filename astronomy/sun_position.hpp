@@ -50,6 +50,7 @@ namespace flick {
     std::vector<double> S_;
     double to_radians_ = std::numbers::pi/180;
   public:
+    sun_position() : sun_position(time_point::epoch::J2000(),0,0) {}
     sun_position(const time_point& t, double latitude, double longitude)
       : time_point_{t}, latitude_{latitude}, longitude_{longitude},
        	earth_orbit_{t.year(),t.day_of_year()} {
