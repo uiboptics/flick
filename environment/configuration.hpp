@@ -150,6 +150,16 @@ namespace flick {
       ensure(tf == "false", name);
       return false;
     }
+    std::string get_one_string(const std::string& name) {
+      std::vector<std::string> sv = get_vector<std::string>(name);
+      std::string s;
+      for (std::size_t i = 0; i < sv.size(); ++i) {
+	if (i > 0)
+	  s += ' ';
+	s += sv[i];
+      }
+      return s;
+    }
     bool exists(const std::string& name) const {
       return (parameters_.find(name) != parameters_.end());
     }
