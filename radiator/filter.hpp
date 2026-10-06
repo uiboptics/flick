@@ -55,14 +55,20 @@ namespace flick {
       }
     private:
       std::vector<double> extract_range(const std::vector<double>& wl) const override {
+	if (wl.empty())
+	  return {};
 	double dwl = 3*fwhm_/2;
-	auto first = std::lower_bound(wl.begin(), wl.end(), wl0_-dwl);
-	auto last  = std::upper_bound(wl.begin(), wl.end(), wl0_+dwl);
-	if (first != wl.begin())
-	  --first;
-	if (last != wl.end())
-	  ++last;
-	return std::vector<double>(first, last);
+	double wl_lo = std::max(wl0_-dwl, wl.front());
+	double wl_hi = std::min(wl0_+dwl, wl.back());
+	auto first = std::lower_bound(wl.begin(), wl.end(), wl_lo);
+	auto last  = std::lower_bound(wl.begin(), wl.end(), wl_hi);
+	std::vector<double> x(first, last);
+
+	if (x.empty() || x.front() > wl_lo)
+	  x.insert(x.begin(), wl_lo);
+	if (x.back() < wl_hi)
+	  x.push_back(wl_hi);
+	return x;
       }
     };
     
@@ -292,7 +298,7 @@ namespace flick {
   }
 
   template<typename Band_filter, typename Function>
-  inline Function smooth(const Function& radiation_spectrum, double fwhm) {
+  inline Function moving_average(const Function& radiation_spectrum, double fwhm) {
     if (fwhm > 0) {
       auto& f = radiation_spectrum;
       auto& wl = f.x();

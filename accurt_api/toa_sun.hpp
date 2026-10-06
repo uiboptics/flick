@@ -32,10 +32,10 @@ namespace flick {
       spectrum_.scale_y(distance_factor()*angle_factor());
     }
     pp_function spectrum() const {
-      return smooth(spectrum_);
+      return band_average(spectrum_);
     }
     pp_function multiply_with(const pp_function& f) const {
-      return smooth(multiply(spectrum_,f,f.x()));
+      return band_average(multiply(spectrum_,f,f.x()));
     }
     double zenith_angle() const {
       return sp_.zenith_angle();
@@ -48,8 +48,8 @@ namespace flick {
     double angle_factor() const {
       return std::max(0.0, cos(sp_.zenith_angle()));
     }
-    pp_function smooth(const pp_function& f) const {
-      return smooth<filter::gaussian,pp_function>(f,spectral_width_);
+    pp_function band_average(const pp_function& f) const {
+      return moving_average<filter::gaussian,pp_function>(f,spectral_width_);
     } 
   };
 }

@@ -235,10 +235,11 @@ namespace flick {
   } end_test_case()
 
   begin_test_case(accurt_test_I) {
-    // Check source angle dependence
+    /* Check source angle dependence with high midday sun versus morning sun. */
     size_t n_angles = 50;
     accurt::configuration ac;
-    ac.set<double>("source_zenith_angle",0);
+    ac.set<std::string>("toa_solar_input", "2026 6 21 11 40 0.0 60.391 5.322 0");
+    ac.set<std::string>("toa_solar_multiplication", "true");
     ac.set<size_t>("stream_upper_slab_size",ac.to_streams(n_angles));
     ac.set<double>("detector_wavelengths",300e-9);
     ac.set<std::string>("detector_orientation","up");
@@ -255,7 +256,8 @@ namespace flick {
     if (getenv("ACCURT_PATH")) {
       auto a_high =  accurt(ac, m);
       double r_high = a_high.relative_radiation().y()[0];
-      ac.set<double>("source_zenith_angle",85);
+      ac.set<std::string>("toa_solar_input", "2026 6 21 1 40 0.0 60.391 5.322 0");
+      ac.set<double>("source_zenith_angle",5);
       auto a_low =  accurt(ac, m);
       double r_low = a_low.relative_radiation().y()[0];
       check(r_high > 100*r_low);
