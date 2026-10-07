@@ -10,12 +10,13 @@ Parameters:
 
   [options]
 
-    -g <configuration_type>
+    -g [configuration_type]
 
     Include this option for generation of a configuration file with
-    default settings.
+    predefined settings. Empty configuration_type will generate
+    default settings for an atamosphere-ocean system.
 
-    <configuration_type>
+    [configuration_type]
 
       'toa_reflectance' for top-of-atmosphere reflectance spectrum
       [1/sr], where the nadir radiance is divided by the downwelling
@@ -43,7 +44,7 @@ Parameters:
 
 Examples:
 
-  flick accurt -g toa_reflectance my_config
+  flick accurt -g my_config
 
   flick accurt my_config
 

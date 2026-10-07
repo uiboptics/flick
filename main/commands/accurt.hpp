@@ -13,7 +13,9 @@ namespace flick {
     public:
       accurt() : basic_command("accurt") {};
       void run() {
-	if (size() == 4 && a(1) == "-g" ) {
+	if (size() == 3 && a(1) == "-g" ) {
+	  configuration_template::atmosphere_ocean().write(a(2));
+	} else if (size() == 4 && a(1) == "-g" ) {
 	  if (a(2) == "atmosphere") {
 	    configuration_template::atmosphere().write(a(3));
 	  }

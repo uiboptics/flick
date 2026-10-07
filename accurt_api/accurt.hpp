@@ -140,7 +140,7 @@ If detector_radiance_distribution_override is enabled, Flick returns a
 and azimuth angle, respectively.
 )");
 	
-	add<std::string>("detector_type", "irradiance", R"(
+	add<std::string>("detector_type", "plane_irradiance", R"(
 Type of radiation to be detected. Valid options are
 ‘plane_irradiance’, ‘scalar_irradiance’, and ‘radiance’.
 )");
