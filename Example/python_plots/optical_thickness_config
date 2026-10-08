@@ -274,17 +274,6 @@ variable, that include sea ice.
 ice_depths = 0 
 
 /*
-Option for spectral integration of the radiation in both the detector
-and the reference detector before the ratio is calculated. Use this
-option, e.g., to calculate the ratio of total upward to downward
-energy. Valid options are ‘true’ or ‘false’. If set to ‘true’, a
-single ratio value with a corresponding median wavelength is
-returned.  
-*/
-
-integrate_before_ratio = false 
-
-/*
 Name of the material that defines the inherent optical properties used in
 the radiative transfer calculations. Valid options are ‘atmosphere’ or
 ‘atmosphere_ocean’.
@@ -351,11 +340,15 @@ scaling factor must be provided for each marine particle specified in
 
 mp_scattering_scaling_factors = 1 
 
-/*Number of grid points used to sample the volume scattering function*/
+/*
+Number of grid points used to sample the volume scattering function.
+*/
 
 n_angles = 300 
 
-/*Number of grid points used sample vertical atmospheric gas profiles*/
+/*
+Number of grid points used sample vertical atmospheric gas profiles.
+*/
 
 n_heights = 8 
 
@@ -452,10 +445,13 @@ Average snow grain radius [m].
 
 snow_radius = 0.0001 
 
-/*
-Source zenith angle [degrees], where 0 corresponds to vertically
+/* 
+Source zenith angle [deg], where 0 corresponds to vertically
 downward-directed incident irradiance. The source is typically the
 solar beam.
+
+NOTE: This ‘source_zenith_angle‘ varibale is automatically overridden
+if the ‘toa_solar_multiplication‘ variable is non-empty.
 */
 
 source_zenith_angle = 0 
@@ -498,6 +494,35 @@ tabulated_iops material [unitless]
 */
 
 ti_volume_fractions = 0 
+
+/*
+The default output ratio between the detector and reference detector
+radiation spectra may be multiplied by the top-of-atmosphere solar
+irradiance spectrum. The output spectrum will then have SI base units
+of W/m^2/m or W/m^2/m/sr, depending on whether an irradiance or
+radiance detector is selected.
+
+The input string required to perform this multiplication using the
+correct solar zenith angle and Sun–Earth distance is a space-separated
+list of:
+
+‘year, month, day, hour, minutes, seconds, latitude [deg], longitude
+[deg], and output spectral bandwidth [nm]’,
+
+where the time must be given in UTC.
+
+For example, the following input gives a high-resolution midsummer
+solar irradiance spectrum above Bergen, Norway:
+
+toa_solar_multiplication = 2026 6 21 11 40 0.0 60.391 5.322 0
+
+NOTE: If the ‘toa_solar_multiplication’ variable is non-empty, any
+value set for the ‘source_zenith_angle’ variable will automatically be
+overridden by the solar zenith angle calculated from the specified
+time and location.
+*/
+
+toa_solar_multiplication =  
 
 /*
 Salinity of the water column [PSU].

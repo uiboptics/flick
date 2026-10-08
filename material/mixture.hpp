@@ -14,8 +14,12 @@ namespace material {
     using z_profile<Function>::real_refractive_index_;
     struct configuration : basic_configuration {
       configuration() {
-	add<size_t>("n_angles", 300, R"(Number of grid points used to sample the volume scattering function)");
-	add<size_t>("n_heights", 8, R"(Number of grid points used sample vertical atmospheric gas profiles)");
+	add<size_t>("n_angles", 300, R"(
+Number of grid points used to sample the volume scattering function.
+)");
+	add<size_t>("n_heights", 8, R"(
+Number of grid points used sample vertical atmospheric gas profiles.
+)");
       }
     };
   private:

@@ -89,4 +89,14 @@ very long description text.)");
     check(c.get_vector<std::string>("c").at(0).empty());
 
   } end_test_case()
+  
+  begin_test_case(configuration_test_E) {
+    // Check throwing if reading float with int
+    basic_configuration c;
+    c.add<int>("a",1);
+    c.add<int>("b",1);
+    std::stringstream ss("/* text */ \na =\n1.1\n/**/ \nb =\n1\n /**/");
+    check_throw(ss >> c);
+
+  } end_test_case()
 }

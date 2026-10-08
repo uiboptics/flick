@@ -333,6 +333,24 @@ def to_streams(n_angles):
     return str(n_streams).rstrip('0').rstrip('.');
 
 
+class accurt_config:
+    def __init__(self, tmpdir="flick_tmp", name="config"):
+        self.fname = f"{tmpdir}/{name}"
+        _run_os(f"mkdir -p {tmpdir}")
+        run(f"accurt -g {self.fname}")
+        self.set("flick_tmp_directory_name", tmpdir)
+        
+    def set(self, config_parameter, value):
+        config(self.fname, config_parameter, value)
+    
+    def get(self, config_parameter):
+        return run('text '+self.fname+' get '+ config_parameter)
+
+    def set_streams(self, n):
+        self.set("stream_upper_slab_size", n)
+        self.set("n_angles", int(n**1.6))         
+    
+
 class basic_radiation:
     _tmpdir = "flick_tmp"
     _config_name = _tmpdir+"/config"

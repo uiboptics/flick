@@ -5,6 +5,7 @@ namespace flick {
     check(system("flick radiator planck 5800 1 > flick_test_tmp")==0);
     check(system("flick accurt -g flick_test_config > flick_test_tmp")==0);
     check(system("flick accurt flick_test_config > flick_test_tmp")==0);
+    system("rm -f flick_test_tmp flick_test_config");
   } end_test_case()
 }
 

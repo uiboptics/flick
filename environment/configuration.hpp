@@ -97,7 +97,8 @@ namespace flick {
       T x;
       is >> std::ws;
       while(is.peek() != begin_qualifier_.at(0) and is.peek() != EOF) {
-	is >> x;
+	if(!(is >> x))
+	  throw std::runtime_error("configuration type-error when reading variable '"+name+"'");
 	p_.push_back(x);
 	is >> std::ws;
       }
