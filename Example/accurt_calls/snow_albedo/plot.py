@@ -7,11 +7,9 @@ import matplotlib.pyplot as plt
 from make_config import sys, os, flick
 
 name = 'albedo'
-data = flick.table(f'output/{name}.txt')
-wls = data[:,0]
-albedo = data[:,1]
+a = flick.table(f'output/{name}.txt')
 fig, ax = plt.subplots()
-ax.plot(wls,albedo)
+ax.plot(a[:,0],a[:,1])
 ax.grid()
 ax.set_xlabel('Wavelength [nm]')
 ax.set_ylabel(r'Snow albedo')

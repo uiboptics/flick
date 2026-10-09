@@ -14,9 +14,9 @@ os.chdir(Path(__file__).resolve().parent)
 
 maximum_snow_thickness = 5
 
-f = flick.absolute_radiation()
-f.generate_config("default", "flick_tmp")
-f.set('detector_orientation','up')
-f.set('detector_height', maximum_snow_thickness)
-f.set('reference_detector_height', maximum_snow_thickness)
-f.set('print_iops','true')
+c = flick.accurt_config()
+c.set_streams(8)
+c.set('detector_orientation','up')
+c.set('detector_height', maximum_snow_thickness)
+c.set('reference_detector_height', maximum_snow_thickness)
+c.set('print_iops','true')
