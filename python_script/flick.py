@@ -332,6 +332,12 @@ def to_streams(n_angles):
         n_streams += 1
     return str(n_streams).rstrip('0').rstrip('.');
 
+def save_two_columns(array_2d, file_name):
+    directory = 'output'
+    if not os.path.exists('output'):
+        os.makedirs('output')
+    np.savetxt(f'{directory}/{file_name}', array_2d, fmt=['%6.2f ','%8.3e'])
+
 
 class accurt_config:
     def __init__(self, tmpdir="flick_tmp", name="config"):
@@ -348,8 +354,8 @@ class accurt_config:
 
     def set_streams(self, n):
         self.set("stream_upper_slab_size", n)
-        self.set("n_angles", int(n**1.6))         
-    
+        self.set("n_angles", int(n**1.6))
+
 
 class basic_radiation:
     _tmpdir = "flick_tmp"
@@ -457,8 +463,6 @@ class basic_radiation:
             else:
                 spectrum[i,1] = run("filter "+self._tmpdir+"/spectrum gaussian_mean "+ \
                                     str(wl[i])+" "+str(wl_width))     
-#                spectrum[i,1] = run("filter "+self._tmpdir+"/spectrum triangular "+ \
-#                                    str(wl[i])+" "+str(wl_width))     
         return spectrum
 
     def set_n_angles(self,n_angles):
@@ -583,8 +587,4 @@ class snow_transmittance(relative_radiation):
         self.set("reference_detector_height", 1.01)
         self.set("detector_type","plane_irradiance")
         
-    
-
-
-
 

@@ -10,12 +10,12 @@ scripts.
 
 Run
 
-  `compute_albedo.py`
+  `compute.py`
 
-and inspect the resulting `output/computed_albedo.txt` file, which can
+and inspect the resulting `output/albedo.txt` file, which can
 be plotted using
 
-  `plot_albedo.py`.
+  `plot.py`.
 
 Modify these scripts as desired. Note that any parameter listed in
 `flick_tmp/config` can be added to the Python scripts and set to the

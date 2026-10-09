@@ -1,20 +1,12 @@
 """
-This script only works if `compute_albedo.py` has been run first.
+This script only works if `compute.py` has been run first.
 
 See also README.txt
 """
-import numpy as np
-import matplotlib.ticker as mticker
 import matplotlib.pyplot as plt
-import os
-import sys
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
-import flick
+from make_config import sys, os, flick
 
-from pathlib import Path
-os.chdir(Path(__file__).resolve().parent)
-
-name = 'computed_albedo'
+name = 'albedo'
 data = flick.table(f'output/{name}.txt')
 wls = data[:,0]
 albedo = data[:,1]

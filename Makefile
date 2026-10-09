@@ -90,7 +90,7 @@ python:
 	cd Example/python_plots; python3 test_all.py
 	cd Example/accurt_calls/logo; python3 test_all.py
 	cd Example/accurt_calls/atmosphere_ocean; python3 test_all.py
-	cd Example/accurt_calls/snow_albedo; python3 test_all.py
+	cd Example/accurt_calls/snow_albedo; python3 test.py
 	cd Example/accurt_calls/arctic_surface_radiation; python3 test_all.py
 
 

@@ -9,8 +9,7 @@ degrees.
 """
 
 import numpy as np
-from make_config import c, sys, os
-import flick
+from make_config import c, sys, os, flick
 
 """ See flick_tmp/config for parameter documentation """
 
@@ -25,6 +24,5 @@ c.set("wavelengths",np.linspace(300e-9, 900e-9, 8))
 
 albedo = flick.run("accurt flick_tmp/config")
 albedo[:,0] *= 1e9 # To nm
-if not os.path.exists('output'):
-    os.makedirs('output')
-np.savetxt('output/computed_albedo.txt', albedo, fmt=['%6.2f ','%8.3e'])
+flick.save_two_columns(albedo,"albedo.txt")
+
