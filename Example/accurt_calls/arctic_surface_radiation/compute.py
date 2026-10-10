@@ -57,7 +57,7 @@ def change_units(detector_type, value):
     
 def save(radiation, name):
     r = change_units(d,radiation)
-    flick.save_two_columns(radiation,f"{name}.txt")
+    flick.save_two_columns(radiation, f"{name}.txt")
   
 if __name__ == "__main__":
     n_wl = 7 # Increase to improve spectral accuracy
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     detector_types = ['plane_irradiance','scalar_irradiance','radiance']
     for s in spacetimes:
         for d in detector_types:
-            name = f"{" ".join(map(str, s))} {d}" 
+            name = f"{' '.join(str(int(value)) for value in s)} {d}"
             print(f'running for: {name}')
             set_detector(d)
             c.set('toa_solar_multiplication',s + [wl_band_width])

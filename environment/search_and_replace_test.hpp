@@ -18,5 +18,12 @@ namespace flick {
     l = t.get("cdom_440");
     check(l=="0.2");
 
+    parameter_text documented("/* example: s = wrong */\ns = old\n/* end */");
+    documented.set("s", "new");
+    std::stringstream documented_stream;
+    documented_stream << documented;
+    check(documented_stream.str().find("example: s = wrong") != std::string::npos);
+    check(documented.get("s") == "new");
+
   } end_test_case()
 }

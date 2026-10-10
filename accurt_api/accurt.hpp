@@ -220,7 +220,7 @@ where the time must be given in UTC.
 For example, the following input gives a high-resolution midsummer
 solar irradiance spectrum above Bergen, Norway:
 
-   2026 6 21 11 40 0.0 60.391 5.322 0
+toa_solar_multiplication = 2026 6 21 11 40 0.0 60.391 5.322 0
 
 NOTE: If the ‘toa_solar_multiplication’ variable is non-empty, any
 value set for the ‘source_zenith_angle’ variable will automatically be

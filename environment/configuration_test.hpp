@@ -1,4 +1,5 @@
 #include "configuration.hpp"
+#include "search_and_replace.hpp"
 
 namespace flick {
   begin_test_case(configuration_test_A) {
@@ -97,6 +98,21 @@ very long description text.)");
     c.add<int>("b",1);
     std::stringstream ss("/* text */ \na =\n1.1\n/**/ \nb =\n1\n /**/");
     check_throw(ss >> c);
+
+  } end_test_case()
+  
+  begin_test_case(configuration_test_F) {
+    // Comments should allow equal signs
+    basic_configuration c;
+    c.add<std::string>("s","","text\n\ns = 1 2 \n\nmore text");
+    std::stringstream ss; 
+    ss << c;
+    parameter_text pt(ss.str());
+    pt.set("s","2 3");
+    std::stringstream ss2; 
+    ss2 << pt;
+    ss2 >> c;
+    check(c.get_one_string("s")=="2 3");
 
   } end_test_case()
 }

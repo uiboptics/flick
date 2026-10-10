@@ -12,6 +12,7 @@ int main() {
   t.include<configuration_test_C>();
   t.include<configuration_test_D>();
   t.include<configuration_test_E>();
+  t.include<configuration_test_F>();
   t.include<search_and_replace_test>();
   t.run_test_cases();
   return 0;
