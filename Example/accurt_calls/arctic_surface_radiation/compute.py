@@ -32,7 +32,7 @@ c.set('chl_concentration',0.1e-6)
 c.set('nap_concentration',0.1e-3)
 
 # NB!! Increase the number of wavelengths to improve spectral accuracy.
-c.set("wavelengths",np.linspace(320e-9, 940e-9, 7))
+c.set("wavelengths",np.linspace(320e-9, 940e-9, 2))
 
 def set_detector(detector_type):
     c.set('detector_type', detector_type)
@@ -65,4 +65,4 @@ for s in spacetimes:
         set_detector(d)
         c.set('toa_solar_multiplication',s + [wl_band_width])
         radiation = flick.run("accurt flick_tmp/config")
-        save(radiation,name)
+        flick.save_two_columns(flick.to_nm_wavelength(radiation),f'{name}.txt')

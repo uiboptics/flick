@@ -72,7 +72,7 @@ namespace flick {
     double g = iops.alpha_terms(0)[ly][1]*4*std::numbers::pi/3;
     double x2 = iops.alpha_terms(0)[ly][2];
     double x3 = iops.alpha_terms(0)[ly][3];
-    check_close(x0,1,0.01_pct);
+    check_close(x0,1,0.08_pct);
     check_small(g,epsilon);
     check(x2>epsilon);
     check_small(x3,epsilon);

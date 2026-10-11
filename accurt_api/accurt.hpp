@@ -186,7 +186,7 @@ accurt_api/bottom_albedo. Current valid names are ´loamy_sand.txt´ and
 ´custom.txt´.
 )");
 		   
-	add<size_t>("stream_upper_slab_size", 34, R"(
+	add<size_t>("stream_upper_slab_size", 8, R"(
 Number of streams used when solving the radiative transfer equation.
 )");
 
@@ -455,7 +455,6 @@ time and location.
       std::string arg = c_.get_one_string("toa_solar_multiplication");
       if (!arg.empty()) {
 	toa_sun ts(arg);
-	c_.set<double>("source_zenith_angle",ts.zenith_angle());
 	return toa_sun(arg).multiply_with(ratio);
       }
       return ratio;
@@ -636,6 +635,11 @@ time and location.
       c_.add<double>("detector_depths_lower_slab",{depths[2]-mh,depths[3]-mh});
     }
     void run() {
+      std::string arg = c_.get_one_string("toa_solar_multiplication");
+      if (!arg.empty()) {
+	toa_sun ts(arg);
+	c_.set<double>("source_zenith_angle",ts.zenith_angle()/std::numbers::pi*180);
+      }
       c_.set_text_qualifiers("#","##");
       c_.set_uppercase(true);
       system(("mkdir -p " + tmpdir_).c_str());      

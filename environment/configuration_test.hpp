@@ -102,7 +102,7 @@ very long description text.)");
   } end_test_case()
   
   begin_test_case(configuration_test_F) {
-    // Comments should allow equal signs
+    // Config documentation should allow equal signs
     basic_configuration c;
     c.add<std::string>("s","","text\n\ns = 1 2 \n\nmore text");
     std::stringstream ss; 

@@ -1,7 +1,6 @@
 """
-Generate Flick solar radiation reference spectrum just above ocean
-surface in W/m2/nm.
-
+Generate a Flick reference spectrum of downward plane irradiance
+just above the ocean surface, in W/m²/nm.
 """
 
 import numpy as np
@@ -12,50 +11,41 @@ import sys
 sys.path.append(os.environ['FLICK_PATH']+'/python_script')
 import flick
 
-path = os.environ['FLICK_PATH']+"/Example/accurt_calls/surface_reference"
-os.chdir(path)
+from pathlib import Path
+os.chdir(Path(__file__).resolve().parent)
 
 full_spectrum = False
 save_data = False
 overwrite_current_standard = False
 
-# When Sun-Earth distance is one astronomical unit
-time_point_1AU = 20240404000000
-
-# Wavelengths used to compute transmittance of atmosphere
+# Number of wavelengths used to compute transmittance of atmosphere
 if full_spectrum:
-    wl_low = 290e-9
-    wl_high = 1040e-9
     n_wls = 230
 else:
-    wl_low = 400e-9
-    wl_high = 700e-9
-    n_wls = 30
-
-# Spectral resolution
-wl_width = 10e-9
+    n_wls = 15
 
 # Run Flick with AccuRT
-f = flick.ocean_downward_plane_irradiance()
-f.set('aerosol_od', 0.08)
-f.set('cloud_liquid', 0)
-f.set('detector_height', 0.1)
-f.set('cdom_440', 0.1)
-f.set('chl_concentration', 1e-6)
-f.set('nap_concentration', 1e-3)
-f.set_override_sun_zenith_angle(60)
-wls = flick.atmosphere_wavelengths('config_for_wavelengths', wl_low, wl_high, n_wls)
-E = f.spectrum(wls, wl_width, time_point_1AU)
-E = f.to_W_per_m2_nm(E)
+c = flick.accurt_config()
+c.set_streams(8)
+c.set('ozone', 0.003)
+c.set('pressure',101325)
+c.set('temperature',288.15)
+c.set('aerosol_od', 0.08)
+c.set('cloud_liquid', 0)
+c.set('detector_type', 'plane_irradiance')
+c.set('detector_height', 0.1)
+c.set('cdom_440', 0.1)
+c.set('chl_concentration', 1e-6)
+c.set('nap_concentration', 1e-3)
 
-# Current flick reference
-Er = flick.run('radiator surface_reference')
-Er = f.to_W_per_m2_nm(Er)
+wl = np.linspace(290e-9, 1040e-9, n_wls)
+c.set("wavelengths",wl)
+c.set('toa_solar_multiplication',[2000, 3, 20, 10, 47, 0, 60.398, 5.315, 10e-9])
+E = flick.run("accurt flick_tmp/config")
 
 if save_data:
-    # Save to ascii file
     file_name = 'surface_reference.txt' 
-    np.savetxt(file_name, E, fmt=['%6.2f ','%8.3e'])
+    flick.save_two_columns(radiation,file_name)
     
     # Insert header
     with open(file_name, 'r') as file:
@@ -66,14 +56,17 @@ if save_data:
         file.write(header + '\n' + original_content)
 
 if overwrite_current_standard:
-    shutil.copy('surface_reference.txt','../../../radiator/.')
+    shutil.copy(file_name,'../../../radiator/.')
 
 # Show spectrum
-plt.plot(E[:,0],E[:,1],label='Suggested reference')
+Er = flick.run('radiator surface_reference')
 plt.plot(Er[:,0],Er[:,1],label='Current reference')
-plt.xlabel('Wavelength [nm]')
-plt.ylabel(r'Irradiance [W$\,$m$^{-2}\,$nm$^{-1}$]')
+plt.plot(E[:,0],E[:,1],label='Suggested reference')
+plt.plot(wl,np.interp(wl,E[:,0],E[:,1]),'.',label='calculated wavelengths')
+plt.xlabel('Wavelength [m]')
+plt.ylabel(r'Irradiance [W$\,$m$^{-2}\,$m$^{-1}$]')
 plt.grid()
 plt.legend()
+
 if __name__ == "__main__":
     plt.show()

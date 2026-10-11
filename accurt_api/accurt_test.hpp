@@ -255,7 +255,7 @@ namespace flick {
       auto a_high =  accurt(ac, m);
       double r_high = a_high.relative_radiation().y()[0];
       ac.set<std::string>("toa_solar_multiplication",
-			  "2026 6 21 1 40 0.0 60.391 5.322 0");
+			  "2026 6 21 2 40 0.0 60.391 5.322 0");
       auto a_low =  accurt(ac, m);
       double r_low = a_low.relative_radiation().y()[0];
       check(r_high > 100*r_low);

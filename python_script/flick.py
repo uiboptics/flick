@@ -332,6 +332,12 @@ def to_streams(n_angles):
         n_streams += 1
     return str(n_streams).rstrip('0').rstrip('.');
 
+
+def to_nm_wavelength(spectrum):
+    spectrum[:,0] *= 1e9 # wavelength in nm
+    spectrum[:,1] *= 1e-9 # radiation per nm wavelength
+    return spectrum
+
 def save_two_columns(array_2d, file_name):
     directory = 'output'
     if not os.path.exists('output'):
