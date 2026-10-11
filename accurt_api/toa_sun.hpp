@@ -35,7 +35,10 @@ namespace flick {
       return band_average(spectrum_);
     }
     pp_function multiply_with(const pp_function& f) const {
-      return band_average(multiply(spectrum_,f,f.x()));
+      const auto& wl = spectrum_.x();
+      auto first = std::lower_bound(wl.begin(), wl.end(), f.x().front());
+      auto last  = std::upper_bound(wl.begin(), wl.end(), f.x().back());
+      return band_average(multiply(spectrum_,f,std::vector(first,last)));
     }
     double zenith_angle() const {
       return sp_.zenith_angle();
