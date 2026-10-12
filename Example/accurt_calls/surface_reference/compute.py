@@ -18,6 +18,9 @@ full_spectrum = False
 save_data = False
 overwrite_current_standard = False
 
+# Sun at one astronomical unit distance and solar zenith angle 60 degrees
+time_pos = [2000, 4, 4, 9, 32, 20, 60.42, 5.27, 10e-9]
+
 # Number of wavelengths used to compute transmittance of atmosphere
 if full_spectrum:
     n_wls = 230
@@ -40,7 +43,7 @@ c.set('nap_concentration', 1e-3)
 
 wl = np.linspace(290e-9, 1040e-9, n_wls)
 c.set("wavelengths",wl)
-c.set('toa_solar_multiplication',[2000, 3, 20, 10, 47, 0, 60.398, 5.315, 10e-9])
+c.set('toa_solar_multiplication',time_pos)
 E = flick.run("accurt flick_tmp/config")
 
 if save_data:

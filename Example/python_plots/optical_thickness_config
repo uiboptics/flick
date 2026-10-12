@@ -344,7 +344,7 @@ mp_scattering_scaling_factors = 1
 Number of grid points used to sample the volume scattering function.
 */
 
-n_angles = 300 
+n_angles = 27 
 
 /*
 Number of grid points used sample vertical atmospheric gas profiles.
@@ -460,7 +460,7 @@ source_zenith_angle = 0
 Number of streams used when solving the radiative transfer equation.
 */
 
-stream_upper_slab_size = 34 
+stream_upper_slab_size = 8 
 
 /*
 Possible subtraction of the nadir radiance specularly reflected from the

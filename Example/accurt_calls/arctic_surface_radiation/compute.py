@@ -41,28 +41,19 @@ def set_detector(detector_type):
     else:
         c.set_streams(8)
 
-def change_units(detector_type, value):
-    value[:,0] *= 1e9 # wavelength [nm]
-    value[:,1] *= 1e-9 # radiation [per nm]
-    return value
-    
-def save(radiation, name):
-    r = change_units(d,radiation)
-    flick.save_two_columns(radiation, f"{name}.txt")
-  
-# More spacetimes may be added here. Default is North Pole only. 
-spacetimes = [
+# More time positons may be added here. Default is North Pole only. 
+time_pos = [
     [2026, 8, 29, 8, 10, 0, 90, 0]
     #, [2026, 8, 30, 8, 23, 0, 88+51.6/60, 48+4.4/60]
 ]
 detector_types = ['plane_irradiance','scalar_irradiance','radiance']
 wl_band_width = 10e-9 # Ramses band width
 
-for s in spacetimes:
-    for d in detector_types:
-        name = f"{' '.join(str(int(value)) for value in s)} {d}"
+for tp in time_pos:
+    for dt in detector_types:
+        name = f"{' '.join(str(int(value)) for value in tp)} {dt}"
         print(f'running for: {name}')
-        set_detector(d)
-        c.set('toa_solar_multiplication',s + [wl_band_width])
+        set_detector(dt)
+        c.set('toa_solar_multiplication',tp + [wl_band_width])
         radiation = flick.run("accurt flick_tmp/config")
         flick.save_two_columns(flick.to_nm_wavelength(radiation),f'{name}.txt')

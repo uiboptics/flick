@@ -233,32 +233,22 @@ namespace flick {
   } end_test_case()
 
   begin_test_case(accurt_test_I) {
-    /* Check source angle dependence with high midday sun versus morning sun. */
-    size_t n_angles = 50;
+    /* Check against standard spectrum */
     accurt::configuration ac;
     ac.set<std::string>("toa_solar_multiplication",
-			"2026 6 21 11 40 0.0 60.391 5.322 0");
-    ac.set<size_t>("stream_upper_slab_size",ac.to_streams(n_angles));
-    ac.set<double>("detector_wavelengths",300e-9);
+			"2000 4 4 9 32 20 60.42 5.27 10e-9");
+    ac.set<double>("detector_wavelengths",{545e-9, 550e-9, 555e-9 });
     ac.set<std::string>("detector_orientation","up");
     ac.set<std::string>("reference_detector_orientation","up");
     ac.set<std::string>("detector_type","plane_irradiance");
-    ac.set<double>("detector_height",1);
+    ac.set<double>("detector_height",0.1);
     ac.set<double>("reference_detector_height",120e3);
     material::atmosphere_ocean::configuration mc;
-    mc.set<size_t>("n_angles",n_angles);
-    mc.set<size_t>("n_heights",3);
-    mc.set<double>("aerosol_od",0);
-    mc.set<double>("nap_concentration",1e-3);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
     if (getenv("ACCURT_PATH")) {
-      auto a_high =  accurt(ac, m);
-      double r_high = a_high.relative_radiation().y()[0];
-      ac.set<std::string>("toa_solar_multiplication",
-			  "2026 6 21 2 40 0.0 60.391 5.322 0");
-      auto a_low =  accurt(ac, m);
-      double r_low = a_low.relative_radiation().y()[0];
-      check(r_high > 100*r_low);
+      auto a =  accurt(ac, m);
+      double r = a.relative_radiation().y()[0];
+      check_close(r, 7.9e8, 3_pct);
     }
   } end_test_case()
 
