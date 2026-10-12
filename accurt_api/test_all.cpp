@@ -8,7 +8,7 @@ int main() {
   }
   using namespace flick;
   unit_test t("accurt");
-
+  
   t.include<toa_sun_test_A>();
   t.include<toa_sun_test_B>();
 

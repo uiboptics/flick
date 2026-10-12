@@ -334,15 +334,15 @@ def to_streams(n_angles):
 
 
 def to_nm_wavelength(spectrum):
-    spectrum[:,0] *= 1e9 # wavelength in nm
-    spectrum[:,1] *= 1e-9 # radiation per nm wavelength
-    return spectrum
+    s = spectrum.copy()
+    s[:,0] *= 1e9 # wavelength in nm
+    s[:,1] *= 1e-9 # radiation per nm wavelength
+    return s
 
-def save_two_columns(array_2d, file_name):
-    directory = 'output'
-    if not os.path.exists('output'):
-        os.makedirs('output')
-    np.savetxt(f'{directory}/{file_name}', array_2d, fmt=['%6.2f ','%8.3e'])
+def save_two_columns(array_2d, file_name, directory='output'):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    np.savetxt(f'{directory}/{file_name}', array_2d, fmt=['%.5g\t','%.4g'])
 
 
 class accurt_config:

@@ -237,18 +237,23 @@ namespace flick {
     accurt::configuration ac;
     ac.set<std::string>("toa_solar_multiplication",
 			"2000 4 4 9 32 20 60.42 5.27 10e-9");
-    ac.set<double>("detector_wavelengths",{545e-9, 550e-9, 555e-9 });
+    ac.set<double>("detector_wavelengths",{545e-9, 550e-9, 555e-9});
     ac.set<std::string>("detector_orientation","up");
     ac.set<std::string>("reference_detector_orientation","up");
     ac.set<std::string>("detector_type","plane_irradiance");
     ac.set<double>("detector_height",0.1);
     ac.set<double>("reference_detector_height",120e3);
+    
     material::atmosphere_ocean::configuration mc;
+    mc.set<double>("aerosol_od",0.08);
+    mc.set<double>("cdom_440",0.1);
+    mc.set<double>("chl_concentration",1e-6);
+    mc.set<double>("nap_concentration",1e-3);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
     if (getenv("ACCURT_PATH")) {
       auto a =  accurt(ac, m);
-      double r = a.relative_radiation().y()[0];
-      check_close(r, 7.9e8, 3_pct);
+      double r = a.relative_radiation().y()[1];
+      check_close(r, 7.884e8, 0.2_pct);
     }
   } end_test_case()
 

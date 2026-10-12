@@ -3,6 +3,7 @@
 
 #include "gas/air.hpp"
 #include "gas/atmospheric_state.hpp"
+#include "../numeric/constants.hpp"
 #include "aerosols/aerosols.hpp"
 #include "snow_impurity/snow_impurity.hpp"
 #include "spheres.hpp"
@@ -20,11 +21,11 @@ Atmospheric constituent profile type. Valid options are
 ‘tropical’, ‘midlatitude_summer’, ‘midlatitude_winter’,
 ‘subarctic_summer’, ‘subarctic_winter’, and ‘us_standard’.
 )");
-	add<double>("temperature", 290, R"(
+	add<double>("temperature", constants::T_ntp, R"(
 Atmosphere ground temperature [K].
 )");
 		    
-	add<double>("pressure", 1000e2, R"(
+	add<double>("pressure", constants::P_ntp, R"(
 Atmosphere ground pressure [Pa].
 )");
 	
