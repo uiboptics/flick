@@ -13,8 +13,28 @@ namespace flick {
     std::vector<function<Interpolation>> column_functions_;
   public:
     table() = default;
+    table(const std::vector<double>& row_values,
+	  const std::vector<double>& col_values,
+	  const std::vector<std::vector<double>>& table_values)
+      : row_values_{row_values}, col_values_{col_values} {
+      column_functions_.resize(col_values_.size());
+      for (size_t i=0; i<row_values_.size(); ++i) {
+	for (size_t j=0; j<col_values_.size(); ++j) {
+	  column_functions_[j].append({row_values_[i],table_values[i][j]});	  
+	}
+      }
+      ensure(!column_functions_.empty());
+      ensure(col_values_.size()==column_functions_.size());
+      ensure(row_values_.size()==column_functions_.at(0).size());
+    }
     std::string header() const {
       return header_;
+    }
+    const std::vector<double>& row_values() {
+      return row_values_;
+    }
+    const std::vector<double>& column_values() {
+      return col_values_;
     }
     function<Interpolation> row(size_t n) {
       function<Interpolation> f;
@@ -31,6 +51,20 @@ namespace flick {
       for (size_t i=0; i < col_values_.size(); ++i)
 	f.append({col_values_[i], column_functions_[i].value(row_value)});
       return f.value(column_value);
+    }
+    double value_at(size_t row, size_t column) {
+      return column_functions_.at(column).y().at(row);
+    }
+    double integral(double row_low, double row_high,
+		    double column_low, double column_high) const {
+      function<Interpolation> f;
+      for (size_t i=0; i < col_values_.size(); ++i)
+	f.append({col_values_[i], column_functions_[i].integral(row_low, row_high)});
+      return f.integral(column_low, column_high);
+    }
+    auto& set(size_t row, size_t column, double value) {
+      column_functions_.at(column).set_y(row, value);
+      return *this;
     }
     friend std::ostream& operator<<(std::ostream &os,
 				    const table<Interpolation>& f) {
@@ -75,6 +109,10 @@ namespace flick {
 	}
       }
       return is;
+    }
+    void ensure(bool b) const {
+      if (!b)
+	throw std::runtime_error("numeric table");
     }
   };
 

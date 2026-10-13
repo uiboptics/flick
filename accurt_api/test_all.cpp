@@ -1,5 +1,6 @@
 #include "accurt_test.hpp"
 #include "toa_sun_test.hpp"
+#include "radiance_field_test.hpp"
 
 int main() {
   if (!getenv("ACCURT_PATH")) {
@@ -9,6 +10,8 @@ int main() {
   using namespace flick;
   unit_test t("accurt");
   
+  t.include<radiance_field_test_A>();
+  /*
   t.include<toa_sun_test_A>();
   t.include<toa_sun_test_B>();
 
@@ -21,7 +24,7 @@ int main() {
   t.include<accurt_test_G>();
   t.include<accurt_test_H>();
   t.include<accurt_test_I>();
-  
+  */
   t.run_test_cases();
   return 0;
 } 

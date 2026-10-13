@@ -15,6 +15,7 @@
 int main() {
   using namespace flick;
   unit_test t("numeric");
+
   t.include<sorted_vector_test>();
   t.include<function_test_A>();
   t.include<function_test_B>();
@@ -35,12 +36,14 @@ int main() {
   t.include<physics_function_test_A>();
   t.include<physics_function_test_B>();
   t.include<physics_function_test_C>();
-  t.include<table_test>();
   t.include<flist_test>();
   t.include<distribution_test_A>();
   t.include<distribution_test_B>();
   t.include<distribution_test_C>();
   t.include<value_collection_test>();
+  t.include<table_test_A>();
+  t.include<table_test_B>();
+  
   t.run_test_cases();
   return 0;
 } 

@@ -225,7 +225,6 @@ namespace flick {
     sorted_vector xv_;
     stdvec yv_;
   public:
-    sorted_vector xv2_;
     function() {
       xv_.set_step_type(I::get_step_type());
     }
@@ -270,6 +269,10 @@ namespace flick {
       for (size_t i=0; i<xv.size(); ++i) {
 	append(point{xv[i],yv[i]});
       }
+      return *this;
+    }
+    auto& set_y(size_t i, double y) {
+      yv_.at(i) = y;
       return *this;
     }
     auto& scale_x(double factor) {
