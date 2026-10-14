@@ -8,6 +8,8 @@
 #include <cmath>
 #include <memory>
 #include <stdexcept>
+#include <charconv>
+#include <string>
 #include "sorted_vector.hpp"
 #include "range.hpp"
 
@@ -424,15 +426,18 @@ namespace flick {
 	os << f.xv_[i] << " " << f.yv_[i] << '\n';
       return os;
     }
-    friend std::istream& operator>>(std::istream &is,
-				    function<I>& f) {
+    friend std::istream& operator>>(std::istream& is, function<I>& f) {
       f.header(read_header(is));
       std::string sx, sy;
-      while(is >> sx >> sy) {
-	double x = std::stod(sx);
-	double y = std::stod(sy);
-	if (std::isfinite(x) && std::isfinite(y))
-	  f.append(point{x, y});
+      double x, y;
+      while (is >> sx >> sy) {
+        auto [px, ex] = std::from_chars(sx.data(), sx.data() + sx.size(), x);
+        auto [py, ey] = std::from_chars(sy.data(), sy.data() + sy.size(), y);
+        if (ex == std::errc{} && ey == std::errc{} &&
+            px == sx.data() + sx.size() &&
+            py == sy.data() + sy.size() &&
+            std::isfinite(x) && std::isfinite(y))
+            f.append(point{x, y});
       }
       return is;
     }

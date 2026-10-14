@@ -280,7 +280,7 @@ namespace flick {
   
   begin_test_case(function_test_K) {
     /* reading of nan and inf without stopping */
-    std::istringstream s("/* test stream */ 1 nan 2 2 3 3 inf 4 5 -inf 6 +inf 7 7");
+    std::istringstream s("/* test stream */ 1 nan 2 2 nan nan 3 3 inf 4 5 -inf 6 +inf 7 7");
     pl_function f;
     s >> f;
     check_close(f.value(7),7,1e-9);

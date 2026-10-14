@@ -29,17 +29,20 @@ Atmosphere ground temperature [K].
 Atmosphere ground pressure [Pa].
 )");
 	
-	add<double>("ozone", 0.003, R"( 
-Ozone column thickness m at STP. Note that 100 DU corresponds to
-0.001 m.  
+	add<double>("ozone", 0.003, R"(
+Ozone-equivalent column thickness [m] at standard temperature and
+pressure (STP: T = 273.15 K, P = 1e5 Pa). A column of 100 Dobson units
+(DU) corresponds to 0.001 m.
+
 )");
 	
 	add<double>("water_vapor", 17, R"(
-Vater vapor column thickness [m] at STP.
+Water vapor equivalent column thickness [m] at standard temperature
+and pressure (STP: T = 273.15 K, P = 1e5 Pa).
 )");
 	
 	add<double>("aerosol_od", 0, R"(
-Aerosol vertical total optical thickness at 550 nm.
+Total vertical column aerosol optical thickness at 550 nm.
 )");
 	
 	add<double>("aerosol_ratio", 1, R"(
@@ -53,18 +56,24 @@ Relative humidity ratio of the atmosphere at the ground.
 )");
 	
 	add<double>("cloud_liquid", 0, R"(
-Liquid equivalent cloud thickness [m]. Typical values range from
-0 to 1e-4 m.
+Liquid-equivalent cloud thickness [m], defined as the thickness of a
+layer of pure liquid water containing the same amount of water as the
+cloud. Typical values range from 0 to 1e-3 m.
 )");
 	
 	add<double>("snow_ice", 0, R"(
-Ice equivalent snow thickness [m], defined as the thickness the snow
-layer would have if compressed into a layer of ice with no air between
-the snow grains.
+Ice-equivalent snow thickness [m], defined as the thickness of a layer
+of pure ice containing the same amount of ice as the snow layer. Note
+that the radiative transfer equation is solved using a 1 m thick layer
+with scaled optical thickness, so any detector placed below 1 m in the
+atmosphere will be inside the snow.
 )");
 	
 	add<double>("snow_radius", 100e-6, R"(
-Average snow grain radius [m].
+Average effective snow grain radius [m]. The effective radius should
+generally be smaller than the actual geometric radius to better
+represent the branches and arms of snow grains using smaller spherical
+ice particles.
 )");
 	
 	add<std::string>("snow_impurity_names", "EIK1", R"(
@@ -89,7 +98,7 @@ atmosphere. Valid options are ‘o3’, ‘o2’, ‘h2o’, ‘no2’, and ‘c
 	add<std::string>("gas_spectral_region", "uv_vis", R"(
 Atmospheric spectral region for pre-calculated, smoothed gas
 absorption spectra. Valid options are ‘uv_vis’, ‘uv_vis_toa’, and
-´solar´.  ‘uv_vis’ option is optimized for bottom-of-atmosphere
+´solar´. ‘uv_vis’ option is optimized for bottom-of-atmosphere
 calculations in the 280-1030 nm region with line-by-line IOPs smoothed
 to about 0.5 nm bandwidth; ‘uv_vis_toa’ option is optimized for
 top-of-atmosphere calculations in the 280-1030 nm region with
