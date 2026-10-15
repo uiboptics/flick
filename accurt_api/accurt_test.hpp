@@ -256,5 +256,28 @@ namespace flick {
       check_close(r, 7.884e8, 0.2_pct);
     }
   } end_test_case()
-
+  
+  begin_test_case(accurt_test_J) {
+    /* Check conical radiation at TOA */
+    const double pi = std::numbers::pi;
+    accurt::configuration ac;
+    ac.set<double>("detector_wavelengths",{551e-9});
+    ac.set<double>("source_zenith_angle",80);
+    ac.set<std::string>("detector_orientation","up");
+    ac.set<std::string>("reference_detector_orientation","up");
+    ac.set<std::string>("detector_type","plane_irradiance");
+    ac.set<double>("detector_height",120e3);
+    ac.set<double>("reference_detector_height",120e3);
+    ac.set<size_t>("stream_upper_slab_size",6);
+    ac.set<size_t>("detector_radiance_distribution_override",{8,9});
+    ac.set<double>("detector_conical_radiation_override",{0,0,90});
+    
+    material::atmosphere_ocean::configuration mc;
+    auto m = std::make_shared<material::atmosphere_ocean>(mc);
+    if (getenv("ACCURT_PATH")) {
+      auto a =  accurt(ac, m);
+      double r = a.conical_relative_radiation().y().at(0);
+      check_close(r, 1, 0.002_pct);
+    }
+  } end_test_case()
 }

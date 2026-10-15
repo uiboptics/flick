@@ -13,7 +13,8 @@ int main() {
   t.include<radiation_field_test_A>();
   t.include<radiation_field_test_B>();
   t.include<radiation_field_test_C>();
- 
+  t.include<radiation_field_test_D>();
+  
   t.include<toa_sun_test_A>();
   t.include<toa_sun_test_B>();
 
@@ -26,6 +27,8 @@ int main() {
   t.include<accurt_test_G>();
   t.include<accurt_test_H>();
   t.include<accurt_test_I>();
+ 
+  t.include<accurt_test_J>();
   
   t.run_test_cases();
   return 0;

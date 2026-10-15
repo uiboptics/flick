@@ -12,13 +12,11 @@ import flick
 from pathlib import Path
 os.chdir(Path(__file__).resolve().parent)
 
-maximum_snow_thickness = 5
-
 c = flick.accurt_config()
 c.set_streams(8)
 c.set('detector_orientation','down')
 c.set('detector_type','plane_irradiance')
-c.set('detector_height', maximum_snow_thickness)
-c.set('reference_detector_height', maximum_snow_thickness)
+c.set('detector_height', 2)
+c.set('reference_detector_height', 2)
 c.set('print_iops','true')
 c.set('pure_water_volume_fraction',0)

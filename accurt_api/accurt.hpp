@@ -11,7 +11,7 @@
 #include "../material/layered_iops.hpp"
 #include "../material/z_profile.hpp"
 #include "toa_sun.hpp"
-
+#include "radiation_field.hpp"
 
 namespace flick {
   class accurt_user_specified {
@@ -107,7 +107,7 @@ Detector vertical orientation, either ‘up’ or ‘down’.
 Polar and azimuth viewing angles for overriding the default slant
 radiance view [degrees].
 
-Setting the angles to '0 0' disables the override. In this case, the
+Setting the angles to ‘0 0‘ disables the override. In this case, the
 radiance detector is oriented vertically upward when
 detector_orientation = ‘up’, and vertically downward when
 detector_orientation = ‘down’.
@@ -125,7 +125,7 @@ For nonzero override angles:
 Number of polar and azimuth viewing angles used to override the default
 settings for detection of angularly distributed radiance.
 
-Setting the values to '0 0' disables the override. In this case, the
+Setting the values to ‘0 0‘ disables the override. In this case, the
 radiance detector is oriented vertically upward when
 detector_orientation = ‘up’, and vertically downward when
 detector_orientation = ‘down’.
@@ -135,9 +135,47 @@ polar viewing angles, linearly spaced from 0 to 180 degrees, and the
 second number specifies the number of azimuth viewing angles, linearly
 spaced from -180 to 180 degrees.
 
+For higher accuracy, it is recommended to increase
+stream_upper_slab_size and the corresponding n_angles, where n_angles
+= round(pow(stream_upper_slab_size, 1.6)). At least 16 streams are
+generally required for reasonable radiance accuracy.
+
 If detector_radiance_distribution_override is enabled, Flick returns a
 3D array containing radiance values for each wavelength, polar angle,
 and azimuth angle, respectively.
+)");
+
+	add<double>("detector_conical_radiation_override", {0,0,0}, R"(
+The default ‘up‘ and ‘down‘ irradiance detector orientations can be
+overridden by a conical radiation detector with an arbitrary
+orientation and acceptance angle.
+
+The first two numbers specify the viewing polar and azimuth angles,
+respectively. The third number specifies the acceptance half-angle
+[degrees], defining the angular extent of the cone within which
+incoming radiation is collected.
+
+For example,
+
+  ‘detector_conical_radiation_override‘ = ‘90 0 90‘
+
+is equivalent to a conventional irradiance sensor with its sensing
+surface oriented vertically and facing the sun.
+
+To activate the conical irradiance detector, the acceptance half-angle
+must be non-zero, and the numbers of radiance polar and azimuth angles
+specified by detector_radiance_distribution_override must both be
+non-zero.
+
+If ‘detector_type‘ is set to ‘plane_irradiance‘, irradiance is
+calculated by integrating radiance over the acceptance cone with
+cosine weighting. If ‘detector_type‘ is set to ‘scalar_irradiance‘,
+radiance is integrated without cosine weighting, yielding cone-limited
+scalar irradiance.
+
+Note that conical irradiance calculations require computing the full
+radiance distribution and are therefore slower than ordinary
+hemispherical irradiance calculations.
 )");
 	
 	add<std::string>("detector_type", "plane_irradiance", R"(
@@ -220,7 +258,7 @@ where the time must be given in UTC.
 For example, the following input gives a high-resolution midsummer
 solar irradiance spectrum above Bergen, Norway:
 
-toa_solar_multiplication = 2026 6 21 11 40 0.0 60.391 5.322 0
+  ‘toa_solar_multiplication‘ = ‘2026 6 21 11 40 0.0 60.391 5.322 0‘
 
 NOTE: If the ‘toa_solar_multiplication’ variable is non-empty, any
 value set for the ‘source_zenith_angle’ variable will automatically be
@@ -249,6 +287,7 @@ time and location.
     const double dh_ = 1e-4;
     std::shared_ptr<layered_iops> layered_upper_slab_;
     std::shared_ptr<layered_iops> layered_lower_slab_;
+    static constexpr double pi = std::numbers::pi;
   public:
     accurt(const basic_configuration& c, std::shared_ptr<material::base> material)
       : c_{c}, material_{material} {
@@ -322,6 +361,9 @@ time and location.
       else
 	throw std::runtime_error("detector_type");
     }
+    bool conical_radiation_override() {
+      return (c_.get_vector<size_t>("detector_conical_radiation_override").at(2) > 0);
+    }
     bool radiance_distribution_override() {
       return (c_.get_vector<size_t>("detector_radiance_distribution_override").at(0) > 0);
     }
@@ -338,7 +380,9 @@ time and location.
 	}
       }      
     }
-    std::vector<std::vector<std::vector<double>>> relative_distributed_radiance() {
+    using vector_3d = std::vector<std::vector<std::vector<double>>>;
+    using vector_2d = std::vector<std::vector<double>>;
+    std::pair<vector_3d, vector_2d> relative_distributed_radiance() {
       auto n_d = c_.get_vector<size_t>("detector_radiance_distribution_override");
       size_t n_polar = n_d.at(0);
       size_t n_azimuth = n_d.at(1);
@@ -378,7 +422,84 @@ time and location.
 	  }
 	}
       }
-      return L_r;
+      return {L_r, {g.x[1], g.x[2], g.x[3]}};
+    }
+    stdvector beam_zenith_angle(const stdvector& wls) {
+      double za_atm = c_.get<double>("source_zenith_angle") * pi / 180;
+      if (c_.get<double>("detector_height") >= 0)
+        return stdvector(wls.size(), za_atm);
+      stdvector za;
+      za.reserve(wls.size());
+      double s = sin(za_atm);
+      for (double n : refractive_index(wls))
+        za.push_back(asin(s / n));
+      return za;
+    }
+    enum class direction {down, up};
+    std::vector<flick::vector> beam_vector(direction d) {
+      pp_function b = (d == direction::down)
+        ? relative_beam_irradiance_down()
+        : relative_beam_irradiance_up();
+      
+      stdvector wls = b.x();
+      stdvector bza = beam_zenith_angle(wls);
+      
+      std::vector<flick::vector> bv;
+      bv.reserve(wls.size());
+      
+      const double theta_turn =
+        (d == direction::down) ? pi : 0;
+      
+      for (size_t i = 0; i < wls.size(); ++i) {
+        double theta = std::abs(theta_turn - bza[i]);
+        bv.push_back(unit_vector(theta, 0) * b.y()[i]/cos(bza[i]));
+      }
+      return bv;
+    }
+    double benchmark_scale(irradiance_type type, double bench, const radiation_field& rf) {
+      bool faces_up = c_.get<std::string>("detector_orientation") == "up";
+      double theta_low = faces_up ? pi/2 : 0;
+      double theta_high = faces_up ? pi : pi/2;
+      unit_vector normal = faces_up
+	? unit_vector(0,0,-1)
+	: unit_vector(0,0,1);
+      double reconstructed = rf.irradiance(theta_low, theta_high,
+					   -pi, pi, type, normal);
+      double scale = bench / reconstructed;
+      if (!std::isfinite(scale) || std::abs(scale - 1) > 0.01) {
+	std::cout <<"Scaling factor "<<scale<< " should be close to one."<< std::endl;
+	throw std::runtime_error("Try increasing stream_upper_slab_size, n_angles, and/or detector_radiance_distribution_override");
+      }
+      return scale;
+    }
+    pp_function conical_relative_radiation() {
+      irradiance_type type = irradiance_type::plane;
+      if (c_.get<std::string>("detector_type") == "scalar_irradiance") {
+	c_.set<std::string>("save_scalar_irradiance","true");
+	type = irradiance_type::scalar;
+      }	
+      auto [L, axis] = relative_distributed_radiance();
+
+      pp_function bench = (type == irradiance_type::scalar)
+	? relative_scalar_irradiance()
+	: relative_plane_irradiance();
+      
+      const stdvector& wl = axis[0];
+      const stdvector& theta = axis[1]/180*pi;
+      const stdvector& phi = axis[2]/180*pi;
+      stdvector cro = c_.get_vector<double>("detector_conical_radiation_override");
+      unit_vector viewing_direction(cro.at(0)/180*pi,cro.at(1)/180*pi); 
+      double acceptance_half_angle = cro.at(2)/180*pi;
+      stdvector F(wl.size());
+      auto beam_down = beam_vector(direction::down);
+      auto beam_up = beam_vector(direction::up);
+      for (size_t i=0; i < wl.size(); ++i) {
+	radiation_field rf(theta, phi, L[i], {beam_down[i],beam_up[i]});
+	double scale = benchmark_scale(type, bench.value(wl[i]), rf);
+	rf.rotate_z_axis_to(-viewing_direction);
+	F[i] = rf.irradiance(0,acceptance_half_angle,-pi,pi,type)*scale;
+      }
+      return pp_function(wl,F);
     }
     void print_iops(std::ostream& os = std::cout) {
       make_material_files();
@@ -468,6 +589,12 @@ time and location.
       run();
       return weighted_radiation(detector_scalar_irradiance());
     }
+    pp_function relative_beam_irradiance_down() {
+      return weighted_radiation(detector_beam_irradiance_down());
+    }
+    pp_function relative_beam_irradiance_up() {
+      return weighted_radiation(detector_beam_irradiance_up());
+    }
     pp_function relative_radiance() {
       if (detector_orientation_override()) {
 	auto view = c_.get_vector<double>("detector_orientation_override");     
@@ -528,6 +655,14 @@ time and location.
 	throw std::runtime_error("detector_orientation");
       return t.row(n_detector_).y();
     }
+    stdvector detector_beam_irradiance_down() {
+      pe_table t = read_irradiance(output_+"/cosine_irradiance_direct_downward.txt");
+      return t.row(n_detector_).y();
+    }
+    stdvector detector_beam_irradiance_up() {
+      pe_table t = read_irradiance(output_+"/cosine_irradiance_direct_upward.txt");
+      return t.row(n_detector_).y();
+    }
     stdvector reference_detector_irradiance() {
       pe_table t;
       if (c_.get<std::string>("reference_detector_orientation")=="up") {
@@ -538,16 +673,23 @@ time and location.
 	throw std::runtime_error("reference_detector_orientation");
       return t.row(n_reference_).y();
     }
-    stdvector nadir_fresnel_coefficient(const stdvector& wls) {
-      stdvector c(wls.size());
+    stdvector refractive_index(const stdvector& wls) {
+      stdvector n(wls.size());
       for (size_t i=0; i<wls.size(); i++) {
 	material_->set_wavelength(wls[i]);
-	double n1 = 1;
-	double n2 = material_->real_refractive_index();
-	c[i] = pow((n1 - n2) / (n1 + n2),2); 
+	n[i] = material_->real_refractive_index();
       }
-      return c;
+      return n;  
     }
+    stdvector nadir_fresnel_coefficient(const stdvector& wls) {
+      constexpr double n1 = 1;
+      stdvector f;
+      f.reserve(wls.size());
+      for (double n2 : refractive_index(wls)) {
+	f.push_back(pow((n1 - n2) / (n1 + n2),2));
+      }
+      return f;
+    } 
     void add_layer_depths() {
       stdvector h = {-bottom_depth_, 0, max_height_};
       material::z_profile<pe_function>* zp =
@@ -638,7 +780,7 @@ time and location.
       std::string arg = c_.get_one_string("toa_solar_multiplication");
       if (!arg.empty()) {
 	toa_sun ts(arg);
-	c_.set<double>("source_zenith_angle",ts.zenith_angle()/std::numbers::pi*180);
+	c_.set<double>("source_zenith_angle",ts.zenith_angle()/pi*180);
       }
       c_.set_text_qualifiers("#","##");
       c_.set_uppercase(true);

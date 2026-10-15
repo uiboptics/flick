@@ -17,7 +17,7 @@ class radiation_field {
   pl_table radiance_; //[W/m2/m/sr]
   std::vector<double> mu_;
   std::vector<double> phi_;
-  std::vector<flick::vector> dirac_delta_beam_; // [W/m2/m]
+  std::vector<flick::vector> dirac_delta_beam_; // [W/m2/m] normal to propagation
   static constexpr double pi = std::numbers::pi;
 public:
   radiation_field(const std::vector<double>& theta,
@@ -25,17 +25,13 @@ public:
 		  const std::vector<std::vector<double>>& r,
 		  const std::vector<flick::vector>& dirac_delta_beam) {
     ensure(r.size() == theta.size());
-    ensure(std::is_sorted(theta.begin(), theta.end(), std::less<double>{}));
+    ensure(std::is_sorted(theta.begin(), theta.end(), std::greater<double>{}));
     ensure(std::is_sorted(phi.begin(), phi.end(), std::less<double>{}));
-    ensure(theta.front() >= 0 && theta.back() <= pi);
-    ensure(phi.front() >= -pi && phi.back() <= pi);
-
-    mu_ = std::vector<double>(theta.rbegin(), theta.rend());
+    mu_ = std::vector<double>(theta.begin(), theta.end());
     for (auto& x : mu_)
       x = std::clamp<double>(std::cos(x),-1,1);
     phi_ = phi;
-    const std::vector<std::vector<double>> reversed_r(r.rbegin(), r.rend());
-    radiance_ = pl_table(mu_, phi_, reversed_r);
+    radiance_ = pl_table(mu_, phi_, r);
     dirac_delta_beam_ = dirac_delta_beam;
   }
   double radiance(double theta, double phi) const {
@@ -43,6 +39,21 @@ public:
   }
   const auto& dirac_delta_beam() const {
     return dirac_delta_beam_;
+  }
+  static bool beam_inside(const vector& beam,
+                        double theta_low, double theta_high,
+                        double phi_low, double phi_high) {
+    if (norm(beam) == 0)
+      return false;
+    unit_vector direction = normalize(beam);
+    double theta = direction.theta();
+    double phi = std::remainder(direction.phi() - pi, 2*pi);
+    bool theta_inside = theta >= theta_low && theta <= theta_high;
+    bool phi_inside =
+      (phi >= phi_low && phi <= phi_high) ||
+      (phi + 2*pi >= phi_low && phi + 2*pi <= phi_high) ||
+      (phi - 2*pi >= phi_low && phi - 2*pi <= phi_high);  
+    return theta_inside && phi_inside;
   }
   auto& apply_cosine_weight(const unit_vector& normal) {
     for (size_t i = 0; i < mu_.size(); ++i) {
@@ -59,13 +70,19 @@ public:
   }
   double irradiance(double theta_low, double theta_high,
 		    double phi_low, double phi_high,
-		    irradiance_type type) const {
+		    irradiance_type type,
+		    const unit_vector& normal = unit_vector(0,0)) const {
     radiation_field r = *this;
     if (type == irradiance_type::plane)
-      r.apply_cosine_weight(unit_vector(0,0));
+      r.apply_cosine_weight(normal);
     double b = 0;
-    for (const auto& x : r.dirac_delta_beam())
-      b += norm(x);
+    for (size_t i = 0; i < dirac_delta_beam_.size(); ++i) {
+      if (beam_inside(dirac_delta_beam_[i],
+		      theta_low, theta_high,
+		      phi_low, phi_high)) {
+	b += norm(r.dirac_delta_beam()[i]);
+      }
+    }
     return r.integral(theta_low, theta_high, phi_low, phi_high) + b;
   }
   auto& rotate_z_axis_to(const unit_vector& direction) {
