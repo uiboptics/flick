@@ -362,7 +362,7 @@ time and location.
 	throw std::runtime_error("detector_type");
     }
     bool conical_radiation_override() {
-      return (c_.get_vector<size_t>("detector_conical_radiation_override").at(2) > 0);
+      return (c_.get_vector<double>("detector_conical_radiation_override").at(2) > 0);
     }
     bool radiance_distribution_override() {
       return (c_.get_vector<size_t>("detector_radiance_distribution_override").at(0) > 0);
@@ -389,7 +389,7 @@ time and location.
       set_distributed_radiance(n_polar,n_azimuth);
       run();
       grid_4d g = read_radiance(output_+"/radiance.txt");
-      stdvector wls = g.x[1];
+      stdvector wls = g.x[1]*1e-9;
       std::vector<std::vector<std::vector<double>>> L;
       
       L.resize(wls.size());
@@ -422,7 +422,7 @@ time and location.
 	  }
 	}
       }
-      return {L_r, {g.x[1], g.x[2], g.x[3]}};
+      return {L_r, {g.x[1]*1e-9, g.x[2], g.x[3]}};
     }
     stdvector beam_zenith_angle(const stdvector& wls) {
       double za_atm = c_.get<double>("source_zenith_angle") * pi / 180;
