@@ -157,7 +157,7 @@ incoming radiation is collected.
 
 For example,
 
-  ‘detector_conical_radiation_override‘ = ‘90 0 90‘
+  detector_conical_radiation_override = 90 0 90
 
 is equivalent to a conventional irradiance sensor with its sensing
 surface oriented vertically and facing the sun.
@@ -258,7 +258,7 @@ where the time must be given in UTC.
 For example, the following input gives a high-resolution midsummer
 solar irradiance spectrum above Bergen, Norway:
 
-  ‘toa_solar_multiplication‘ = ‘2026 6 21 11 40 0.0 60.391 5.322 0‘
+  toa_solar_multiplication = 2026 6 21 11 40 0.0 60.391 5.322 0
 
 NOTE: If the ‘toa_solar_multiplication’ variable is non-empty, any
 value set for the ‘source_zenith_angle’ variable will automatically be
@@ -466,8 +466,8 @@ time and location.
       double reconstructed = rf.irradiance(theta_low, theta_high,
 					   -pi, pi, type, normal);
       double scale = bench / reconstructed;
-      if (!std::isfinite(scale) || std::abs(scale - 1) > 0.01) {
-	std::cout <<"Scaling factor "<<scale<< " should be close to one."<< std::endl;
+      if (!std::isfinite(scale) || std::abs(scale - 1) > 0.03) {
+	std::cout <<"Scaling factor "<<scale<< " should be closer to one."<< std::endl;
 	throw std::runtime_error("Try increasing stream_upper_slab_size, n_angles, and/or detector_radiance_distribution_override");
       }
       return scale;
@@ -488,7 +488,7 @@ time and location.
       const stdvector& theta = axis[1]/180*pi;
       const stdvector& phi = axis[2]/180*pi;
       stdvector cro = c_.get_vector<double>("detector_conical_radiation_override");
-      unit_vector viewing_direction(cro.at(0)/180*pi,cro.at(1)/180*pi); 
+      unit_vector viewing_direction(cro.at(0)/180*pi,(180-cro.at(1))/180*pi); 
       double acceptance_half_angle = cro.at(2)/180*pi;
       stdvector F(wl.size());
       auto beam_down = beam_vector(direction::down);

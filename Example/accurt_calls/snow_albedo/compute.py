@@ -14,37 +14,41 @@ from make_config import c, sys, os, flick
 
 """ See flick_tmp/config for parameter documentation """
 
-c.set('aerosol_od', 0.1)
-c.set('cloud_liquid', 1e-4)
+c.set('aerosol_od', 0.05)
+c.set('cloud_liquid', 0)
 c.set("snow_ice", 1)
 c.set("snow_radius", 1e-3)
 c.set("snow_impurity_names", "EIK1")
-c.set("snow_impurity_scaling_factors", 1)
-c.set("source_zenith_angle", 85)
+c.set("snow_impurity_scaling_factors", 0.1)
+c.set("source_zenith_angle", 80)
 c.set("wavelengths",np.linspace(300e-9, 900e-9, 2))
-""" simulte horizontal sensor face """
-"""
-albedo = flick.run("accurt flick_tmp/config")
-albedo[:,0] *= 1e9 # To nm
-flick.save_two_columns(albedo,"albedo.txt")
-"""
+c.set_streams(16)
 
-simulate_tilted_sensor_face = True
+simulate_horizontal = True
+simulate_tilted = False
 
-if simulate_tilted_sensor_face:
-    c.set_streams(16)
-    c.set("detector_radiance_distribution_override",[20,20])
-    c.set('reference_detector_height', 120e3)
+def run():
+    return flick.run("accurt flick_tmp/config")
 
-    c.set('detector_orientation','up')
-    c.set("detector_conical_radiation_override",[0,0,90])
-    F_d = flick.run("accurt flick_tmp/config")
-"""
-    c.set('detector_orientation','down')
-    c.set("detector_conical_radiation_override",[-3,0,90])
-    F_u = flick.run("accurt flick_tmp/config")
+if simulate_horizontal:
+    albedo = run()
+    albedo[:, 0] *= 1e9  # m to nm
+    flick.save_two_columns(albedo, "albedo_horizontal.txt")
 
-    albedo = F_u/F_d
-    albedo[:,0] *= 1e9 # To nm
-    flick.save_two_columns(albedo,"albedo_tilted.txt")
-"""
+if simulate_tilted:
+    c.set("detector_radiance_distribution_override", [20, 15])
+    c.set("reference_detector_height", 120e3)
+
+    c.set("detector_orientation", "up")
+    c.set("detector_conical_radiation_override", [3, 180, 90])
+    downward = run()
+
+    c.set("detector_orientation", "down")
+    c.set("detector_conical_radiation_override", [177, 0, 90])
+    upward = run()
+
+    albedo = np.column_stack((
+        downward[:, 0] * 1e9,  # Wavelength [nm]
+        upward[:, 1] / downward[:,1]
+    ))
+    flick.save_two_columns(albedo, "albedo_tilted.txt")
