@@ -12,6 +12,9 @@ import os
 import scipy.special
 import numpy.polynomial.polynomial as poly
 
+
+top_of_atmosphere = 120e3
+
 def run(arguments):
     flick_output = _run_os("flick "+arguments)
     if flick_output.stdout:

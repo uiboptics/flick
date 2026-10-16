@@ -13,7 +13,6 @@ from pathlib import Path
 os.chdir(Path(__file__).resolve().parent)
 
 c = flick.accurt_config()
-c.set_streams(8)
 c.set('detector_orientation','down')
 c.set('detector_type','plane_irradiance')
 c.set('detector_height', 2)

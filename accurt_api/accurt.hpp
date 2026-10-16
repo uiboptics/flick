@@ -407,22 +407,29 @@ time and location.
 	}
       }
       // Relative to reference:
-      std::vector<std::vector<std::vector<double>>> L_r = L;
+      std::vector<std::vector<std::vector<double>>> L_r;
       stdvector f(wavelengths_.size());
+      stdvector output_wls = wls;
       for (size_t j=0; j<n_polar; j++) {
 	for (size_t k=0; k<n_azimuth; k++) {
 	  for (size_t i=0; i<wls.size(); i++) {
 	    f[i] = L[i][j][k];
 	  }
-	  stdvector rr = radiation_ratio(f).y();
-	  if (rr.size()==1 && L_r.size()>1)
-	    L_r.resize(rr.size());
+	  pp_function weighted = weighted_radiation(f);
+	  output_wls = weighted.x();
+	  stdvector rr = weighted.y();
+	  if (L_r.empty())
+	    L_r.assign(rr.size(),
+		       std::vector<std::vector<double>>(
+			 n_polar, std::vector<double>(n_azimuth)));
+	  if (rr.size() != L_r.size())
+	    throw std::runtime_error("Inconsistent distributed-radiance wavelength grids");
 	  for (size_t i=0; i<rr.size(); ++i) {
 	    L_r[i][j][k] = rr[i];
 	  }
 	}
       }
-      return {L_r, {g.x[1]*1e-9, g.x[2], g.x[3]}};
+      return {L_r, {output_wls, g.x[2], g.x[3]}};
     }
     stdvector beam_zenith_angle(const stdvector& wls) {
       double za_atm = c_.get<double>("source_zenith_angle") * pi / 180;
