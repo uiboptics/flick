@@ -783,6 +783,8 @@ time and location.
       c_.add<double>("detector_depths_upper_slab",{depths[0],depths[1]});
       c_.add<double>("detector_depths_lower_slab",{depths[2]-mh,depths[3]-mh});
     }
+    std::pair<fourier_field,fourier_field> run_kernel_directly() {
+    }
     void run() {
       std::string arg = c_.get_one_string("toa_solar_multiplication");
       if (!arg.empty()) {

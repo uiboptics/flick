@@ -97,7 +97,7 @@ namespace flick {
     a.insert_layer_at_bottom(od1,ssa,{1,0});
     a.insert_layer_at_bottom(od2,ssa,{1,0});
     a.layers_upper_slab(1);
-    a.source_zenith_angle(0);      
+    a.source_zenith_angle(std::numbers::pi);
     a.append_output_optical_depth(0);
     a.append_output_optical_depth(od1+od2);
     a.streams_upper_slab(12);
@@ -118,7 +118,7 @@ namespace flick {
     a.insert_layer_at_bottom(od1,ssa,{1,0});
     a.insert_layer_at_bottom(od2,ssa,{1,0});
     a.layers_upper_slab(1);
-    a.source_zenith_angle(0);      
+    a.source_zenith_angle(std::numbers::pi);
     a.append_output_optical_depth(0);
     a.streams_upper_slab(16);
     a.bottom_albedo(1);
@@ -137,28 +137,65 @@ namespace flick {
     double od1 = 1e-12;
     double od2 = od1;
     double ssa = 1;
+    const double pi = std::numbers::pi;
     a.insert_layer_at_bottom(od1,ssa,{1,0});
     a.insert_layer_at_bottom(od2,ssa,{1,0});
     a.layers_upper_slab(1);
-    a.source_zenith_angle(0);      
+    a.source_zenith_angle(3*pi/4);
     a.append_output_optical_depth(0);
     a.streams_upper_slab(16);
     a.bottom_albedo(1);
     a.refractive_index(1);
     a.solve_rte();
     fourier_field f(a.radiance_fourier_components()[0],
-                    a.quadrature_cosines_upper_slab());
-    const double pi = std::numbers::pi;
+                    a.quadrature_cosines_upper_slab(),
+		    {a.dirac_delta_beam_down(),
+		     a.dirac_delta_beam_up()});
+
+    check_close(f.conical_scalar_irradiance(pi/2,pi,0,2*pi),
+		a.scalar_irradiance_down()[0], 1e-9_pct);
+    check_small(f.conical_plane_irradiance(pi/2,pi,0,2*pi), 1e-12);
+
     check_close(f.conical_scalar_irradiance(0,pi/2,0,2*pi),
 		a.scalar_irradiance_up()[0], 1e-9_pct);
     check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
 		a.plane_irradiance_up()[0], 1e-9_pct);
+
     f.rotate_frame_about_x_axis(pi);
-    check_small(f.conical_plane_irradiance(0,pi/2,0,2*pi),1e-9);
-    f.rotate_frame_about_x_axis(-pi);
+    check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
+		a.plane_irradiance_down()[0], 1e-9_pct);
+    f.rotate_frame_about_y_axis(pi);
     check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
 		a.plane_irradiance_up()[0], 1e-9_pct);
-    f.rotate_frame_about_y_axis(pi);
-    check_small(f.conical_plane_irradiance(0,pi/2,0,2*pi),1e-9);
+
+
+  } end_test_case()
+
+  begin_test_case(accurt_test_H) {
+    // Beam angles
+    accurt_kernel_wrapper a;
+    double od1 = 1e-12;
+    double od2 = od1;
+    double ssa = 1;
+    const double pi = std::numbers::pi;
+    a.insert_layer_at_bottom(od1,ssa,{1,0});
+    a.insert_layer_at_bottom(od2,ssa,{1,0});
+    a.layers_upper_slab(1);
+    double source_angle = 3*pi/4;
+    a.source_zenith_angle(source_angle);
+    a.append_output_optical_depth(0);
+    a.append_output_optical_depth(od1+od2);
+    a.streams_upper_slab(4);
+    a.refractive_index(1.3);
+    a.solve_rte();
+    check_close(a.dirac_delta_beam_down()[0].irradiance,
+		a.beam_irradiance_down()[0],1e-6_pct);
+    check_close(a.dirac_delta_beam_down()[0].polar_angle,source_angle,1e-6_pct);
+    check_small(a.dirac_delta_beam_down()[0].azimuth_angle,1e-9);
+    check(a.dirac_delta_beam_down()[1].polar_angle > source_angle);
+    check_close(a.dirac_delta_beam_up()[0].polar_angle,pi-source_angle,1e-5_pct);
+    check_small(a.dirac_delta_beam_up()[0].azimuth_angle,1e-9);
+
   } end_test_case() 
+
 }

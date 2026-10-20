@@ -5,12 +5,19 @@
 #include <array>
 #include <cmath>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
 namespace flick {
+  struct dirac_delta_beam {
+    double polar_angle;
+    double azimuth_angle;
+    double irradiance;
+  };
+
   extern "C" {
     void kernel_(int&, int&, double&, double*, double*, double*, 
 		    double&, double&, int&, int&, double*, int&, 
@@ -123,6 +130,34 @@ namespace flick {
       return result;
     }
 
+    double upper_slab_optical_depth() const noexcept {
+      double result = 0.0;
+      for (int layer = 0; layer < n_upper_layers; ++layer)
+        result += optical_depths[static_cast<std::size_t>(layer)];
+      return result;
+    }
+
+    bool output_is_in_upper_slab(double optical_depth) const noexcept {
+      const double boundary = upper_slab_optical_depth();
+      const double scale = std::max({1.0, std::abs(boundary),
+                                     std::abs(optical_depth)});
+      const double tolerance =
+          16.0 * std::numeric_limits<double>::epsilon() * scale;
+      return optical_depth <= boundary + tolerance;
+    }
+
+    double downward_polar_angle(bool upper_slab) const noexcept {
+      if (upper_slab)
+        return std::acos(-cos_source_zenith_angle);
+
+      const double sin_upper = std::sqrt(std::max(
+          0.0, 1.0 - cos_source_zenith_angle * cos_source_zenith_angle));
+      const double sin_lower = sin_upper / refractive_index_;
+      const double cos_lower = std::sqrt(std::max(
+          0.0, 1.0 - sin_lower * sin_lower));
+      return std::acos(-cos_lower);
+    }
+
     void update_layer_counts() {
       n_total_layers = checked_size(optical_depths);
       // New layers initially belong to the upper slab. Call
@@ -210,18 +245,15 @@ namespace flick {
 
   public:
     void source_zenith_angle(double angle) {
-      if (!std::isfinite(angle) || angle < 0.0 ||
-          angle > std::acos(-1.0)) {
+      const double pi = std::acos(-1.0);
+      if (!std::isfinite(angle) || angle <= pi / 2.0 || angle > pi) {
         throw std::invalid_argument(
-            "Source zenith angle must be finite and in [0, pi]");
+            "Source zenith angle must be finite and in (pi/2, pi]");
       }
-      // Accept either a conventional source zenith angle (zero is vertically
-      // downward) or its propagation-direction supplement. The kernel uses a
-      // positive downward direction cosine.
-      cos_source_zenith_angle = std::abs(std::cos(angle));
-      if (cos_source_zenith_angle <= 0.0)
-        throw std::invalid_argument(
-            "Source direction must point into the upper boundary");
+
+      // The public angle describes the light's propagation direction: pi is
+      // vertically downward. The kernel expects its positive downward cosine.
+      cos_source_zenith_angle = -std::cos(angle);
     }
 
     void append_output_optical_depth(double optical_depth) {
@@ -442,6 +474,57 @@ namespace flick {
       return beam_plane_irradiance_down_output;
     }
 
+    std::vector<double> beam_irradiance_down() const {
+      std::vector<double> result(beam_plane_irradiance_down_output.size());
+      std::transform(beam_plane_irradiance_down_output.begin(),
+                     beam_plane_irradiance_down_output.end(),
+                     beam_sine_irradiance_down.begin(), result.begin(),
+                     [](double normal, double tangential) {
+                       return std::hypot(normal, tangential);
+                     });
+      return result;
+    }
+
+    std::vector<double> beam_irradiance_up() const {
+      std::vector<double> result(beam_plane_irradiance_up_output.size());
+      std::transform(beam_plane_irradiance_up_output.begin(),
+                     beam_plane_irradiance_up_output.end(),
+                     beam_sine_irradiance_up.begin(), result.begin(),
+                     [](double normal, double tangential) {
+                       return std::hypot(normal, tangential);
+                     });
+      return result;
+    }
+
+    std::vector<dirac_delta_beam> dirac_delta_beam_down() const {
+      const auto irradiances = beam_irradiance_down();
+      std::vector<dirac_delta_beam> result;
+      result.reserve(irradiances.size());
+      for (std::size_t i = 0; i < irradiances.size(); ++i) {
+        result.push_back({
+            downward_polar_angle(output_is_in_upper_slab(
+                user_optical_depths.at(i))),
+            solar_azimuth_angle,
+            irradiances[i]});
+      }
+      return result;
+    }
+
+    std::vector<dirac_delta_beam> dirac_delta_beam_up() const {
+      const double pi = std::acos(-1.0);
+      const auto irradiances = beam_irradiance_up();
+      std::vector<dirac_delta_beam> result;
+      result.reserve(irradiances.size());
+      for (std::size_t i = 0; i < irradiances.size(); ++i) {
+        const double downward =
+            downward_polar_angle(output_is_in_upper_slab(
+                user_optical_depths.at(i)));
+        result.push_back(
+            {pi - downward, solar_azimuth_angle, irradiances[i]});
+      }
+      return result;
+    }
+
     const std::vector<double>& scalar_irradiance_down() const noexcept {
       return scalar_irradiance_down_output;
     }
@@ -488,6 +571,7 @@ namespace flick {
   };
 
   class fourier_field {
+    std::vector<dirac_delta_beam> dirac_delta_beams_;
     std::vector<std::vector<double>> components_;
     std::vector<double> quadrature_cosines_;
     std::vector<double> quadrature_weights_;
@@ -517,7 +601,60 @@ namespace flick {
                 frame_rotation_[3 * row + k] * rotation[3 * k + column];
         }
       }
+      const double two_pi = 2.0 * std::acos(-1.0);
+      for (auto& beam : dirac_delta_beams_) {
+        const double sine = std::sin(beam.polar_angle);
+        const std::array<double, 3> old_direction = {
+            sine * std::cos(beam.azimuth_angle),
+            sine * std::sin(beam.azimuth_angle),
+            std::cos(beam.polar_angle)};
+        std::array<double, 3> new_direction{};
+        // rotation maps new-frame coordinates to old-frame coordinates, so
+        // its transpose maps a stored beam into the new frame.
+        for (std::size_t column = 0; column < 3; ++column) {
+          for (std::size_t row = 0; row < 3; ++row)
+            new_direction[column] +=
+                rotation[3 * row + column] * old_direction[row];
+        }
+        beam.polar_angle =
+            std::acos(std::clamp(new_direction[2], -1.0, 1.0));
+        beam.azimuth_angle =
+            std::atan2(new_direction[1], new_direction[0]);
+        if (beam.azimuth_angle < 0.0)
+          beam.azimuth_angle += two_pi;
+      }
       frame_rotation_ = product;
+    }
+
+    static bool azimuth_is_in_interval(double azimuth,
+                                       double phi1, double phi2) {
+      const double two_pi = 2.0 * std::acos(-1.0);
+      const double tolerance =
+          100.0 * std::numeric_limits<double>::epsilon();
+      if (phi2 - phi1 >= two_pi - tolerance)
+        return true;
+      const double turns = std::ceil((phi1 - azimuth) / two_pi);
+      const double equivalent = azimuth + turns * two_pi;
+      return equivalent <= phi2 + tolerance;
+    }
+
+    double dirac_delta_integral(double theta1, double theta2,
+                                double phi1, double phi2,
+                                bool cosine_weighted) const {
+      const double tolerance =
+          100.0 * std::numeric_limits<double>::epsilon();
+      double result = 0.0;
+      for (const auto& beam : dirac_delta_beams_) {
+        if (beam.polar_angle < theta1 - tolerance ||
+            beam.polar_angle > theta2 + tolerance ||
+            !azimuth_is_in_interval(beam.azimuth_angle, phi1, phi2))
+          continue;
+        result += beam.irradiance *
+            (cosine_weighted
+                 ? std::max(0.0, std::cos(beam.polar_angle))
+                 : 1.0);
+      }
+      return result;
     }
 
     static double gauss_legendre_weight(double mu,
@@ -619,7 +756,7 @@ namespace flick {
           const double phi = phi1 + (j + 0.5) * delta_phi;
           double value = radiance(theta, phi);
           if (cosine_weighted)
-            value *= mu;
+            value *= std::max(0.0, mu);
           result += mu_weight * delta_phi * value;
         }
       }
@@ -644,16 +781,22 @@ namespace flick {
 
       const double tolerance =
           100.0 * std::numeric_limits<double>::epsilon();
-      if (std::abs(theta1) <= tolerance &&
-          std::abs(theta2 - pi / 2.0) <= tolerance) {
+      const bool upper_hemisphere =
+          std::abs(theta1) <= tolerance &&
+          std::abs(theta2 - pi / 2.0) <= tolerance;
+      const bool lower_hemisphere =
+          std::abs(theta1 - pi / 2.0) <= tolerance &&
+          std::abs(theta2 - pi) <= tolerance;
+      if (upper_hemisphere || lower_hemisphere) {
         double result = 0.0;
         for (std::size_t i = 0; i < quadrature_cosines_.size(); ++i) {
           const double mu = quadrature_cosines_[i];
-          if (mu <= 0.0)
+          if ((upper_hemisphere && mu <= 0.0) ||
+              (lower_hemisphere && mu >= 0.0))
             continue;
           double value = azimuth_integral_at_index(i, phi1, phi2);
           if (cosine_weighted)
-            value *= mu;
+            value *= std::max(0.0, mu);
           result += quadrature_weights_[i] * value;
         }
         return result;
@@ -662,11 +805,14 @@ namespace flick {
       const double mu_low = std::cos(theta2);
       const double mu_high = std::cos(theta1);
       std::vector<double> boundaries = {mu_low};
+      if (cosine_weighted && mu_low < 0.0 && mu_high > 0.0)
+        boundaries.push_back(0.0);
       for (double mu : quadrature_cosines_) {
         if (mu > mu_low && mu < mu_high)
           boundaries.push_back(mu);
       }
       boundaries.push_back(mu_high);
+      std::sort(boundaries.begin(), boundaries.end());
 
       double result = 0.0;
       for (std::size_t i = 1; i < boundaries.size(); ++i) {
@@ -678,9 +824,11 @@ namespace flick {
           result += 0.5 * (fa + fb) * (b - a);
         } else {
           const double slope = (fb - fa) / (b - a);
-          result += 0.5 * fa * (b * b - a * a) +
-                    slope * ((b * b * b - a * a * a) / 3.0 -
-                             0.5 * a * (b * b - a * a));
+          if (b > 0.0) {
+            result += 0.5 * fa * (b * b - a * a) +
+                      slope * ((b * b * b - a * a * a) / 3.0 -
+                               0.5 * a * (b * b - a * a));
+          }
         }
       }
       return result;
@@ -689,9 +837,17 @@ namespace flick {
   public:
     using vector_matrix = std::vector<std::vector<double>>;
     fourier_field(std::vector<std::vector<double>> components,
-                  std::vector<double> quadrature_cosines)
+                  std::vector<double> quadrature_cosines,
+		  std::vector<std::vector<dirac_delta_beam>> beam_groups = {})
         : components_(std::move(components)),
-          quadrature_cosines_(std::move(quadrature_cosines)) {
+          quadrature_cosines_(std::move(quadrature_cosines))
+    {
+      for (auto& group : beam_groups) {
+        dirac_delta_beams_.insert(
+            dirac_delta_beams_.end(),
+            std::make_move_iterator(group.begin()),
+            std::make_move_iterator(group.end()));
+      }
       if (components_.empty() || components_.front().empty())
         throw std::invalid_argument("Fourier component field cannot be empty");
       if (quadrature_cosines_.empty() ||
@@ -763,12 +919,14 @@ namespace flick {
 
     double conical_scalar_irradiance(double theta1, double theta2,
                                      double phi1, double phi2) const {
-      return conical_integral(theta1, theta2, phi1, phi2, false);
+      return conical_integral(theta1, theta2, phi1, phi2, false) +
+             dirac_delta_integral(theta1, theta2, phi1, phi2, false);
     }
 
     double conical_plane_irradiance(double theta1, double theta2,
                                     double phi1, double phi2) const {
-      return conical_integral(theta1, theta2, phi1, phi2, true);
+      return conical_integral(theta1, theta2, phi1, phi2, true) +
+             dirac_delta_integral(theta1, theta2, phi1, phi2, true);
     }
   };
 }
