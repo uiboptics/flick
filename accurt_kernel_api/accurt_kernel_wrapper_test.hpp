@@ -8,7 +8,7 @@ namespace flick {
     // p258, FLUX U and AVERAGE N for mu_0 = 1.0
     accurt_kernel_wrapper a;
     a.streams_upper_slab(6);
-    a.insert_user_optical_depth(0);
+    a.append_output_optical_depth(0);
     a.bottom_albedo(0);
     a.refractive_index(1.0);
     check(a.number_of_layers() == 0);
@@ -37,7 +37,7 @@ namespace flick {
       };
     accurt_kernel_wrapper a;
     a.streams_upper_slab(6);
-    a.insert_user_optical_depth(od);
+    a.append_output_optical_depth(od);
     a.bottom_albedo(0);
     a.refractive_index(1.0);
     a.insert_layer_at_bottom(od, ssalb, p0_75);
@@ -63,7 +63,7 @@ namespace flick {
     double ang = std::numbers::pi-acos(0.9);
     a.source_zenith_angle(ang);
     a.streams_upper_slab(6);
-    a.insert_user_optical_depth(0);
+    a.append_output_optical_depth(0);
     a.bottom_albedo(0);
     a.refractive_index(1.0);
     a.insert_layer_at_bottom(od, ssalb, p0_5);
@@ -75,7 +75,7 @@ namespace flick {
   begin_test_case(accurt_test_D) {
     // Van de Hulst, chapter 13, page 418 and 419, mu_0=0.9
     accurt_kernel_wrapper a;
-    a.insert_user_optical_depth(0);
+    a.append_output_optical_depth(0);
     a.bottom_albedo(1);
     a.refractive_index(1.0);
     a.solve_rte();
@@ -98,8 +98,8 @@ namespace flick {
     a.insert_layer_at_bottom(od2,ssa,{1,0});
     a.layers_upper_slab(1);
     a.source_zenith_angle(0);      
-    a.insert_user_optical_depth(0);
-    a.insert_user_optical_depth(od1+od2);
+    a.append_output_optical_depth(0);
+    a.append_output_optical_depth(od1+od2);
     a.streams_upper_slab(12);
     a.bottom_albedo(1);
     a.refractive_index(1.3);
@@ -107,5 +107,58 @@ namespace flick {
     double T_bottom = 1.7694;
     check_close(a.plane_irradiance_up()[0], 1, 0.001_pct);
     check_close(a.plane_irradiance_down()[1], T_bottom, 0.001_pct);
+  } end_test_case()
+
+  begin_test_case(accurt_test_F) {
+    // Radiance
+    accurt_kernel_wrapper a;
+    double od1 = 1e-12;
+    double od2 = od1;
+    double ssa = 1;
+    a.insert_layer_at_bottom(od1,ssa,{1,0});
+    a.insert_layer_at_bottom(od2,ssa,{1,0});
+    a.layers_upper_slab(1);
+    a.source_zenith_angle(0);      
+    a.append_output_optical_depth(0);
+    a.streams_upper_slab(16);
+    a.bottom_albedo(1);
+    a.refractive_index(1);
+    a.solve_rte();
+    fourier_field f(a.radiance_fourier_components()[0],
+                    a.quadrature_cosines_upper_slab());
+    check_close(f.radiance(0,0), 1/std::numbers::pi, 1e-8_pct);
+    check_close(f.radiance(1,1), 1/std::numbers::pi, 1e-8_pct);
+    check_small(f.radiance(3.14,0), 1e-9);
+  } end_test_case()
+  
+  begin_test_case(accurt_test_G) {
+    // Conical scalar and plane irradiance with rotations
+    accurt_kernel_wrapper a;
+    double od1 = 1e-12;
+    double od2 = od1;
+    double ssa = 1;
+    a.insert_layer_at_bottom(od1,ssa,{1,0});
+    a.insert_layer_at_bottom(od2,ssa,{1,0});
+    a.layers_upper_slab(1);
+    a.source_zenith_angle(0);      
+    a.append_output_optical_depth(0);
+    a.streams_upper_slab(16);
+    a.bottom_albedo(1);
+    a.refractive_index(1);
+    a.solve_rte();
+    fourier_field f(a.radiance_fourier_components()[0],
+                    a.quadrature_cosines_upper_slab());
+    const double pi = std::numbers::pi;
+    check_close(f.conical_scalar_irradiance(0,pi/2,0,2*pi),
+		a.scalar_irradiance_up()[0], 1e-9_pct);
+    check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
+		a.plane_irradiance_up()[0], 1e-9_pct);
+    f.rotate_frame_about_x_axis(pi);
+    check_small(f.conical_plane_irradiance(0,pi/2,0,2*pi),1e-9);
+    f.rotate_frame_about_x_axis(-pi);
+    check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
+		a.plane_irradiance_up()[0], 1e-9_pct);
+    f.rotate_frame_about_y_axis(pi);
+    check_small(f.conical_plane_irradiance(0,pi/2,0,2*pi),1e-9);
   } end_test_case() 
 }

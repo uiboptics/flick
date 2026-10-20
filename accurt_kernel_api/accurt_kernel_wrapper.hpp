@@ -2,6 +2,7 @@
 #define ACCURT_KERNEL
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -50,9 +51,9 @@ namespace flick {
     int n_streams_lower = 16;
     int do_user_angles = 0;
     int n_cos_polar_angles_upper = 0;
-    std::vector<double> cos_polar_angles_upper;
+    std::vector<double> cos_polar_angles_upper_output;
     int n_cos_polar_angles_lower = 0;
-    std::vector<double> cos_polar_angles_lower;
+    std::vector<double> cos_polar_angles_lower_output;
 
     int n_azimuth_angles = 0;
     std::vector<double> azimuth_angles;
@@ -104,7 +105,7 @@ namespace flick {
     double wind_direction = 0;
 
     int do_lpick = 0;
-    std::vector<double> radiance_fourier_components;
+    std::vector<double> radiance_fourier_components_output;
 
     static int checked_size(const std::vector<double>& values) {
       if (values.size() >
@@ -157,16 +158,18 @@ namespace flick {
     void prepare_buffers(int kernel_layer_count) {
       n_user_optical_depths = checked_size(user_optical_depths);
       if (do_user_angles) {
-        n_cos_polar_angles_upper = checked_size(cos_polar_angles_upper);
-        n_cos_polar_angles_lower = checked_size(cos_polar_angles_lower);
+        n_cos_polar_angles_upper =
+            checked_size(cos_polar_angles_upper_output);
+        n_cos_polar_angles_lower =
+            checked_size(cos_polar_angles_lower_output);
       } else {
         // With user angles disabled, the kernel returns its quadrature
         // angles through these arrays and still expects nonzero dimensions.
         n_cos_polar_angles_upper = n_streams_upper;
         n_cos_polar_angles_lower = n_streams_lower;
-        cos_polar_angles_upper.resize(
+        cos_polar_angles_upper_output.resize(
             static_cast<std::size_t>(n_cos_polar_angles_upper));
-        cos_polar_angles_lower.resize(
+        cos_polar_angles_lower_output.resize(
             static_cast<std::size_t>(n_cos_polar_angles_lower));
       }
       n_azimuth_angles = checked_size(azimuth_angles);
@@ -200,7 +203,7 @@ namespace flick {
       geometrical_depth.resize(static_cast<std::size_t>(kernel_layer_count));
       user_radiance.resize(ntau * n_angles * n_phi);
       user_azimuthally_averaged_radiance.resize(ntau * n_angles);
-      radiance_fourier_components.resize(
+      radiance_fourier_components_output.resize(
           static_cast<std::size_t>(max_n_user_cos_polar_angles) * ntau *
           (static_cast<std::size_t>(max_n_cos_polar_angles) + 1));
     }
@@ -221,7 +224,7 @@ namespace flick {
             "Source direction must point into the upper boundary");
     }
 
-    void insert_user_optical_depth(double optical_depth) {
+    void append_output_optical_depth(double optical_depth) {
       if (optical_depth < 0.0)
         throw std::invalid_argument("User optical depth cannot be negative");
       user_optical_depths.push_back(optical_depth);
@@ -354,9 +357,9 @@ namespace flick {
 			    n_streams_lower,
 			    do_user_angles,
 			    n_cos_polar_angles_upper,
-			    cos_polar_angles_upper.data(),
+			    cos_polar_angles_upper_output.data(),
 			    n_cos_polar_angles_lower,
-			    cos_polar_angles_lower.data(),
+			    cos_polar_angles_lower_output.data(),
 		    
 			    n_azimuth_angles,
 			    azimuth_angles.data(),
@@ -407,7 +410,7 @@ namespace flick {
 			    wind_speed,
 			    wind_direction,
 		    
-			    do_lpick, radiance_fourier_components.data()); 
+			    do_lpick, radiance_fourier_components_output.data()); 
     }
     std::vector<double> plane_irradiance_up() const {
       std::vector<double> result(beam_plane_irradiance_up_output.size());
@@ -441,6 +444,331 @@ namespace flick {
 
     const std::vector<double>& scalar_irradiance_down() const noexcept {
       return scalar_irradiance_down_output;
+    }
+
+    const std::vector<double>&
+    quadrature_cosines_upper_slab() const noexcept {
+      return cos_polar_angles_upper_output;
+    }
+
+    const std::vector<double>&
+    quadrature_cosines_lower_slab() const noexcept {
+      return cos_polar_angles_lower_output;
+    }
+
+    std::vector<std::vector<std::vector<double>>>
+    radiance_fourier_components() const {
+      const auto n_depths =
+          static_cast<std::size_t>(max_n_user_optical_depths);
+      const auto n_angles =
+          static_cast<std::size_t>(max_n_user_cos_polar_angles);
+      const auto n_orders =
+          static_cast<std::size_t>(max_n_cos_polar_angles) + 1;
+
+      std::vector<std::vector<std::vector<double>>> result(
+          n_depths,
+          std::vector<std::vector<double>>(
+              n_angles, std::vector<double>(n_orders)));
+
+      // Fortran stores UUM(angle, depth, order), with the first index
+      // contiguous. Present it in the more convenient C++ order
+      // [output depth][polar angle][Fourier order].
+      for (std::size_t order = 0; order < n_orders; ++order) {
+        for (std::size_t depth = 0; depth < n_depths; ++depth) {
+          for (std::size_t angle = 0; angle < n_angles; ++angle) {
+            const auto flat_index =
+                angle + n_angles * (depth + n_depths * order);
+            result[depth][angle][order] =
+                radiance_fourier_components_output[flat_index];
+          }
+        }
+      }
+      return result;
+    }
+  };
+
+  class fourier_field {
+    std::vector<std::vector<double>> components_;
+    std::vector<double> quadrature_cosines_;
+    std::vector<double> quadrature_weights_;
+    std::array<double, 9> frame_rotation_ =
+        {1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0};
+
+    bool frame_is_unrotated() const {
+      constexpr std::array<double, 9> identity =
+          {1.0, 0.0, 0.0,
+           0.0, 1.0, 0.0,
+           0.0, 0.0, 1.0};
+      for (std::size_t i = 0; i < identity.size(); ++i) {
+        if (std::abs(frame_rotation_[i] - identity[i]) > 1e-14)
+          return false;
+      }
+      return true;
+    }
+
+    void rotate_frame(const std::array<double, 9>& rotation) {
+      std::array<double, 9> product{};
+      for (std::size_t row = 0; row < 3; ++row) {
+        for (std::size_t column = 0; column < 3; ++column) {
+          for (std::size_t k = 0; k < 3; ++k)
+            product[3 * row + column] +=
+                frame_rotation_[3 * row + k] * rotation[3 * k + column];
+        }
+      }
+      frame_rotation_ = product;
+    }
+
+    static double gauss_legendre_weight(double mu,
+                                        std::size_t direction_count) {
+      const std::size_t order = direction_count / 2;
+      const double x = 2.0 * std::abs(mu) - 1.0;
+      if (order == 1)
+        return 1.0;
+      double p_previous = 1.0;
+      double p_current = x;
+      for (std::size_t degree = 2; degree <= order; ++degree) {
+        const double p_next =
+            ((2.0 * degree - 1.0) * x * p_current -
+             (degree - 1.0) * p_previous) /
+            static_cast<double>(degree);
+        p_previous = p_current;
+        p_current = p_next;
+      }
+      const double derivative = static_cast<double>(order) *
+          (x * p_current - p_previous) / (x * x - 1.0);
+      return 1.0 / ((1.0 - x * x) * derivative * derivative);
+    }
+
+    double radiance_at_index(std::size_t angle_index, double phi) const {
+      double result = 0.0;
+      const auto& fourier = components_[angle_index];
+      for (std::size_t order = 0; order < fourier.size(); ++order)
+        result += fourier[order] *
+                  std::cos(static_cast<double>(order) * phi);
+      return result;
+    }
+
+    double azimuth_integral_at_index(std::size_t angle_index,
+                                     double phi1, double phi2) const {
+      const auto& fourier = components_[angle_index];
+      double result = fourier[0] * (phi2 - phi1);
+      for (std::size_t order = 1; order < fourier.size(); ++order) {
+        const double m = static_cast<double>(order);
+        result += fourier[order] *
+                  (std::sin(m * phi2) - std::sin(m * phi1)) / m;
+      }
+      return result;
+    }
+
+    double azimuth_integral(double mu, double phi1, double phi2) const {
+      const auto upper_iterator = std::lower_bound(
+          quadrature_cosines_.begin(), quadrature_cosines_.end(), mu);
+      if (upper_iterator == quadrature_cosines_.begin())
+        return azimuth_integral_at_index(0, phi1, phi2);
+      if (upper_iterator == quadrature_cosines_.end())
+        return azimuth_integral_at_index(
+            quadrature_cosines_.size() - 1, phi1, phi2);
+
+      const auto upper = static_cast<std::size_t>(
+          upper_iterator - quadrature_cosines_.begin());
+      const auto lower = upper - 1;
+      const double fraction =
+          (mu - quadrature_cosines_[lower]) /
+          (quadrature_cosines_[upper] - quadrature_cosines_[lower]);
+      return (1.0 - fraction) *
+                 azimuth_integral_at_index(lower, phi1, phi2) +
+             fraction * azimuth_integral_at_index(upper, phi1, phi2);
+    }
+
+    double radiance_unrotated(double mu, double phi) const {
+      const auto upper_iterator = std::lower_bound(
+          quadrature_cosines_.begin(), quadrature_cosines_.end(), mu);
+      if (upper_iterator == quadrature_cosines_.begin())
+        return radiance_at_index(0, phi);
+      if (upper_iterator == quadrature_cosines_.end())
+        return radiance_at_index(components_.size() - 1, phi);
+      const auto upper = static_cast<std::size_t>(
+          upper_iterator - quadrature_cosines_.begin());
+      const auto lower = upper - 1;
+      const double fraction =
+          (mu - quadrature_cosines_[lower]) /
+          (quadrature_cosines_[upper] - quadrature_cosines_[lower]);
+      return (1.0 - fraction) * radiance_at_index(lower, phi) +
+             fraction * radiance_at_index(upper, phi);
+    }
+
+    double rotated_conical_integral(double theta1, double theta2,
+                                    double phi1, double phi2,
+                                    bool cosine_weighted) const {
+      const double mu_low = std::cos(theta2);
+      const double mu_high = std::cos(theta1);
+      const std::size_t half = quadrature_cosines_.size() / 2;
+      const std::size_t azimuth_count = 2 * components_.front().size() + 1;
+      const double delta_phi = (phi2 - phi1) / azimuth_count;
+      double result = 0.0;
+      for (std::size_t i = 0; i < half; ++i) {
+        const double x = 2.0 * quadrature_cosines_[half + i] - 1.0;
+        const double mu = 0.5 * ((mu_high - mu_low) * x +
+                                 mu_high + mu_low);
+        const double mu_weight =
+            (mu_high - mu_low) * quadrature_weights_[half + i];
+        const double theta = std::acos(std::clamp(mu, -1.0, 1.0));
+        for (std::size_t j = 0; j < azimuth_count; ++j) {
+          const double phi = phi1 + (j + 0.5) * delta_phi;
+          double value = radiance(theta, phi);
+          if (cosine_weighted)
+            value *= mu;
+          result += mu_weight * delta_phi * value;
+        }
+      }
+      return result;
+    }
+
+    double conical_integral(double theta1, double theta2,
+                            double phi1, double phi2,
+                            bool cosine_weighted) const {
+      const double pi = std::acos(-1.0);
+      if (!std::isfinite(theta1) || !std::isfinite(theta2) ||
+          theta1 < 0.0 || theta2 > pi || theta1 > theta2)
+        throw std::invalid_argument(
+            "Polar-angle bounds must satisfy 0 <= theta1 <= theta2 <= pi");
+      if (!std::isfinite(phi1) || !std::isfinite(phi2) || phi1 > phi2)
+        throw std::invalid_argument(
+            "Azimuth bounds must be finite and satisfy phi1 <= phi2");
+
+      if (!frame_is_unrotated())
+        return rotated_conical_integral(
+            theta1, theta2, phi1, phi2, cosine_weighted);
+
+      const double tolerance =
+          100.0 * std::numeric_limits<double>::epsilon();
+      if (std::abs(theta1) <= tolerance &&
+          std::abs(theta2 - pi / 2.0) <= tolerance) {
+        double result = 0.0;
+        for (std::size_t i = 0; i < quadrature_cosines_.size(); ++i) {
+          const double mu = quadrature_cosines_[i];
+          if (mu <= 0.0)
+            continue;
+          double value = azimuth_integral_at_index(i, phi1, phi2);
+          if (cosine_weighted)
+            value *= mu;
+          result += quadrature_weights_[i] * value;
+        }
+        return result;
+      }
+
+      const double mu_low = std::cos(theta2);
+      const double mu_high = std::cos(theta1);
+      std::vector<double> boundaries = {mu_low};
+      for (double mu : quadrature_cosines_) {
+        if (mu > mu_low && mu < mu_high)
+          boundaries.push_back(mu);
+      }
+      boundaries.push_back(mu_high);
+
+      double result = 0.0;
+      for (std::size_t i = 1; i < boundaries.size(); ++i) {
+        const double a = boundaries[i - 1];
+        const double b = boundaries[i];
+        const double fa = azimuth_integral(a, phi1, phi2);
+        const double fb = azimuth_integral(b, phi1, phi2);
+        if (!cosine_weighted) {
+          result += 0.5 * (fa + fb) * (b - a);
+        } else {
+          const double slope = (fb - fa) / (b - a);
+          result += 0.5 * fa * (b * b - a * a) +
+                    slope * ((b * b * b - a * a * a) / 3.0 -
+                             0.5 * a * (b * b - a * a));
+        }
+      }
+      return result;
+    }
+
+  public:
+    using vector_matrix = std::vector<std::vector<double>>;
+    fourier_field(std::vector<std::vector<double>> components,
+                  std::vector<double> quadrature_cosines)
+        : components_(std::move(components)),
+          quadrature_cosines_(std::move(quadrature_cosines)) {
+      if (components_.empty() || components_.front().empty())
+        throw std::invalid_argument("Fourier component field cannot be empty");
+      if (quadrature_cosines_.empty() ||
+          quadrature_cosines_.size() > components_.size())
+        throw std::invalid_argument(
+            "Quadrature grid must match the Fourier component rows");
+      components_.resize(quadrature_cosines_.size());
+      const auto order_count = components_.front().size();
+      if (std::any_of(components_.begin(), components_.end(),
+                      [order_count](const auto& row) {
+                        return row.size() != order_count;
+                      }))
+        throw std::invalid_argument(
+            "Fourier component rows must have equal sizes");
+      if (!std::is_sorted(quadrature_cosines_.begin(),
+                          quadrature_cosines_.end()))
+        throw std::invalid_argument(
+            "Quadrature direction cosines must be sorted");
+      quadrature_weights_.reserve(quadrature_cosines_.size());
+      for (double mu : quadrature_cosines_)
+        quadrature_weights_.push_back(
+            gauss_legendre_weight(mu, quadrature_cosines_.size()));
+    }
+
+    const std::vector<std::vector<double>>& components() const noexcept {
+      return components_;
+    }
+
+    double radiance(double theta, double phi) const {
+      const double pi = std::acos(-1.0);
+      if (!std::isfinite(theta) || theta < 0.0 || theta > pi)
+        throw std::invalid_argument("Polar angle must be in [0, pi]");
+      if (!std::isfinite(phi))
+        throw std::invalid_argument("Azimuth angle must be finite");
+
+      const double sine = std::sin(theta);
+      const std::array<double, 3> direction =
+          {sine * std::cos(phi), sine * std::sin(phi), std::cos(theta)};
+      std::array<double, 3> original{};
+      for (std::size_t row = 0; row < 3; ++row) {
+        for (std::size_t column = 0; column < 3; ++column)
+          original[row] +=
+              frame_rotation_[3 * row + column] * direction[column];
+      }
+      const double original_phi = std::atan2(original[1], original[0]);
+      return radiance_unrotated(
+          std::clamp(original[2], -1.0, 1.0), original_phi);
+    }
+
+    void rotate_frame_about_x_axis(double angle) {
+      if (!std::isfinite(angle))
+        throw std::invalid_argument("Rotation angle must be finite");
+      const double cosine = std::cos(angle);
+      const double sine = std::sin(angle);
+      rotate_frame({1.0, 0.0, 0.0,
+                    0.0, cosine, -sine,
+                    0.0, sine, cosine});
+    }
+
+    void rotate_frame_about_y_axis(double angle) {
+      if (!std::isfinite(angle))
+        throw std::invalid_argument("Rotation angle must be finite");
+      const double cosine = std::cos(angle);
+      const double sine = std::sin(angle);
+      rotate_frame({cosine, 0.0, sine,
+                    0.0, 1.0, 0.0,
+                    -sine, 0.0, cosine});
+    }
+
+    double conical_scalar_irradiance(double theta1, double theta2,
+                                     double phi1, double phi2) const {
+      return conical_integral(theta1, theta2, phi1, phi2, false);
+    }
+
+    double conical_plane_irradiance(double theta1, double theta2,
+                                    double phi1, double phi2) const {
+      return conical_integral(theta1, theta2, phi1, phi2, true);
     }
   };
 }
