@@ -12,7 +12,7 @@ namespace flick {
     a.bottom_albedo(0);
     a.refractive_index(1.0);
     check(a.number_of_layers() == 0);
-    a.insert_layer_at_bottom(1.0, 0, {1.0, 0.0, 0.0, 0.0, 0.0});
+    a.insert_layer_at_bottom(1.0, 1.0, {1.0, 0.0, 0.0, 0.0, 0.0});
     check(a.number_of_layers() == 1);
     
     a.solve_rte();
@@ -40,11 +40,11 @@ namespace flick {
     a.insert_user_optical_depth(od);
     a.bottom_albedo(0);
     a.refractive_index(1.0);
-    a.insert_layer_at_bottom(od * ssalb, od * (1 - ssalb), p0_75);
+    a.insert_layer_at_bottom(od, ssalb, p0_75);
     a.solve_rte();
     check_close(a.plane_irradiance_down()[0], 0.82792, 0.02_pct);
   } end_test_case()
-    /*
+    
   begin_test_case(accurt_test_C) {
     // Van de Hulst, chapter 13, page 418 and 419, mu_0=0.9
     double ssalb = 1;
@@ -60,31 +60,52 @@ namespace flick {
 	0.015625
       };
     accurt_kernel_wrapper a;
-    a.source_zenith_angle(std::numbers::pi-acos(0.9));
+    double ang = std::numbers::pi-acos(0.9);
+    a.source_zenith_angle(ang);
     a.streams_upper_slab(6);
     a.insert_user_optical_depth(0);
     a.bottom_albedo(0);
     a.refractive_index(1.0);
-    a.insert_layer_at_bottom(od * ssalb, od * (1 - ssalb), p0_5);
+    a.insert_layer_at_bottom(od, ssalb, p0_5);
     a.solve_rte();
-    check_close(a.plane_irradiance_up()[0], 0.20197, 0.02_pct);
+    double albedo = a.plane_irradiance_up()[0]/a.plane_irradiance_down()[0];
+    check_close(albedo, 0.20197, 0.04_pct);
   } end_test_case()
-    */
+  
   begin_test_case(accurt_test_D) {
-    /* ChatGPT solution of transparent refractive slab with Lambert white
-       bottom. */
-    double ssalb = 0;
-    double od = 1e-6;
+    // Van de Hulst, chapter 13, page 418 and 419, mu_0=0.9
     accurt_kernel_wrapper a;
-    a.source_zenith_angle(0);
-    a.streams_upper_slab(6);
-    a.insert_user_optical_depth(od);
+    a.insert_user_optical_depth(0);
+    a.bottom_albedo(1);
+    a.refractive_index(1.0);
+    a.solve_rte();
+    double albedo = a.plane_irradiance_up()[0]/a.plane_irradiance_down()[0];
+    check_close(albedo, 1, 0.001_pct);
+    check_close(a.scalar_irradiance_up()[0], 2.0, 1e-5_pct);
+    check_close(a.scalar_irradiance_down()[0], 1.0, 1e-5_pct);
+    check_close(a.beam_plane_irradiance_down()[0], 1, 1e-5_pct);
+    check_small(a.beam_plane_irradiance_up()[0], 1e-9);
+  } end_test_case()
+    
+  begin_test_case(accurt_test_E) {
+    // Transparent refractive slab with Lambert white bottom
+    // Test against AI-generated transmittance to bottom.
+    accurt_kernel_wrapper a;
+    double od1 = 1e-12;
+    double od2 = od1;
+    double ssa = 1;
+    a.insert_layer_at_bottom(od1,ssa,{1,0});
+    a.insert_layer_at_bottom(od2,ssa,{1,0});
+    a.layers_upper_slab(1);
+    a.source_zenith_angle(0);      
+    a.insert_user_optical_depth(0);
+    a.insert_user_optical_depth(od1+od2);
+    a.streams_upper_slab(12);
     a.bottom_albedo(1);
     a.refractive_index(1.3);
-    a.insert_layer_at_bottom(od * ssalb, od * (1 - ssalb), {1,0});
     a.solve_rte();
-    double R_fresnel = 0.443566;
-    double  T = 1/(1-R_fresnel);
-    check_close(a.plane_irradiance_down()[0], T, 0.02_pct);
-  } end_test_case()
+    double T_bottom = 1.7694;
+    check_close(a.plane_irradiance_up()[0], 1, 0.001_pct);
+    check_close(a.plane_irradiance_down()[1], T_bottom, 0.001_pct);
+  } end_test_case() 
 }

@@ -47,7 +47,7 @@ namespace flick {
     std::vector<double> user_optical_depths;
     int n_streams_upper = 4;
     
-    int n_streams_lower = 4;
+    int n_streams_lower = 16;
     int do_user_angles = 0;
     int n_cos_polar_angles_upper = 0;
     std::vector<double> cos_polar_angles_upper;
@@ -78,9 +78,9 @@ namespace flick {
     int max_n_cos_polar_angles = n_cos_polar_angles_lower;
     int max_n_azimuth_angles = n_azimuth_angles;
 
-    std::vector<double> beam_plane_irradiance_down;
+    std::vector<double> beam_plane_irradiance_down_output;
     std::vector<double> diffuse_plane_irradiance_down;
-    std::vector<double> beam_plane_irradiance_up;
+    std::vector<double> beam_plane_irradiance_up_output;
     std::vector<double> diffuse_plane_irradiance_up;
     std::vector<double> dfdt;
     std::vector<double> scalar_irradiance;
@@ -88,7 +88,7 @@ namespace flick {
     std::vector<double> user_radiance;
     std::vector<double> user_azimuthally_averaged_radiance;
     std::vector<double> scalar_irradiance_up_output;
-    std::vector<double> scalar_irradiance_down;
+    std::vector<double> scalar_irradiance_down_output;
     int onlyim = 0;
 
     std::vector<double> beam_sine_irradiance_down;
@@ -124,8 +124,9 @@ namespace flick {
 
     void update_layer_counts() {
       n_total_layers = checked_size(optical_depths);
-      // Layers inserted through this API form one homogeneous (upper)
-      // medium. A separate interface API can split upper/lower layers later.
+      // New layers initially belong to the upper slab. Call
+      // layers_upper_slab() after insertion to place trailing layers in the
+      // lower slab.
       n_upper_layers = n_total_layers;
     }
 
@@ -141,8 +142,6 @@ namespace flick {
     }
 
     void validate_inputs() const {
-      if (optical_depths.empty())
-        throw std::logic_error("At least one optical layer is required");
       if (single_scattering_albedos.size() != optical_depths.size() ||
           phase_function_moments.size() != optical_depths.size())
         throw std::logic_error("Layer input arrays have inconsistent sizes");
@@ -184,14 +183,14 @@ namespace flick {
       const auto n_angles = static_cast<std::size_t>(max_n_cos_polar_angles);
       const auto n_phi = static_cast<std::size_t>(n_azimuth_angles);
 
-      beam_plane_irradiance_down.resize(ntau);
+      beam_plane_irradiance_down_output.resize(ntau);
       diffuse_plane_irradiance_down.resize(ntau);
-      beam_plane_irradiance_up.resize(ntau);
+      beam_plane_irradiance_up_output.resize(ntau);
       diffuse_plane_irradiance_up.resize(ntau);
       dfdt.resize(ntau);
       scalar_irradiance.resize(ntau);
       scalar_irradiance_up_output.resize(ntau);
-      scalar_irradiance_down.resize(ntau);
+      scalar_irradiance_down_output.resize(ntau);
 
       beam_sine_irradiance_down.resize(ntau);
       diffuse_sine_irradiance_down.resize(ntau);
@@ -213,10 +212,10 @@ namespace flick {
         throw std::invalid_argument(
             "Source zenith angle must be finite and in [0, pi]");
       }
-      // The public angle describes the beam propagation direction relative
-      // to the upward vertical. The kernel expects a positive downward
-      // direction cosine.
-      cos_source_zenith_angle = -std::cos(angle);
+      // Accept either a conventional source zenith angle (zero is vertically
+      // downward) or its propagation-direction supplement. The kernel uses a
+      // positive downward direction cosine.
+      cos_source_zenith_angle = std::abs(std::cos(angle));
       if (cos_source_zenith_angle <= 0.0)
         throw std::invalid_argument(
             "Source direction must point into the upper boundary");
@@ -244,14 +243,13 @@ namespace flick {
       if (number_of_streams < 2 || number_of_streams % 2 != 0)
         throw std::invalid_argument(
             "The number of streams must be an even integer of at least 2");
-      if (number_of_streams > 400)
+      if (number_of_streams > 20)
         throw std::invalid_argument(
-            "The Fortran kernel supports at most 400 streams");
+            "Upper-slab streams cannot exceed 20 because the lower-slab "
+            "stream count is its square and the kernel limit is 400");
 
       n_streams_upper = number_of_streams;
-      // The current wrapper models one slab. Keep the unused lower-medium
-      // quadrature compatible with the kernel requirement NSTR1 <= NSTR2.
-      n_streams_lower = number_of_streams;
+      n_streams_lower = number_of_streams * number_of_streams;
       resize_phase_function_moments();
     }
 
@@ -259,21 +257,30 @@ namespace flick {
       return n_streams_upper;
     }
 
+    void layers_upper_slab(int number_of_layers) {
+      if (number_of_layers < 0 || number_of_layers > n_total_layers)
+        throw std::invalid_argument(
+            "The number of upper-slab layers must be between 0 and the "
+            "total number of layers");
+
+      n_upper_layers = number_of_layers;
+    }
+
     std::size_t phase_moment_count(std::size_t layer) const {
       return phase_function_moments.at(layer).size();
     }
 
     void insert_layer_at_bottom(
-        double scattering_optical_depth,
-        double absorption_optical_depth,
+        double optical_thickness,
+        double single_scattering_albedo,
         std::vector<double> phase_moments) {
-      if (scattering_optical_depth < 0.0 || absorption_optical_depth < 0.0)
-        throw std::invalid_argument("Optical depths cannot be negative");
-
-      const double optical_depth =
-          scattering_optical_depth + absorption_optical_depth;
-      const double single_scattering_albedo =
-          optical_depth == 0.0 ? 0.0 : scattering_optical_depth / optical_depth;
+      if (!std::isfinite(optical_thickness) || optical_thickness < 0.0)
+        throw std::invalid_argument(
+            "Optical thickness must be finite and non-negative");
+      if (!std::isfinite(single_scattering_albedo) ||
+          single_scattering_albedo < 0.0 || single_scattering_albedo > 1.0)
+        throw std::invalid_argument(
+            "Single-scattering albedo must be finite and in [0, 1]");
 
       const auto required_moments = required_phase_moment_count();
       if (phase_moments.empty())
@@ -281,7 +288,7 @@ namespace flick {
             "At least one phase-function moment is required");
       phase_moments.resize(required_moments, 0.0);
 
-      optical_depths.push_back(optical_depth);
+      optical_depths.push_back(optical_thickness);
       single_scattering_albedos.push_back(single_scattering_albedo);
       phase_function_moments.push_back(std::move(phase_moments));
       update_layer_counts();
@@ -301,15 +308,30 @@ namespace flick {
       auto kernel_optical_depths = optical_depths;
       auto kernel_single_scattering_albedos = single_scattering_albedos;
       auto kernel_phase_function_moments = phase_function_moments;
-      kernel_optical_depths.push_back(0.0);
-      kernel_single_scattering_albedos.push_back(0.0);
       std::vector<double> transparent_phase_moments(
           required_phase_moment_count(), 0.0);
       transparent_phase_moments.front() = 1.0;
+
+      int kernel_upper_layers = n_upper_layers;
+      if (kernel_upper_layers == 0) {
+        // The kernel's L1 == 0 path is singular and does not inject the
+        // direct beam correctly. Put a transparent upper sentinel before
+        // any real lower-slab layers. Its zero optical thickness preserves
+        // all user optical-depth coordinates.
+        kernel_optical_depths.insert(kernel_optical_depths.begin(), 0.0);
+        kernel_single_scattering_albedos.insert(
+            kernel_single_scattering_albedos.begin(), 0.0);
+        kernel_phase_function_moments.insert(
+            kernel_phase_function_moments.begin(),
+            transparent_phase_moments);
+        kernel_upper_layers = 1;
+      }
+
+      kernel_optical_depths.push_back(0.0);
+      kernel_single_scattering_albedos.push_back(0.0);
       kernel_phase_function_moments.push_back(
           std::move(transparent_phase_moments));
 
-      int kernel_upper_layers = n_upper_layers;
       int kernel_total_layers = checked_size(kernel_optical_depths);
       prepare_buffers(kernel_total_layers);
       auto flattened_phase_function_moments =
@@ -359,9 +381,9 @@ namespace flick {
 		    
 			    max_n_cos_polar_angles,
 			    max_n_azimuth_angles,
-			    beam_plane_irradiance_down.data(),
+			    beam_plane_irradiance_down_output.data(),
 			    diffuse_plane_irradiance_down.data(),
-			    beam_plane_irradiance_up.data(),
+			    beam_plane_irradiance_up_output.data(),
 			    diffuse_plane_irradiance_up.data(),
 			    dfdt.data(),
 			    scalar_irradiance.data(),
@@ -369,7 +391,7 @@ namespace flick {
 			    user_radiance.data(),
 			    user_azimuthally_averaged_radiance.data(),
 			    scalar_irradiance_up_output.data(),
-			    scalar_irradiance_down.data(),
+			    scalar_irradiance_down_output.data(),
 			    onlyim,
 		    
 			    beam_sine_irradiance_down.data(),
@@ -388,18 +410,18 @@ namespace flick {
 			    do_lpick, radiance_fourier_components.data()); 
     }
     std::vector<double> plane_irradiance_up() const {
-      std::vector<double> result(beam_plane_irradiance_up.size());
-      std::transform(beam_plane_irradiance_up.begin(),
-                     beam_plane_irradiance_up.end(),
+      std::vector<double> result(beam_plane_irradiance_up_output.size());
+      std::transform(beam_plane_irradiance_up_output.begin(),
+                     beam_plane_irradiance_up_output.end(),
                      diffuse_plane_irradiance_up.begin(), result.begin(),
                      std::plus<double>());
       return result;
     }
 
     std::vector<double> plane_irradiance_down() const {
-      std::vector<double> result(beam_plane_irradiance_down.size());
-      std::transform(beam_plane_irradiance_down.begin(),
-                     beam_plane_irradiance_down.end(),
+      std::vector<double> result(beam_plane_irradiance_down_output.size());
+      std::transform(beam_plane_irradiance_down_output.begin(),
+                     beam_plane_irradiance_down_output.end(),
                      diffuse_plane_irradiance_down.begin(), result.begin(),
                      std::plus<double>());
       return result;
@@ -407,6 +429,18 @@ namespace flick {
 
     const std::vector<double>& scalar_irradiance_up() const noexcept {
       return scalar_irradiance_up_output;
+    }
+
+    const std::vector<double>& beam_plane_irradiance_up() const noexcept {
+      return beam_plane_irradiance_up_output;
+    }
+
+    const std::vector<double>& beam_plane_irradiance_down() const noexcept {
+      return beam_plane_irradiance_down_output;
+    }
+
+    const std::vector<double>& scalar_irradiance_down() const noexcept {
+      return scalar_irradiance_down_output;
     }
   };
 }
