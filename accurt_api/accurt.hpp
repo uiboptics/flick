@@ -290,6 +290,7 @@ time and location.
     std::shared_ptr<layered_iops> layered_lower_slab_;
     static constexpr double pi = std::numbers::pi;
     pl_function bottom_albedo_;
+    std::vector<std::vector<fourier_field>> fourier_fields_;
     bool link_to_accurt_kernel_ = false;
   public:
     accurt(const basic_configuration& c, std::shared_ptr<material::base> material)
@@ -387,56 +388,51 @@ time and location.
 	}
       }      
     }
-    using vector_3d = std::vector<std::vector<std::vector<double>>>;
-    using vector_2d = std::vector<std::vector<double>>;
+    using vector_1d = std::vector<double>;
+    using vector_2d = std::vector<vector_1d>;
+    using vector_3d = std::vector<vector_2d>;
     std::pair<vector_3d, vector_2d> relative_distributed_radiance() {
       auto n_d = c_.get_vector<size_t>("detector_radiance_distribution_override");
-      size_t n_polar = n_d.at(0);
-      size_t n_azimuth = n_d.at(1);
-      set_distributed_radiance(n_polar,n_azimuth);
+      stdvector polar = range(180,0, n_d.at(0)).linspace();
+      stdvector azimuth = range(-180,180,n_d.at(1)).linspace();
+      set_distributed_radiance(polar,azimuth);
       run();
-      grid_4d g = read_radiance(output_+"/radiance.txt");
-      stdvector wls = g.x[1]*1e-9;
-      std::vector<std::vector<std::vector<double>>> L;
-      
-      L.resize(wls.size());
-      for (size_t i=0; i<wls.size(); i++) {
-	L[i].resize(n_polar);
-	for (size_t j=0; j<n_polar; j++) {
-	  L[i][j].resize(n_azimuth);
+      const stdvector& wls = wavelengths_;
+
+      vector_3d L(polar.size(), vector_2d(azimuth.size(), vector_1d(wls.size())));
+      if (link_to_accurt_kernel_) {
+	for (size_t i=0; i<polar.size(); i++) {
+	  for (size_t j=0; j<azimuth.size(); j++) {
+	    L[i][j] = radiance(0, polar[i], azimuth[j]);
+	  }
 	}
-      }
-      for (size_t i=0; i<wls.size(); i++) {
-	for (size_t j=0; j<n_polar; j++) {
-	  for (size_t k=0; k<n_azimuth; k++) {
-	    L[i][j][k] = g.f[n_detector_][i][j][k];
+      } else {
+	grid_4d g = read_radiance(output_+"/radiance.txt");
+	for (size_t i=0; i<polar.size(); i++) {
+	  for (size_t j=0; j<azimuth.size(); j++) {
+	    for (size_t k=0; k<wls.size(); k++) {
+	      L[i][j][k] = g.f[n_detector_][k][i][j];
+	    }
 	  }
 	}
       }
       // Relative to reference:
-      std::vector<std::vector<std::vector<double>>> L_r;
-      stdvector f(wavelengths_.size());
       stdvector output_wls = wls;
-      for (size_t j=0; j<n_polar; j++) {
-	for (size_t k=0; k<n_azimuth; k++) {
-	  for (size_t i=0; i<wls.size(); i++) {
-	    f[i] = L[i][j][k];
+      vector_3d L_r;
+      for (size_t i = 0; i < polar.size(); ++i) {
+	for (size_t j = 0; j < azimuth.size(); ++j) {
+	  pp_function weighted = weighted_radiation(L[i][j]);
+	  if (L_r.empty()) {
+            output_wls = weighted.x();
+            L_r.resize(output_wls.size(),
+                       vector_2d(polar.size(),
+                                 vector_1d(azimuth.size())));
 	  }
-	  pp_function weighted = weighted_radiation(f);
-	  output_wls = weighted.x();
-	  stdvector rr = weighted.y();
-	  if (L_r.empty())
-	    L_r.assign(rr.size(),
-		       std::vector<std::vector<double>>(
-			 n_polar, std::vector<double>(n_azimuth)));
-	  if (rr.size() != L_r.size())
-	    throw std::runtime_error("Inconsistent distributed-radiance wavelength grids");
-	  for (size_t i=0; i<rr.size(); ++i) {
-	    L_r[i][j][k] = rr[i];
-	  }
+	  for (size_t k = 0; k < output_wls.size(); ++k)
+            L_r[k][i][j] = weighted.y()[k];
 	}
       }
-      return {L_r, {output_wls, g.x[2], g.x[3]}};
+      return {L_r, {output_wls, polar, azimuth}};
     }
     stdvector beam_zenith_angle(const stdvector& wls) {
       double za_atm = c_.get<double>("source_zenith_angle") * pi / 180;
@@ -543,12 +539,12 @@ time and location.
       c_.set<std::string>("detector_polar_angles","0 "+std::to_string(180-polar_view));
       c_.set<std::string>("detector_azimuth_angles",std::to_string(azimuth_view));
     }
-    void set_distributed_radiance(size_t n_polar, size_t n_azimuth) {
+    void set_distributed_radiance(const stdvector& polar, const stdvector& azimuth) {
       c_.set<std::string>("save_radiance","true");
-      std::string polar = vector_to_string(range(0,180,n_polar).linspace());
-      std::string azimuth = vector_to_string(range(-180,180,n_azimuth).linspace());
-      c_.set<std::string>("detector_polar_angles",polar);
-      c_.set<std::string>("detector_azimuth_angles",azimuth);
+      std::string polars = vector_to_string(polar);
+      std::string azimuths = vector_to_string(azimuth);
+      c_.set<std::string>("detector_polar_angles",polars);
+      c_.set<std::string>("detector_azimuth_angles",azimuths);
     }
     std::string vector_to_string(const stdvector& v) {
       std::string s;
@@ -622,70 +618,150 @@ time and location.
       return weighted_radiation(detector_radiance());
     }
     stdvector detector_radiance() {
-      grid_4d g = read_radiance(output_+"/radiance.txt");
-      stdvector wls = g.x[1]*1e-9;
-      stdvector Lu(wls.size());
-      stdvector Ld(wls.size());
-      for (size_t i=0; i<wls.size(); i++) {
-	Lu[i] = g.f[n_detector_][i][1][0];
-	Ld[i] = g.f[n_detector_][i][0][0];
-      }
-      if (c_.get_boolean("subtract_specular_radiance"))
-	Lu = Lu - Ld * nadir_fresnel_coefficient(wls); 
+      const auto ori = c_.get<std::string>("detector_orientation");
+      double polar = (ori == "up") ? pi : 0.0;
+      double azimuth = 0.0;
+      
       if (detector_orientation_override()) {
 	auto view = c_.get_vector<double>("detector_orientation_override");
-	if (view.at(0) < 90) {
-	  return Lu;
-	} else {
-	  return Ld;
-	}  
+	polar = view.at(0)/180*pi;
+	azimuth = view.at(1)/180*pi;
       }
-      std::string ori = c_.get<std::string>("detector_orientation");
-      if (ori=="up") {
-	return Ld;
-      } else if (ori=="down") {
-	return Lu;
+            
+      stdvector L(wavelengths_.size());
+      stdvector Lu(wavelengths_.size());
+      stdvector Ld(wavelengths_.size());
+      
+      if (link_to_accurt_kernel_) {
+	L = radiance(0,polar,azimuth);
+	Ld = radiance(0,pi,azimuth);
       } else {
-	throw std::runtime_error("detector_orientation");
+	grid_4d g = read_radiance(output_+"/radiance.txt");
+	for (size_t i=0; i<wavelengths_.size(); i++) {
+	  Lu[i] = g.f[n_detector_][i][1][0];
+	  Ld[i] = g.f[n_detector_][i][0][0];
+	}
+	L = (polar < pi/2) ? Lu : Ld;
       }
+      if (c_.get_boolean("subtract_specular_radiance"))
+	L = L - Ld * nadir_fresnel_coefficient(wavelengths_); 
+      return L;
     }
-    stdvector detector_plane_irradiance() {
-      pe_table t;
+
+    template<typename T, typename F, typename... Args>
+    auto collect(const std::vector<std::vector<T>>& objects,
+		 size_t index, F func, Args&&... args) {
+      using R = std::invoke_result_t<F, const T&, Args&...>;
+      
+      std::vector<R> result;
+      result.reserve(objects.size());
+      
+      for (const auto& obj : objects)
+        result.push_back(std::invoke(func, obj.at(index), args...));
+      
+      return result;
+    }
+    /*
+    template<typename T, typename F>
+    auto collect(const std::vector<std::vector<T>>& objects,
+		 size_t index, F func) {
+      using R = std::invoke_result_t<F, const T&>;
+      std::vector<R> result;
+      result.reserve(objects.size());
+      for (const auto& obj : objects)
+	result.push_back(std::invoke(func, obj.at(index)));
+      return result;
+    }
+    */
+    stdvector radiance(size_t type_no, double polar, double azimuth) {
+	return collect(fourier_fields_, type_no,
+		       &fourier_field::radiance, polar, azimuth);
+    }
+    stdvector plane_irradiance(size_t type_no) {
       if (c_.get<std::string>("detector_orientation")=="up") {
-	t = read_irradiance(output_+"/cosine_irradiance_total_downward.txt");
+	return collect(fourier_fields_, type_no,
+		       &fourier_field::plane_irradiance_lower_heimisphere);
       } else if (c_.get<std::string>("detector_orientation")=="down") {
-	t = read_irradiance(output_+"/cosine_irradiance_total_upward.txt");
+	return collect(fourier_fields_, type_no,
+		       &fourier_field::plane_irradiance_upper_heimisphere);
       } else
-	throw std::runtime_error("detector_orientation");
-      return t.row(n_detector_).y();
+	throw std::runtime_error("detector_orientation");      
+    }
+    stdvector scalar_irradiance(size_t type_no) {
+      if (c_.get<std::string>("detector_orientation")=="up") {
+	return collect(fourier_fields_, type_no,
+		       &fourier_field::scalar_irradiance_lower_heimisphere);
+      } else if (c_.get<std::string>("detector_orientation")=="down") {
+	return collect(fourier_fields_, type_no,
+		       &fourier_field::scalar_irradiance_upper_heimisphere);
+      } else
+	throw std::runtime_error("detector_orientation");      
+    }
+    stdvector beam_irradiance_down(size_t type_no) {
+	return collect(fourier_fields_, type_no,
+		       &fourier_field::beam_plane_irradiance_lower_heimisphere);
+    }   
+    stdvector beam_irradiance_up(size_t type_no) {
+	return collect(fourier_fields_, type_no,
+		       &fourier_field::beam_plane_irradiance_upper_heimisphere);
+    }   
+    stdvector detector_plane_irradiance() {
+      if (link_to_accurt_kernel_) {
+	return plane_irradiance(0);
+      } else {
+	pe_table t;
+	if (c_.get<std::string>("detector_orientation")=="up") {
+	  t = read_irradiance(output_+"/cosine_irradiance_total_downward.txt");
+	} else if (c_.get<std::string>("detector_orientation")=="down") {
+	  t = read_irradiance(output_+"/cosine_irradiance_total_upward.txt");
+	} else
+	  throw std::runtime_error("detector_orientation");
+	return t.row(n_detector_).y();
+      }
     }
     stdvector detector_scalar_irradiance() {
-      pe_table t;
-      if (c_.get<std::string>("detector_orientation")=="up") {
-	t = read_irradiance(output_+"/scalar_irradiance_total_downward.txt");
-      } else if (c_.get<std::string>("detector_orientation")=="down") {
-	t = read_irradiance(output_+"/scalar_irradiance_total_upward.txt");
-      } else
-	throw std::runtime_error("detector_orientation");
-      return t.row(n_detector_).y();
+      if (link_to_accurt_kernel_) {
+	return scalar_irradiance(0);
+      } else {
+	pe_table t;
+	if (c_.get<std::string>("detector_orientation")=="up") {
+	  t = read_irradiance(output_+"/scalar_irradiance_total_downward.txt");
+	} else if (c_.get<std::string>("detector_orientation")=="down") {
+	  t = read_irradiance(output_+"/scalar_irradiance_total_upward.txt");
+	} else
+	  throw std::runtime_error("detector_orientation");
+	return t.row(n_detector_).y();
+      }
     }
     stdvector detector_beam_irradiance_down() {
-      pe_table t = read_irradiance(output_+"/cosine_irradiance_direct_downward.txt");
-      return t.row(n_detector_).y();
+      if (link_to_accurt_kernel_) {
+	return beam_irradiance_down(0);
+      } else {
+	pe_table t = read_irradiance(output_+"/cosine_irradiance_direct_downward.txt");
+	return t.row(n_detector_).y();
+      }
     }
     stdvector detector_beam_irradiance_up() {
-      pe_table t = read_irradiance(output_+"/cosine_irradiance_direct_upward.txt");
-      return t.row(n_detector_).y();
+      if (link_to_accurt_kernel_) {
+	return beam_irradiance_up(0);
+      } else {
+	pe_table t = read_irradiance(output_+"/cosine_irradiance_direct_upward.txt");
+	return t.row(n_detector_).y();
+      }
     }
     stdvector reference_detector_irradiance() {
-      pe_table t;
-      if (c_.get<std::string>("reference_detector_orientation")=="up") {
-	t = read_irradiance(output_+"/cosine_irradiance_total_downward.txt");
-      } else if (c_.get<std::string>("reference_detector_orientation")=="down") {
-	t = read_irradiance(output_+"/cosine_irradiance_total_upward.txt");
-      } else
-	throw std::runtime_error("reference_detector_orientation");
-      return t.row(n_reference_).y();
+      if (link_to_accurt_kernel_) {
+	return plane_irradiance(0);
+      } else {
+	pe_table t;
+	if (c_.get<std::string>("reference_detector_orientation")=="up") {
+	  t = read_irradiance(output_+"/cosine_irradiance_total_downward.txt");
+	} else if (c_.get<std::string>("reference_detector_orientation")=="down") {
+	  t = read_irradiance(output_+"/cosine_irradiance_total_upward.txt");
+	} else
+	  throw std::runtime_error("reference_detector_orientation");
+	return t.row(n_reference_).y();
+      }
     }
     stdvector refractive_index(const stdvector& wls) {
       stdvector n(wls.size());
@@ -827,6 +903,9 @@ time and location.
 	u->set_wavelength(wl);
 	l->set_wavelength(wl);
 	accurt_kernel_wrapper a = build_layers(wl);
+	if (detector_orientation_override() or radiance_distribution_override()
+	    or conical_radiation_override())
+	  a.enable_azimuthal_radiance_dependence(true);
 	if (h_d >= 0)
 	  a.append_output_optical_depth(u->delta_fit_scaled_optical_depth_from_top(h_d));
 	else
@@ -860,7 +939,9 @@ time and location.
 	print_iops(file);
 	file.close();
       }    
-      if (!link_to_accurt_kernel_) {
+      if (link_to_accurt_kernel_) {
+	fourier_fields_ = run_accurt_kernel();
+      } else {
 	c_.set_text_qualifiers("#","##");
 	c_.set_uppercase(true);
 	write(c_, tmpdir_+"/accurt",precision_);

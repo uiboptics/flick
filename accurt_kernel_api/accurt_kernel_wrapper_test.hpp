@@ -160,9 +160,18 @@ namespace flick {
     check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
 		a.plane_irradiance_up()[0], 1e-9_pct);
 
+    check_close(f.beam_scalar_irradiance_lower_heimisphere(),
+		a.beam_irradiance_down()[0], 1e-9_pct);
+    check_close(f.beam_plane_irradiance_lower_heimisphere(),
+		a.beam_plane_irradiance_down()[0], 1e-9_pct);
+    check_small(f.beam_scalar_irradiance_upper_heimisphere(), 1e-12);
+    check_small(f.beam_plane_irradiance_upper_heimisphere(), 1e-12);
+
     f.rotate_frame_about_x_axis(pi);
     check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
 		a.plane_irradiance_down()[0], 1e-9_pct);
+    check_close(f.beam_plane_irradiance_upper_heimisphere(),
+		a.beam_plane_irradiance_down()[0], 1e-9_pct);
     f.rotate_frame_about_y_axis(pi);
     check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
 		a.plane_irradiance_up()[0], 1e-9_pct);
@@ -224,6 +233,40 @@ namespace flick {
                         a.dirac_delta_beams()[0]);
 
     check_close(field.radiance(std::acos(mu), 0.0), expected, 0.001_pct);
+  } end_test_case()
+
+  begin_test_case(accurt_test_J) {
+    // Reusing a wrapper in flux-only mode must not retain Fourier orders
+    // calculated by an earlier azimuth-dependent solve.
+    accurt_kernel_wrapper a;
+    a.streams_upper_slab(6);
+    a.source_zenith_angle(3.0 * std::numbers::pi / 4.0);
+    a.append_output_optical_depth(0.0);
+    a.bottom_albedo(0.0);
+    a.insert_layer_at_bottom(
+        1.0, 0.9, {1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125});
+
+    a.invoke_azimuthal_radiance_dependence(true);
+    a.solve_rte();
+    double largest_higher_order = 0.0;
+    auto components = a.radiance_fourier_components();
+    for (const auto& direction : components[0]) {
+      for (std::size_t order = 1; order < direction.size(); ++order)
+        largest_higher_order =
+            std::max(largest_higher_order, std::abs(direction[order]));
+    }
+    check(largest_higher_order > 1e-8);
+
+    a.invoke_azimuthal_radiance_dependence(false);
+    a.solve_rte();
+    largest_higher_order = 0.0;
+    components = a.radiance_fourier_components();
+    for (const auto& direction : components[0]) {
+      for (std::size_t order = 1; order < direction.size(); ++order)
+        largest_higher_order =
+            std::max(largest_higher_order, std::abs(direction[order]));
+    }
+    check_small(largest_higher_order, 1e-15);
   } end_test_case()
 
 }

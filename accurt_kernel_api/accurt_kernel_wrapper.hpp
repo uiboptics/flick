@@ -6,6 +6,7 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <numbers>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -252,9 +253,10 @@ namespace flick {
       geometrical_depth.resize(static_cast<std::size_t>(kernel_layer_count));
       user_radiance.resize(ntau * n_angles * n_phi);
       user_azimuthally_averaged_radiance.resize(ntau * n_angles);
-      radiance_fourier_components_output.resize(
+      radiance_fourier_components_output.assign(
           static_cast<std::size_t>(max_n_user_cos_polar_angles) * ntau *
-          (static_cast<std::size_t>(max_n_cos_polar_angles) + 1));
+              (static_cast<std::size_t>(max_n_cos_polar_angles) + 1),
+          0.0);
     }
 
   public:
@@ -290,6 +292,10 @@ namespace flick {
       if (value < 0.0 || value > 1.0)
         throw std::invalid_argument("Bottom albedo must be in [0, 1]");
       bottom_albedo_ = value;
+    }
+    
+    void enable_azimuthal_radiance_dependence(bool enabeled) {
+      do_flux_only = enabeled ? 0 : 1;
     }
 
     void streams_upper_slab(int number_of_streams) {
@@ -618,6 +624,7 @@ namespace flick {
   };
 
   class fourier_field {
+    static constexpr double pi = std::numbers::pi;
     std::vector<dirac_delta_beam> dirac_delta_beams_;
     std::vector<std::vector<double>> components_;
     std::vector<double> quadrature_cosines_;
@@ -700,6 +707,22 @@ namespace flick {
             (cosine_weighted
                  ? std::max(0.0, std::cos(beam.polar_angle))
                  : 1.0);
+      }
+      return result;
+    }
+
+    double beam_hemisphere_integral(bool upper_hemisphere,
+                                    bool cosine_weighted) const noexcept {
+      double result = 0.0;
+      for (const auto& beam : dirac_delta_beams_) {
+        const double mu = std::cos(beam.polar_angle);
+        // A horizontal beam belongs to the upper hemisphere, matching the
+        // public methods' documented <= pi/2 and > pi/2 split.
+        if ((upper_hemisphere && mu < 0.0) ||
+            (!upper_hemisphere && mu >= 0.0))
+          continue;
+        result += beam.irradiance *
+                  (cosine_weighted ? std::abs(mu) : 1.0);
       }
       return result;
     }
@@ -979,6 +1002,34 @@ namespace flick {
                                     double phi1, double phi2) const {
       return conical_integral(theta1, theta2, phi1, phi2, true) +
              dirac_delta_integral(theta1, theta2, phi1, phi2, true);
+    }
+
+    double scalar_irradiance_upper_heimisphere() const {
+      return conical_scalar_irradiance(0, pi/2, 0, 2*pi);
+    }
+    double scalar_irradiance_lower_heimisphere() const {
+      return conical_scalar_irradiance(pi/2, pi, 0, 2*pi);
+    }
+    double plane_irradiance_upper_heimisphere() const {
+      return conical_plane_irradiance(0, pi/2, 0, 2*pi);
+    }
+    double plane_irradiance_lower_heimisphere() const {
+      return conical_plane_irradiance(pi/2, pi, 0, 2*pi);
+    }
+    double beam_plane_irradiance_upper_heimisphere() const {
+      return beam_hemisphere_integral(true, true);
+    }
+
+    double beam_plane_irradiance_lower_heimisphere() const {
+      return beam_hemisphere_integral(false, true);
+    }
+
+    double beam_scalar_irradiance_upper_heimisphere() const {
+      return beam_hemisphere_integral(true, false);
+    }
+
+    double beam_scalar_irradiance_lower_heimisphere() const {
+      return beam_hemisphere_integral(false, false);
     }
   };
 }

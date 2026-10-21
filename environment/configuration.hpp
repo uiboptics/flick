@@ -47,6 +47,9 @@ namespace flick {
       end_qualifier_ = end;
     }
   private:
+    void ensure_among(const std::vector<std::string>& valid,
+		      const std::string value) {
+    }
     void skip_description(std::istream &is) const {
       std::string str;
       while (not end_of_description(str) and not is.eof()) {
@@ -114,7 +117,8 @@ namespace flick {
     bool unordered_stream_ = false;
   public:
     template<class T>
-    void add(const std::string& name, const std::vector<T>& p, std::string description="") {
+    void add(const std::string& name, const std::vector<T>& p,
+	     std::string description="") {
       if (exists(name))
       	throw std::runtime_error("configuration add: " + name +
 				 " already exists");
@@ -169,6 +173,20 @@ namespace flick {
       std::vector<T> p = get_vector<T>(name);
       return p.at(element);
     }
+    /*
+    template<class T>
+    T get(const std::string& name, std::vector<std::string> valid) const {
+      if (std::find(valid.begin(), valid.end(), value) == valid.end())
+	std::string list = "";
+      for (size_t i = 0; i<valid.size()-1; i++)
+	list += valid[i] + " ";
+      list += ", and " + valid.back();
+	throw std::runtime_error("Configuraton parameter "+name+
+				 " not in valid list: "+list);
+      std::vector<T> p = get_vector<T>(name);
+      return get(name,0);
+    }
+    */
     template<class T>
     size_t size(const std::string& name) const {
       parameter<T> *p = dynamic_cast<parameter<T>*>(&*parameters_.at(name));

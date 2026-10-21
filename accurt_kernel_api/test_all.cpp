@@ -13,6 +13,7 @@ int main() {
   t.include<accurt_test_G>();
   t.include<accurt_test_H>();
   t.include<accurt_test_I>();
+  t.include<accurt_test_J>();
   
   t.run_test_cases();
   return 0;
