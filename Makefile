@@ -27,6 +27,11 @@ PATH := $(FLICK_PATH)/main:$(PATH)
 
 export FLICK_PATH FLICK_COMPILER EIGEN_PATH CPLUS_INCLUDE_PATH PATH
 
+ACCURT_KERNEL_DIR ?= $(FLICK_PATH)/external/accurt-kernel
+ACCURT_KERNEL_AVAILABLE := $(if $(wildcard $(ACCURT_KERNEL_DIR)/kernel.f95),1,)
+
+export ACCURT_KERNEL_DIR ACCURT_KERNEL_AVAILABLE
+
 MODULE_DIRS := \
 	environment \
 	astronomy \
@@ -51,6 +56,7 @@ MODULE_DIRS := \
 	material/marine_cdom \
 	material/marine_particles \
 	accurt_api \
+	$(if $(ACCURT_KERNEL_AVAILABLE),accurt_kernel_api) \
 	transporter \
 	radiator \
 	model \
@@ -72,7 +78,7 @@ build:
 		$(MAKE) -C "$$dir" obj link; \
 	done
 
-test:
+test: check-eigen build
 	@set -e; for dir in $(TEST_DIRS); do \
 		$(MAKE) -C "$$dir" test; \
 	done

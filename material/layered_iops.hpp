@@ -47,7 +47,12 @@ namespace flick {
       return oda_;
     }
     stdvector single_scattering_albedo() const {
-      return (ods_ + oda_) / ods_;
+      stdvector result(n_layers());
+      for (size_t i = 0; i < n_layers(); ++i) {
+	double total = ods_[i] + oda_[i];
+	result[i] = total > 0 ? ods_[i] / total : 0;
+      }
+      return result;
     }
     std::vector<stdvector> alpha_terms(size_t n) const {
       return alpha_.at(n);
@@ -68,8 +73,7 @@ namespace flick {
       return 4*std::numbers::pi*alpha_terms(0)[layer_no][0];
     }
     stdvector delta_fit_scaling_factor() const {
-      stdvector f;
-      f.reserve(n_layers());
+      stdvector f(n_layers());
       for (size_t i=0; i<n_layers(); i++)
 	f[i] = 4*std::numbers::pi*alpha_terms(0)[i][0];
       return f;
@@ -89,7 +93,12 @@ namespace flick {
     }
     stdvector delta_fit_scaled_single_scattering_albedo() const {
       stdvector odss =  delta_fit_scaled_scattering_optical_depth();
-      return (odss + oda_) / odss;
+      stdvector result(n_layers());
+      for (size_t i = 0; i < n_layers(); ++i) {
+	double total = odss[i] + oda_[i];
+	result[i] = total > 0 ? odss[i] / total : 0;
+      }
+      return result;
     }
     std::vector<stdvector> disort_normalized_phase_moments()
     // 4pi integral equal one
@@ -110,8 +119,7 @@ namespace flick {
 	absorption_optical_depth();
       std::partial_sum(od.begin(), od.end(), od.begin());
       od.insert(od.begin(), 0);
-      double z_top = boundaries_.back();
-      return pl_function(boundaries_,od).integral(z_to, z_top);
+      return od.back() - pl_function(boundaries_,od).value(z_to);
     }
     friend std::ostream& operator<<(std::ostream &os,
 				    const layered_iops& iops) {

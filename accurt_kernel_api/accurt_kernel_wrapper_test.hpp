@@ -129,6 +129,28 @@ namespace flick {
     check_close(f.radiance(0,0), 1/std::numbers::pi, 1e-8_pct);
     check_close(f.radiance(1,1), 1/std::numbers::pi, 1e-8_pct);
     check_small(f.radiance(3.14,0), 1e-9);
+
+    // Interpolate the regular part of each Fourier coefficient rather than
+    // the coefficient itself.  These synthetic coefficients have constant
+    // regular parts: c_m(mu) = amplitude * (1-mu^2)^(m/2).
+    const std::vector<double> mu = {-0.8, -0.2, 0.2, 0.8};
+    std::vector<std::vector<double>> components;
+    for (double cosine : mu) {
+      const double sine = std::sqrt(1.0 - cosine * cosine);
+      components.push_back({2.0, 3.0 * sine, 4.0 * sine * sine});
+    }
+    fourier_field regular_field(components, mu);
+    const double target_mu = 0.5;
+    const double target_sine = std::sqrt(1.0-target_mu*target_mu);
+    check_close(regular_field.radiance(std::acos(target_mu), 0.0),
+                2.0 + 3.0*target_sine + 4.0*target_sine*target_sine,
+                1e-10_pct);
+    check_close(regular_field.radiance(0.0, 0.0), 2.0, 1e-10_pct);
+    check_close(regular_field.radiance(0.0, 1.0), 2.0, 1e-10_pct);
+    check_close(regular_field.radiance(std::numbers::pi, 0.0),
+                2.0, 1e-10_pct);
+    check_close(regular_field.radiance(std::numbers::pi, 1.0),
+                2.0, 1e-10_pct);
   } end_test_case()
   
   begin_test_case(accurt_test_G) {
@@ -153,7 +175,8 @@ namespace flick {
 
     check_close(f.conical_scalar_irradiance(pi/2,pi,0,2*pi),
 		a.scalar_irradiance_down()[0], 1e-9_pct);
-    check_small(f.conical_plane_irradiance(pi/2,pi,0,2*pi), 1e-12);
+    check_close(f.conical_plane_irradiance(pi/2,pi,0,2*pi),
+		a.plane_irradiance_down()[0], 1e-9_pct);
 
     check_close(f.conical_scalar_irradiance(0,pi/2,0,2*pi),
 		a.scalar_irradiance_up()[0], 1e-9_pct);
@@ -246,7 +269,7 @@ namespace flick {
     a.insert_layer_at_bottom(
         1.0, 0.9, {1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125});
 
-    a.invoke_azimuthal_radiance_dependence(true);
+    a.enable_azimuthal_radiance_dependence(true);
     a.solve_rte();
     double largest_higher_order = 0.0;
     auto components = a.radiance_fourier_components();
@@ -257,7 +280,7 @@ namespace flick {
     }
     check(largest_higher_order > 1e-8);
 
-    a.invoke_azimuthal_radiance_dependence(false);
+    a.enable_azimuthal_radiance_dependence(false);
     a.solve_rte();
     largest_higher_order = 0.0;
     components = a.radiance_fourier_components();

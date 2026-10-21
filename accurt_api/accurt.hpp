@@ -403,7 +403,8 @@ time and location.
       if (link_to_accurt_kernel_) {
 	for (size_t i=0; i<polar.size(); i++) {
 	  for (size_t j=0; j<azimuth.size(); j++) {
-	    L[i][j] = radiance(0, polar[i], azimuth[j]);
+	    L[i][j] = radiance(0, polar[i] / 180 * pi,
+			       azimuth[j] / 180 * pi);
 	  }
 	}
       } else {
@@ -512,7 +513,7 @@ time and location.
       return pp_function(wl,F);
     }
     void print_iops(std::ostream& os = std::cout) {
-      make_material_files();
+      build_layered_iops();
       std::string ba_name = c_.get<std::string>("bottom_albedo_file");
       os << "\nLayered IOPs\n";
       os << "------Upper slab-------------------------------------------------"; 
@@ -553,21 +554,24 @@ time and location.
       }
       return s;
     }
-    void make_material_files() {        
+    void build_layered_iops() {
       size_t n_terms = c_.get<size_t>("stream_upper_slab_size");
       stdvector b =
 	depths_to_boundaries(c_.get_vector<double>("layer_depths_upper_slab"));
       layered_upper_slab_ = std::make_shared<layered_iops>(material_,b,
 							       n_terms);
-      write(accurt_user_specified(layered_upper_slab_, wavelengths_),
-       	    tmpdir_+"/accurtMaterials/user_specified_upper_slab",
-	    precision_);
 
       b = 0 - c_.get_vector<double>("layer_depths_lower_slab");
       std::reverse(b.begin(),b.end());
       b.push_back(0);
       layered_lower_slab_ = std::make_shared<layered_iops>(material_,b,
 							       n_terms);
+    }
+    void make_material_files() {
+      build_layered_iops();
+      write(accurt_user_specified(layered_upper_slab_, wavelengths_),
+	    tmpdir_+"/accurtMaterials/user_specified_upper_slab",
+	    precision_);
       write(accurt_user_specified(layered_lower_slab_, wavelengths_),
       	    tmpdir_+"/accurtMaterials/user_specified_lower_slab",
 	    precision_);
@@ -624,7 +628,7 @@ time and location.
       
       if (detector_orientation_override()) {
 	auto view = c_.get_vector<double>("detector_orientation_override");
-	polar = view.at(0)/180*pi;
+	polar = (180-view.at(0))/180*pi;
 	azimuth = view.at(1)/180*pi;
       }
             
@@ -751,7 +755,16 @@ time and location.
     }
     stdvector reference_detector_irradiance() {
       if (link_to_accurt_kernel_) {
-	return plane_irradiance(0);
+	const auto orientation =
+	  c_.get<std::string>("reference_detector_orientation");
+	if (orientation == "up") {
+	  return collect(fourier_fields_, 1,
+			 &fourier_field::plane_irradiance_lower_heimisphere);
+	} else if (orientation == "down") {
+	  return collect(fourier_fields_, 1,
+			 &fourier_field::plane_irradiance_upper_heimisphere);
+	}
+	throw std::runtime_error("reference_detector_orientation");
       } else {
 	pe_table t;
 	if (c_.get<std::string>("reference_detector_orientation")=="up") {
@@ -871,21 +884,22 @@ time and location.
       const auto& u = layered_upper_slab_;
       const auto& l = layered_lower_slab_;
       
-      const auto sod_u = u->scattering_optical_depth(); 
+      const auto sod_u = u->delta_fit_scaled_scattering_optical_depth();
       const auto aod_u = u->absorption_optical_depth(); 
       const auto ssalb_u = u->delta_fit_scaled_single_scattering_albedo(); 
       const auto phmom_u = u->disort_normalized_phase_moments(); 
 
-      const auto sod_l = l->scattering_optical_depth(); 
+      const auto sod_l = l->delta_fit_scaled_scattering_optical_depth();
       const auto aod_l = l->absorption_optical_depth(); 
       const auto ssalb_l = l->delta_fit_scaled_single_scattering_albedo(); 
       const auto phmom_l = l->disort_normalized_phase_moments(); 
        
       accurt_kernel_wrapper a;
-      for (size_t i=u->n_layers()-1; i>=0; i--) {
+      a.streams_upper_slab(c_.get<size_t>("stream_upper_slab_size"));
+      for (size_t i=u->n_layers(); i-- > 0;) {
 	a.insert_layer_at_bottom(sod_u[i]+aod_u[i],ssalb_u[i],phmom_u[i]);
       }
-      for (size_t i=u->n_layers()-1; i>=0; i--) {
+      for (size_t i=l->n_layers(); i-- > 0;) {
 	a.insert_layer_at_bottom(sod_l[i]+aod_l[i],ssalb_l[i],phmom_l[i]);
       }
       a.layers_upper_slab(u->n_layers());
@@ -899,23 +913,31 @@ time and location.
       field f;
       double h_d = c_.get<double>("detector_height");    
       double h_r = c_.get<double>("reference_detector_height");
-      for (const auto& wl : c_.get_vector<double>("detector_wavelengths")) {
+      for (const auto& wl : wavelengths_) {
 	u->set_wavelength(wl);
 	l->set_wavelength(wl);
 	accurt_kernel_wrapper a = build_layers(wl);
+	a.source_zenith_angle(pi-c_.get<double>("source_zenith_angle")/180*pi);
 	if (detector_orientation_override() or radiance_distribution_override()
 	    or conical_radiation_override())
 	  a.enable_azimuthal_radiance_dependence(true);
+	double upper_slab_optical_depth =
+	  u->delta_fit_scaled_optical_depth_from_top(0);
 	if (h_d >= 0)
 	  a.append_output_optical_depth(u->delta_fit_scaled_optical_depth_from_top(h_d));
 	else
-	  a.append_output_optical_depth(l->delta_fit_scaled_optical_depth_from_top(h_d));
+	  a.append_output_optical_depth(upper_slab_optical_depth +
+				l->delta_fit_scaled_optical_depth_from_top(h_d));
 	if (h_r >= 0)
 	  a.append_output_optical_depth(u->delta_fit_scaled_optical_depth_from_top(h_r));
 	else
-	  a.append_output_optical_depth(l->delta_fit_scaled_optical_depth_from_top(h_r));
-	a.bottom_albedo(bottom_albedo_.value(wl));
+	  a.append_output_optical_depth(upper_slab_optical_depth +
+				l->delta_fit_scaled_optical_depth_from_top(h_r));
+	double bottom_albedo = bottom_albedo_.value(wl) *
+	  c_.get<double>("bottom_boundary_surface_scaling_factor");
+	a.bottom_albedo(std::clamp(bottom_albedo, 0.0, 1.0));
 	// TODO: implement rotate
+	a.solve_rte();
 	const auto& fc = a.radiance_fourier_components();
 	const auto& qc = a.quadrature_cosines();
 	const auto& db = a.dirac_delta_beams();
@@ -940,6 +962,7 @@ time and location.
 	file.close();
       }    
       if (link_to_accurt_kernel_) {
+	build_layered_iops();
 	fourier_fields_ = run_accurt_kernel();
       } else {
 	c_.set_text_qualifiers("#","##");

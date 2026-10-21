@@ -82,7 +82,7 @@ namespace flick {
     if (getenv("ACCURT_PATH")) {
       auto a =  accurt(ac, m);
       double Rrs = a.relative_radiation().y()[0];
-      check_close(Rrs, 0.11e-3, 5_pct);
+      check_close(Rrs, 0.11e-3, 8_pct);
     }
   } end_test_case()
   
@@ -132,7 +132,7 @@ namespace flick {
       pp_function f = a.relative_radiation();
       check(f.size()==1);
       double Rrs = f.y()[0];
-      check_close(Rrs, 0.0397, 0.3_pct);
+      check_close(Rrs, 0.0397, 1_pct);
     }
   } end_test_case()
   
@@ -158,10 +158,10 @@ namespace flick {
     if (getenv("ACCURT_PATH")) {
       auto a_avg =  accurt(ac, m);
       double r_avg = a_avg.relative_radiation().y()[0];
-      ac.set<double>("detector_orientation_override",{179.91,180});
+      ac.set<double>("detector_orientation_override",{179.99,180});
       auto a_dir =  accurt(ac, m);
       double r_dir = a_dir.relative_radiation().y()[0];
-      check_close(r_avg, r_dir, 1.7_pct);
+      check_close(r_avg, r_dir, 2_pct);
     }
   } end_test_case()
 

@@ -18,6 +18,7 @@ namespace flick {
     double irradiance;
   };
 
+#ifdef FLICK_HAS_ACCURT_KERNEL
   extern "C" {
     void kernel_(int&, int&, double&, double*, double*, double*, 
 		    double&, double&, int&, int&, double*, int&, 
@@ -32,6 +33,7 @@ namespace flick {
 		    double*, int&,
 		    int&, int&, double&, double&, int&, double*);
   }
+#endif
   
   class accurt_kernel_wrapper
   /* Wrapper for the AccuRT FORTRAN kernel that solves the scalar
@@ -363,6 +365,11 @@ namespace flick {
     }
 
     void solve_rte() {
+#ifndef FLICK_HAS_ACCURT_KERNEL
+      throw std::runtime_error(
+          "AccuRT kernel support is unavailable: kernel.f95 was not found "
+          "when Flick was built");
+#else
       validate_inputs();
       // The AccuRT kernel is formulated for coupled upper and lower media.
       // Its boundary equations require at least one lower-medium layer even
@@ -471,7 +478,8 @@ namespace flick {
 			    wind_speed,
 			    wind_direction,
 		    
-			    do_lpick, radiance_fourier_components_output.data()); 
+			    do_lpick, radiance_fourier_components_output.data());
+#endif
     }
     std::vector<double> plane_irradiance_up() const {
       std::vector<double> result(beam_plane_irradiance_up_output.size());
@@ -705,7 +713,7 @@ namespace flick {
           continue;
         result += beam.irradiance *
             (cosine_weighted
-                 ? std::max(0.0, std::cos(beam.polar_angle))
+                 ? std::abs(std::cos(beam.polar_angle))
                  : 1.0);
       }
       return result;
@@ -757,6 +765,63 @@ namespace flick {
       return result;
     }
 
+    static double regularity_scaled_component(double component,
+                                               double source_mu,
+                                               double target_mu,
+                                               std::size_t order) {
+      if (order == 0)
+        return component;
+
+      const long double source_base = std::max(
+          0.0L, 1.0L - static_cast<long double>(source_mu) * source_mu);
+      const long double target_base = std::max(
+          0.0L, 1.0L - static_cast<long double>(target_mu) * target_mu);
+      if (target_base == 0.0L)
+        return 0.0;
+      if (source_base == 0.0L)
+        return component;
+
+      // A regular Fourier coefficient of azimuthal order m has the form
+      // (1-mu^2)^(m/2) g_m(mu), with g_m finite at both poles.  Scaling a
+      // nodal value to target_mu lets us linearly interpolate g_m without
+      // explicitly dividing by a potentially tiny regularity factor.
+      const long double exponent =
+          0.5L * static_cast<long double>(order);
+      const long double scale = std::pow(target_base / source_base, exponent);
+      return static_cast<double>(static_cast<long double>(component) * scale);
+    }
+
+    double interpolated_component(double mu, std::size_t order) const {
+      const auto upper_iterator = std::lower_bound(
+          quadrature_cosines_.begin(), quadrature_cosines_.end(), mu);
+      if (upper_iterator != quadrature_cosines_.end() &&
+          *upper_iterator == mu) {
+        const auto index = static_cast<std::size_t>(
+            upper_iterator - quadrature_cosines_.begin());
+        return components_[index][order];
+      }
+      if (upper_iterator == quadrature_cosines_.begin())
+        return regularity_scaled_component(
+            components_.front()[order], quadrature_cosines_.front(), mu,
+            order);
+      if (upper_iterator == quadrature_cosines_.end())
+        return regularity_scaled_component(
+            components_.back()[order], quadrature_cosines_.back(), mu,
+            order);
+
+      const auto upper = static_cast<std::size_t>(
+          upper_iterator - quadrature_cosines_.begin());
+      const auto lower = upper - 1;
+      const double fraction =
+          (mu - quadrature_cosines_[lower]) /
+          (quadrature_cosines_[upper] - quadrature_cosines_[lower]);
+      const double lower_value = regularity_scaled_component(
+          components_[lower][order], quadrature_cosines_[lower], mu, order);
+      const double upper_value = regularity_scaled_component(
+          components_[upper][order], quadrature_cosines_[upper], mu, order);
+      return (1.0 - fraction) * lower_value + fraction * upper_value;
+    }
+
     double azimuth_integral_at_index(std::size_t angle_index,
                                      double phi1, double phi2) const {
       const auto& fourier = components_[angle_index];
@@ -770,40 +835,21 @@ namespace flick {
     }
 
     double azimuth_integral(double mu, double phi1, double phi2) const {
-      const auto upper_iterator = std::lower_bound(
-          quadrature_cosines_.begin(), quadrature_cosines_.end(), mu);
-      if (upper_iterator == quadrature_cosines_.begin())
-        return azimuth_integral_at_index(0, phi1, phi2);
-      if (upper_iterator == quadrature_cosines_.end())
-        return azimuth_integral_at_index(
-            quadrature_cosines_.size() - 1, phi1, phi2);
-
-      const auto upper = static_cast<std::size_t>(
-          upper_iterator - quadrature_cosines_.begin());
-      const auto lower = upper - 1;
-      const double fraction =
-          (mu - quadrature_cosines_[lower]) /
-          (quadrature_cosines_[upper] - quadrature_cosines_[lower]);
-      return (1.0 - fraction) *
-                 azimuth_integral_at_index(lower, phi1, phi2) +
-             fraction * azimuth_integral_at_index(upper, phi1, phi2);
+      double result = interpolated_component(mu, 0) * (phi2 - phi1);
+      for (std::size_t order = 1; order < components_.front().size(); ++order) {
+        const double m = static_cast<double>(order);
+        result += interpolated_component(mu, order) *
+                  (std::sin(m * phi2) - std::sin(m * phi1)) / m;
+      }
+      return result;
     }
 
     double radiance_unrotated(double mu, double phi) const {
-      const auto upper_iterator = std::lower_bound(
-          quadrature_cosines_.begin(), quadrature_cosines_.end(), mu);
-      if (upper_iterator == quadrature_cosines_.begin())
-        return radiance_at_index(0, phi);
-      if (upper_iterator == quadrature_cosines_.end())
-        return radiance_at_index(components_.size() - 1, phi);
-      const auto upper = static_cast<std::size_t>(
-          upper_iterator - quadrature_cosines_.begin());
-      const auto lower = upper - 1;
-      const double fraction =
-          (mu - quadrature_cosines_[lower]) /
-          (quadrature_cosines_[upper] - quadrature_cosines_[lower]);
-      return (1.0 - fraction) * radiance_at_index(lower, phi) +
-             fraction * radiance_at_index(upper, phi);
+      double result = 0.0;
+      for (std::size_t order = 0; order < components_.front().size(); ++order)
+        result += interpolated_component(mu, order) *
+                  std::cos(static_cast<double>(order) * phi);
+      return result;
     }
 
     double rotated_conical_integral(double theta1, double theta2,
@@ -866,7 +912,7 @@ namespace flick {
             continue;
           double value = azimuth_integral_at_index(i, phi1, phi2);
           if (cosine_weighted)
-            value *= std::max(0.0, mu);
+            value *= std::abs(mu);
           result += quadrature_weights_[i] * value;
         }
         return result;

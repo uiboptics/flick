@@ -8,18 +8,24 @@ FC       := gfortran
 CXXFLAGS ?= -std=c++20
 FFLAGS   += -O3 -fallow-argument-mismatch -finit-integer=0
 
-ACCURT_KERNEL_DIR ?= /Users/borgehamre/f/external/accurt-kernel
+ACCURT_KERNEL_DIR ?= ../external/accurt-kernel
 FORTRAN_SRC       := $(ACCURT_KERNEL_DIR)/kernel.f95
+ACCURT_KERNEL_AVAILABLE := $(if $(wildcard $(FORTRAN_SRC)),1,)
+KERNEL_CONFIG     := .accurt-kernel-$(if $(ACCURT_KERNEL_AVAILABLE),enabled,disabled)
+
+ifneq ($(ACCURT_KERNEL_AVAILABLE),)
 FORTRAN_OBJ       := kernel.o
 FORTRAN_LIB_DIR   := $(dir $(shell $(FC) -print-file-name=libgfortran.dylib))
 LDLIBS            += -L$(FORTRAN_LIB_DIR) -lgfortran -lquadmath -framework Accelerate
+CXXFLAGS          += -DFLICK_HAS_ACCURT_KERNEL
+endif
 
 .PHONY: all clean obj link test
 
 all: test
 
 clean:
-	@rm -f $(CPP_OBJ) $(FORTRAN_OBJ) $(DEP) $(NAME) *.mod *~ obj ./#*# tmp.txt
+	@rm -f $(CPP_OBJ) $(FORTRAN_OBJ) $(DEP) $(NAME) *.mod *~ obj ./#*# tmp.txt .accurt-kernel-enabled .accurt-kernel-disabled
 	@rm -fr tmp tmpOutput/ tmpMaterials/ flick_tmp/
 	@rm -f toa_reflectance_configuration
 
@@ -28,8 +34,18 @@ link: $(CPP_OBJ) $(FORTRAN_OBJ)
 
 obj:	$(CPP_OBJ) $(FORTRAN_OBJ)
 
+$(CPP_OBJ): $(KERNEL_CONFIG)
+
+$(KERNEL_CONFIG):
+	@rm -f .accurt-kernel-enabled .accurt-kernel-disabled
+	@touch $@
+
 test: link
-	@./$(NAME)
+	@if [ -z "$(ACCURT_KERNEL_AVAILABLE)" ]; then \
+		echo "Skipping accurt_kernel_api tests: $(FORTRAN_SRC) not found."; \
+	else \
+		./$(NAME); \
+	fi
 
 -include $(DEP) 
 
