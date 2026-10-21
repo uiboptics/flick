@@ -5,7 +5,6 @@
 #include <array>
 #include <cmath>
 #include <functional>
-#include <iterator>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -55,7 +54,7 @@ namespace flick {
     std::vector<double> user_optical_depths;
     int n_streams_upper = 4;
     
-    int n_streams_lower = 16;
+    int n_streams_lower = 4;
     int do_user_angles = 0;
     int n_cos_polar_angles_upper = 0;
     std::vector<double> cos_polar_angles_upper_output;
@@ -120,6 +119,21 @@ namespace flick {
         throw std::length_error("Array is too large for the Fortran API");
       }
       return static_cast<int>(values.size());
+    }
+
+    static int lower_stream_count(int upper_stream_count,
+                                  double refractive_index) {
+      constexpr int kernel_stream_limit = 400;
+      const double required = static_cast<double>(upper_stream_count) *
+                              refractive_index * refractive_index;
+      if (!std::isfinite(required) || required > kernel_stream_limit)
+        throw std::invalid_argument(
+            "The refractive-index-scaled lower-slab stream count cannot "
+            "exceed the kernel limit of 400");
+
+      // Round upward to avoid undersampling and then to an even count, as
+      // required by the double-Gauss quadrature used by the kernel.
+      return 2 * static_cast<int>(std::ceil(required / 2.0));
     }
 
     static std::vector<double> flatten(
@@ -263,9 +277,13 @@ namespace flick {
     }
 
     void refractive_index(double value) {
-      if (value < 1.0)
-        throw std::invalid_argument("Refractive index must be at least 1");
+      if (!std::isfinite(value) || value < 1.0)
+        throw std::invalid_argument(
+            "Refractive index must be finite and at least 1");
+      const int lower_streams = lower_stream_count(n_streams_upper, value);
       refractive_index_ = value;
+      n_streams_lower = lower_streams;
+      resize_phase_function_moments();
     }
 
     void bottom_albedo(double value) {
@@ -278,18 +296,23 @@ namespace flick {
       if (number_of_streams < 2 || number_of_streams % 2 != 0)
         throw std::invalid_argument(
             "The number of streams must be an even integer of at least 2");
-      if (number_of_streams > 20)
+      if (number_of_streams > 400)
         throw std::invalid_argument(
-            "Upper-slab streams cannot exceed 20 because the lower-slab "
-            "stream count is its square and the kernel limit is 400");
+            "Upper-slab streams cannot exceed the kernel limit of 400");
 
+      const int lower_streams =
+          lower_stream_count(number_of_streams, refractive_index_);
       n_streams_upper = number_of_streams;
-      n_streams_lower = number_of_streams * number_of_streams;
+      n_streams_lower = lower_streams;
       resize_phase_function_moments();
     }
 
     int streams_upper_slab() const noexcept {
       return n_streams_upper;
+    }
+
+    int streams_lower_slab() const noexcept {
+      return n_streams_lower;
     }
 
     void layers_upper_slab(int number_of_layers) {
@@ -401,7 +424,7 @@ namespace flick {
 			    fisot,                 
 			    
 			    lamber,
-				    bottom_albedo_,
+	                    bottom_albedo_,
 			    btemp,
 			    ttemp,
 			    temis,                     
@@ -525,6 +548,19 @@ namespace flick {
       return result;
     }
 
+    std::vector<std::vector<dirac_delta_beam>> dirac_delta_beams() const {
+      const auto downward = dirac_delta_beam_down();
+      const auto upward = dirac_delta_beam_up();
+      std::vector<std::vector<dirac_delta_beam>> result;
+      result.reserve(user_optical_depths.size());
+      for (std::size_t i = 0; i < user_optical_depths.size(); ++i) {
+        result.push_back({downward.at(i)});
+        if (output_is_in_upper_slab(user_optical_depths[i]))
+          result.back().push_back(upward.at(i));
+      }
+      return result;
+    }
+
     const std::vector<double>& scalar_irradiance_down() const noexcept {
       return scalar_irradiance_down_output;
     }
@@ -537,6 +573,17 @@ namespace flick {
     const std::vector<double>&
     quadrature_cosines_lower_slab() const noexcept {
       return cos_polar_angles_lower_output;
+    }
+
+    std::vector<std::vector<double>> quadrature_cosines() const {
+      std::vector<std::vector<double>> result;
+      result.reserve(user_optical_depths.size());
+      for (double optical_depth : user_optical_depths) {
+        result.push_back(output_is_in_upper_slab(optical_depth)
+                             ? cos_polar_angles_upper_output
+                             : cos_polar_angles_lower_output);
+      }
+      return result;
     }
 
     std::vector<std::vector<std::vector<double>>>
@@ -838,16 +885,11 @@ namespace flick {
     using vector_matrix = std::vector<std::vector<double>>;
     fourier_field(std::vector<std::vector<double>> components,
                   std::vector<double> quadrature_cosines,
-		  std::vector<std::vector<dirac_delta_beam>> beam_groups = {})
+		  std::vector<dirac_delta_beam> dirac_delta_beams = {})
         : components_(std::move(components)),
-          quadrature_cosines_(std::move(quadrature_cosines))
+          quadrature_cosines_(std::move(quadrature_cosines)),
+          dirac_delta_beams_(std::move(dirac_delta_beams))
     {
-      for (auto& group : beam_groups) {
-        dirac_delta_beams_.insert(
-            dirac_delta_beams_.end(),
-            std::make_move_iterator(group.begin()),
-            std::make_move_iterator(group.end()));
-      }
       if (components_.empty() || components_.front().empty())
         throw std::invalid_argument("Fourier component field cannot be empty");
       if (quadrature_cosines_.empty() ||
@@ -915,6 +957,16 @@ namespace flick {
       rotate_frame({cosine, 0.0, sine,
                     0.0, 1.0, 0.0,
                     -sine, 0.0, cosine});
+    }
+
+    void rotate_frame_about_z_axis(double angle) {
+      if (!std::isfinite(angle))
+        throw std::invalid_argument("Rotation angle must be finite");
+      const double cosine = std::cos(angle);
+      const double sine = std::sin(angle);
+      rotate_frame({cosine, -sine, 0.0,
+                    sine, cosine, 0.0,
+                    0.0, 0.0, 1.0});
     }
 
     double conical_scalar_irradiance(double theta1, double theta2,

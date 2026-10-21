@@ -148,9 +148,8 @@ namespace flick {
     a.refractive_index(1);
     a.solve_rte();
     fourier_field f(a.radiance_fourier_components()[0],
-                    a.quadrature_cosines_upper_slab(),
-		    {a.dirac_delta_beam_down(),
-		     a.dirac_delta_beam_up()});
+                    a.quadrature_cosines()[0],
+		    a.dirac_delta_beams()[0]);
 
     check_close(f.conical_scalar_irradiance(pi/2,pi,0,2*pi),
 		a.scalar_irradiance_down()[0], 1e-9_pct);
@@ -167,8 +166,6 @@ namespace flick {
     f.rotate_frame_about_y_axis(pi);
     check_close(f.conical_plane_irradiance(0,pi/2,0,2*pi),
 		a.plane_irradiance_up()[0], 1e-9_pct);
-
-
   } end_test_case()
 
   begin_test_case(accurt_test_H) {
@@ -187,6 +184,7 @@ namespace flick {
     a.append_output_optical_depth(od1+od2);
     a.streams_upper_slab(4);
     a.refractive_index(1.3);
+    check(a.streams_lower_slab() == 8);
     a.solve_rte();
     check_close(a.dirac_delta_beam_down()[0].irradiance,
 		a.beam_irradiance_down()[0],1e-6_pct);
@@ -195,7 +193,37 @@ namespace flick {
     check(a.dirac_delta_beam_down()[1].polar_angle > source_angle);
     check_close(a.dirac_delta_beam_up()[0].polar_angle,pi-source_angle,1e-5_pct);
     check_small(a.dirac_delta_beam_up()[0].azimuth_angle,1e-9);
+  } end_test_case()
 
-  } end_test_case() 
+  begin_test_case(accurt_test_I) {
+    // Single scattering by a weakly scattering, isotropic layer. For normal
+    // illumination and black boundaries, the upward radiance at the top is
+    //   omega/(4*pi) * (1 - exp(-tau*(1 + 1/mu))) / (1 + mu).
+    // Keeping omega small makes higher-order scattering negligible.
+    const double pi = std::numbers::pi;
+    const double optical_depth = 1.0;
+    const double single_scattering_albedo = 1e-5;
+
+    accurt_kernel_wrapper a;
+    a.streams_upper_slab(22);
+    a.source_zenith_angle(pi);
+    a.append_output_optical_depth(0.0);
+    a.bottom_albedo(0.0);
+    a.refractive_index(1.0);
+    a.insert_layer_at_bottom(
+        optical_depth, single_scattering_albedo, {1.0});
+    a.solve_rte();
+
+    const auto quadrature = a.quadrature_cosines()[0];
+    const std::size_t upward_index = 3 * quadrature.size() / 4;
+    const double mu = quadrature[upward_index];
+    const double expected = single_scattering_albedo / (4.0 * pi) *
+        (1.0 - std::exp(-optical_depth * (1.0 + 1.0 / mu))) /
+        (1.0 + mu);
+    fourier_field field(a.radiance_fourier_components()[0], quadrature,
+                        a.dirac_delta_beams()[0]);
+
+    check_close(field.radiance(std::acos(mu), 0.0), expected, 0.001_pct);
+  } end_test_case()
 
 }

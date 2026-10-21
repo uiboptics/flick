@@ -10,6 +10,7 @@
 #include "../material/material.hpp"
 #include "../material/layered_iops.hpp"
 #include "../material/z_profile.hpp"
+#include "../accurt_kernel_api/accurt_kernel_wrapper.hpp"
 #include "toa_sun.hpp"
 #include "radiation_field.hpp"
 
@@ -288,6 +289,8 @@ time and location.
     std::shared_ptr<layered_iops> layered_upper_slab_;
     std::shared_ptr<layered_iops> layered_lower_slab_;
     static constexpr double pi = std::numbers::pi;
+    pl_function bottom_albedo_;
+    bool link_to_accurt_kernel_ = false;
   public:
     accurt(const basic_configuration& c, std::shared_ptr<material::base> material)
       : c_{c}, material_{material} {
@@ -328,28 +331,32 @@ time and location.
       c_.add<double>("lpick",0);
       wavelengths_ = c_.get_vector<double>("detector_wavelengths");
       c_.set<double>("detector_wavelengths",wavelengths_*1e9);
+      
       set_bottom_albedo();
     }
     void set_bottom_albedo() {
-      std::string accurt_ba_name = "jhu.becknic.soil.aridisol.camborthid.coarse.89P1772.spectrum.txt";
-      char *accurt_path = getenv("ACCURT_PATH");
-      if (accurt_path==NULL)
-	throw std::invalid_argument("ACCURT_PATH not found.");
-      std::string path = std::string(accurt_path)+"/lll/manager/data/";
       std::string ba_name = c_.get<std::string>("bottom_albedo_file");
       std::string p = "/accurt_api/bottom_albedo/";
-      auto ba = read<pl_function>(ba_name, p);
-      stdvector x = ba.x()*0.001; // Microns
-      stdvector y = ba.y()*100; // Percent 
-      std::reverse(x.begin(), x.end());
-      std::reverse(y.begin(), y.end());
-      std::ofstream ofs(path+accurt_ba_name);
-      if (!ofs)
-	throw std::invalid_argument(path+accurt_ba_name+" could not be opened");
-      ofs << std::setprecision(5);
-      for (size_t i=0; i<x.size(); ++i)
-	ofs << x[i] << " " << y[i] << '\n';
-    }  
+      bottom_albedo_ = read<pl_function>(ba_name, p).scale_x(1e-9); // [m]
+      if (!link_to_accurt_kernel_) {
+	std::string accurt_ba_name = "jhu.becknic.soil.aridisol.camborthid.coarse.89P1772.spectrum.txt";
+	char *accurt_path = getenv("ACCURT_PATH");
+	if (accurt_path==NULL)
+	  throw std::invalid_argument("ACCURT_PATH not found.");
+	std::string path = std::string(accurt_path)+"/lll/manager/data/";
+	
+	stdvector x = bottom_albedo_.x()*1e6; // Microns
+	stdvector y = bottom_albedo_.y()*100; // Percent 
+	std::reverse(x.begin(), x.end());
+	std::reverse(y.begin(), y.end());
+	std::ofstream ofs(path+accurt_ba_name);
+	if (!ofs)
+	  throw std::invalid_argument(path+accurt_ba_name+" could not be opened");
+	ofs << std::setprecision(5);
+	for (size_t i=0; i<x.size(); ++i)
+	  ofs << x[i] << " " << y[i] << '\n';
+      }
+    }
     pp_function relative_radiation() {
       std::string t = c_.get<std::string>("detector_type"); 
       if (t=="radiance")
@@ -783,7 +790,63 @@ time and location.
       c_.add<double>("detector_depths_upper_slab",{depths[0],depths[1]});
       c_.add<double>("detector_depths_lower_slab",{depths[2]-mh,depths[3]-mh});
     }
-    std::pair<fourier_field,fourier_field> run_kernel_directly() {
+
+    accurt_kernel_wrapper build_layers(double wl) {
+      const auto& u = layered_upper_slab_;
+      const auto& l = layered_lower_slab_;
+      
+      const auto sod_u = u->scattering_optical_depth(); 
+      const auto aod_u = u->absorption_optical_depth(); 
+      const auto ssalb_u = u->delta_fit_scaled_single_scattering_albedo(); 
+      const auto phmom_u = u->disort_normalized_phase_moments(); 
+
+      const auto sod_l = l->scattering_optical_depth(); 
+      const auto aod_l = l->absorption_optical_depth(); 
+      const auto ssalb_l = l->delta_fit_scaled_single_scattering_albedo(); 
+      const auto phmom_l = l->disort_normalized_phase_moments(); 
+       
+      accurt_kernel_wrapper a;
+      for (size_t i=u->n_layers()-1; i>=0; i--) {
+	a.insert_layer_at_bottom(sod_u[i]+aod_u[i],ssalb_u[i],phmom_u[i]);
+      }
+      for (size_t i=u->n_layers()-1; i>=0; i--) {
+	a.insert_layer_at_bottom(sod_l[i]+aod_l[i],ssalb_l[i],phmom_l[i]);
+      }
+      a.layers_upper_slab(u->n_layers());
+      a.refractive_index(l->refractive_index()[0]);
+      return a;
+    }
+    using field = std::vector<std::vector<fourier_field>>;
+    field run_accurt_kernel() {
+      const auto& u = layered_upper_slab_;
+      const auto& l = layered_lower_slab_;
+      field f;
+      double h_d = c_.get<double>("detector_height");    
+      double h_r = c_.get<double>("reference_detector_height");
+      for (const auto& wl : c_.get_vector<double>("detector_wavelengths")) {
+	u->set_wavelength(wl);
+	l->set_wavelength(wl);
+	accurt_kernel_wrapper a = build_layers(wl);
+	if (h_d >= 0)
+	  a.append_output_optical_depth(u->delta_fit_scaled_optical_depth_from_top(h_d));
+	else
+	  a.append_output_optical_depth(l->delta_fit_scaled_optical_depth_from_top(h_d));
+	if (h_r >= 0)
+	  a.append_output_optical_depth(u->delta_fit_scaled_optical_depth_from_top(h_r));
+	else
+	  a.append_output_optical_depth(l->delta_fit_scaled_optical_depth_from_top(h_r));
+	a.bottom_albedo(bottom_albedo_.value(wl));
+	// TODO: implement rotate
+	const auto& fc = a.radiance_fourier_components();
+	const auto& qc = a.quadrature_cosines();
+	const auto& db = a.dirac_delta_beams();
+	std::vector<fourier_field> ff;
+	for (size_t i=0; i<2; i++) {
+	  ff.push_back(fourier_field(fc[i],qc[i],db[i]));
+	}
+	f.push_back(ff);		  
+      }
+      return f;
     }
     void run() {
       std::string arg = c_.get_one_string("toa_solar_multiplication");
@@ -791,22 +854,24 @@ time and location.
 	toa_sun ts(arg);
 	c_.set<double>("source_zenith_angle",ts.zenith_angle()/pi*180);
       }
-      c_.set_text_qualifiers("#","##");
-      c_.set_uppercase(true);
       system(("mkdir -p " + tmpdir_).c_str());      
-      write(c_, tmpdir_+"/accurt",precision_);
-      system(("mkdir -p "+tmpdir_+"/accurtMaterials").c_str());
-      system(("mkdir -p "+tmpdir_+"/accurtOutput").c_str());
-      make_material_files();
       if (c_.get_boolean("print_iops")) {
 	std::ofstream file(tmpdir_+"/iops_last_run.txt");
 	print_iops(file);
 	file.close();
+      }    
+      if (!link_to_accurt_kernel_) {
+	c_.set_text_qualifiers("#","##");
+	c_.set_uppercase(true);
+	write(c_, tmpdir_+"/accurt",precision_);
+	system(("mkdir -p "+tmpdir_+"/accurtMaterials").c_str());
+	system(("mkdir -p "+tmpdir_+"/accurtOutput").c_str());
+	make_material_files();
+	int s=system(("DYLD_LIBRARY_PATH=$ACCURT_PATH/lib AccuRT "+tmpdir_+
+		      "/accurt").c_str());
+	if (s!=0)
+	  throw std::runtime_error("accurt_api");	
       }
-      int s=system(("DYLD_LIBRARY_PATH=$ACCURT_PATH/lib AccuRT "+tmpdir_+
-		    "/accurt").c_str());
-      if (s!=0)
-	throw std::runtime_error("accurt_api");
     }
     pe_table read_irradiance(const std::string& file_name) {
       std::ifstream ifs(file_name);

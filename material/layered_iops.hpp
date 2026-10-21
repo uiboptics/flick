@@ -1,6 +1,7 @@
 #ifndef flick_layered_iops
 #define flick_layered_iops
 
+#include <numeric>
 #include "material.hpp"
 #include "ab_functions.hpp"
 
@@ -66,6 +67,13 @@ namespace flick {
     double delta_fit_scaling_factor(size_t layer_no) const {
       return 4*std::numbers::pi*alpha_terms(0)[layer_no][0];
     }
+    stdvector delta_fit_scaling_factor() const {
+      stdvector f;
+      f.reserve(n_layers());
+      for (size_t i=0; i<n_layers(); i++)
+	f[i] = 4*std::numbers::pi*alpha_terms(0)[i][0];
+      return f;
+    }
     double asymmetry_factor(size_t layer_no) const {
       return 4*std::numbers::pi/3*alpha_terms(0)[layer_no][1];
     }
@@ -76,7 +84,35 @@ namespace flick {
       m_->set_position({0,0,h});
       return p;
     }
-
+    stdvector delta_fit_scaled_scattering_optical_depth() const {
+      return scattering_optical_depth()*delta_fit_scaling_factor();
+    }
+    stdvector delta_fit_scaled_single_scattering_albedo() const {
+      stdvector odss =  delta_fit_scaled_scattering_optical_depth();
+      return (odss + oda_) / odss;
+    }
+    std::vector<stdvector> disort_normalized_phase_moments()
+    // 4pi integral equal one
+    {
+      auto p = alpha_terms(0);
+      
+      for (size_t i = 0; i < n_layers(); ++i) {
+        const double normalization = 1.0 / p[i][0];
+	
+        for (size_t j = 0; j < n_terms_; ++j) {
+	  p[i][j] *= normalization / (2*j + 1);
+        }
+      }
+      return p;
+    }
+    double delta_fit_scaled_optical_depth_from_top(double z_to) {
+      auto od = delta_fit_scaled_scattering_optical_depth() +
+	absorption_optical_depth();
+      std::partial_sum(od.begin(), od.end(), od.begin());
+      od.insert(od.begin(), 0);
+      double z_top = boundaries_.back();
+      return pl_function(boundaries_,od).integral(z_to, z_top);
+    }
     friend std::ostream& operator<<(std::ostream &os,
 				    const layered_iops& iops) {
       auto h = iops.boundaries_;
