@@ -43,8 +43,8 @@ def set_detector(detector_type):
 
 # More time positons may be added here. Default is North Pole only. 
 time_pos = [
-    [2026, 8, 29, 8, 10, 0, 90, 0]
-    #, [2026, 8, 30, 8, 23, 0, 88+51.6/60, 48+4.4/60]
+    [2026, 8, 27, 8, 16, 45, 85.47, 128.97]
+    #,[2026, 8, 29, 12, 2, 48, 89.98, 169.46] 
 ]
 detector_types = ['plane_irradiance','scalar_irradiance','radiance']
 wl_band_width = 10e-9 # Ramses band width
