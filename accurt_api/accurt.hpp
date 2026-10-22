@@ -417,7 +417,15 @@ time and location.
     }
     std::pair<vector_3d, vector_2d> relative_distributed_radiance() {
       auto n_d = c_.get_vector<size_t>("detector_radiance_distribution_override");
-      stdvector polar = range(180,0, n_d.at(0)).linspace();
+      stdvector polar = range(0,180, n_d.at(0)).linspace();
+      // range::linspace accumulates its step, so the final value can end up a
+      // few ulps above 180 degrees.  fourier_field correctly rejects the
+      // corresponding angle as greater than pi; keep the physical endpoints
+      // exact before converting the grid to radians.
+      if (polar.size() > 1) {
+	polar.front() = 0.0;
+	polar.back() = 180.0;
+      }
       stdvector azimuth = range(-180,180,n_d.at(1)).linspace();
       set_distributed_radiance(polar,azimuth);
       run();
@@ -706,6 +714,10 @@ time and location.
       return result;
     }
     stdvector radiance(size_t type_no, double polar, double azimuth) {
+	// Degree-to-radian conversion at the poles can overshoot the closed
+	// interval by a rounding error.  Normalize values at that boundary before
+	// passing them to fourier_field's strict public API.
+	polar = std::clamp(polar, 0.0, pi);
 	return collect(fourier_fields_, type_no,
 		       &fourier_field::radiance, polar, azimuth);
     }

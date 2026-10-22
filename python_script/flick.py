@@ -54,6 +54,7 @@ def include_given_values(lower_limit,upper_limit,n,v):
         i += 2
     return v
 
+
 def atmosphere_wavelengths(ao_config_file_name, wl_low, wl_high, n_wls):
     ot = atmosphere_optical_thickness(ao_config_file_name,wl_low,wl_high,n_wls*10).attenuation()
     T = ot;

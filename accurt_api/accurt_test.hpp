@@ -279,4 +279,25 @@ namespace flick {
       check_close(r, 1, 0.002_pct);
     }
   } end_test_case()
+  
+  begin_test_case(accurt_test_K) {
+    /* Distributed radiance */
+    const double pi = std::numbers::pi;
+    accurt::configuration ac;
+    ac.set<double>("detector_wavelengths",{300e-9});
+    ac.set<double>("source_zenith_angle",40);
+    ac.set<double>("detector_height",-1);
+    ac.set<size_t>("stream_upper_slab_size",4);
+    ac.set<size_t>("detector_radiance_distribution_override",{3,4});
+    material::atmosphere_ocean::configuration mc;
+    auto m = std::make_shared<material::atmosphere_ocean>(mc);
+    if (getenv("ACCURT_PATH")) {
+      auto a =  accurt(ac, m);
+      std::vector<std::vector<stdvector>> r = a.relative_distributed_radiance().first;
+      check_close(r.size(), 1, 1e-9);
+      check_close(r[0].size(), 3, 1e-9);
+      check_close(r[0][0].size(), 4, 1e-9);
+      check(r[0][1][0]!=r[0][1][2]);
+    }
+  } end_test_case()
 }

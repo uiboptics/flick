@@ -57,13 +57,12 @@ namespace flick {
 	    throw std::runtime_error("accurt command: material '"+name+"' not found");
 	  }
 	  flick::accurt a(c0,m);
-	  if (a.radiance_distribution_override() and !a.conical_radiation_override()) {
+	  if (a.conical_radiation_override())
+	    std::cout << a.conical_relative_radiation();
+	  else if (a.radiance_distribution_override()) {
 	    auto r = a.relative_distributed_radiance().first; 
 	    a.print_radiance_distribution(r);
-	  } else if (a.radiance_distribution_override() and
-		     a.conical_radiation_override())
-	    std::cout << a.conical_relative_radiation();
-	  else
+	  } else
 	    std::cout << a.relative_radiation();
 	}
 	else {
