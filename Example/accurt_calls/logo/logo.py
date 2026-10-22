@@ -64,10 +64,10 @@ plt.subplots_adjust(left=-0.3,
 plt.axis('off')
 
 if __name__ == "__main__":
-    plt.show()
     if black_background:
         fig.savefig("logo_black.png",dpi=500)
         fig.savefig("logo_black.jpg",dpi=500)
     else:
         fig.savefig("logo_white.png",dpi=500)
         fig.savefig("logo_white.jpg",dpi=500)
+    plt.show()

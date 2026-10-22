@@ -67,9 +67,9 @@ MODULE_DIRS := \
 TEST_DIRS := $(filter-out main Example/% material/gas/smooth_input,$(MODULE_DIRS))
 CLEAN_DIRS := $(MODULE_DIRS) 
 
-.PHONY: all with-python build test clean python check-eigen check-env
+.PHONY: all with-python build test clean python install-eigen update-eigen install-env install-accurt-kernel update-accurt-kernel
 
-all:	check-env check-eigen build test
+all:	install-env install-eigen build test
 
 with-python:	all python
 
@@ -78,7 +78,7 @@ build:
 		$(MAKE) -C "$$dir" obj link; \
 	done
 
-test: check-eigen build
+test:
 	@set -e; for dir in $(TEST_DIRS); do \
 		$(MAKE) -C "$$dir" test; \
 	done
@@ -104,8 +104,27 @@ python:
 
 EIGEN_DIR = external/eigen
 EIGEN_REPO = https://gitlab.com/libeigen/eigen.git
+ACCURT_KERNEL_REPO = https://git.app.uib.no/optics/model/accurt-kernel.git
 
-check-eigen:
+install-accurt-kernel:
+	@if [ ! -d "$(ACCURT_KERNEL_DIR)" ]; then \
+		echo "AccuRT kernel not found. Cloning from $(ACCURT_KERNEL_REPO)..."; \
+		mkdir -p "$(dir $(ACCURT_KERNEL_DIR))"; \
+		git clone $(ACCURT_KERNEL_REPO) "$(ACCURT_KERNEL_DIR)"; \
+	else \
+		echo "AccuRT kernel already exists in $(ACCURT_KERNEL_DIR)."; \
+	fi
+
+update-accurt-kernel:
+	@if [ -d "$(ACCURT_KERNEL_DIR)/.git" ]; then \
+		echo "Updating AccuRT kernel in $(ACCURT_KERNEL_DIR)..."; \
+		git -C "$(ACCURT_KERNEL_DIR)" pull; \
+	else \
+		echo "AccuRT kernel repository not found in $(ACCURT_KERNEL_DIR). Run 'make install-accurt-kernel' first."; \
+		exit 1; \
+	fi
+
+install-eigen:
 	@if [ ! -d "$(EIGEN_DIR)" ]; then \
 		echo "Eigen not found. Cloning from $(EIGEN_REPO)..."; \
 		git clone --depth 1 $(EIGEN_REPO) $(EIGEN_DIR); \
@@ -113,7 +132,16 @@ check-eigen:
 		echo "Eigen already exists in $(EIGEN_DIR)."; \
 	fi
 
-check-env:
+update-eigen:
+	@if [ -d "$(EIGEN_DIR)/.git" ]; then \
+		echo "Updating Eigen in $(EIGEN_DIR)..."; \
+		git -C "$(EIGEN_DIR)" pull; \
+	else \
+		echo "Eigen repository not found in $(EIGEN_DIR). Run 'make install-eigen' first."; \
+		exit 1; \
+	fi
+
+install-env:
 	@if [ "$(FLICK_ENV_MISSING)" = "1" ]; then \
 		./update_shell.sh; \
 	fi

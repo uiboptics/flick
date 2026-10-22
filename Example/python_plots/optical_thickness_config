@@ -1,5 +1,5 @@
 /*
-Aerosol vertical total optical thickness at 550 nm.
+Total vertical column aerosol optical thickness at 550 nm.
 */
 
 aerosol_od = 0 
@@ -93,8 +93,9 @@ for clarity.
 chl_concentration = 0 
 
 /*
-Liquid equivalent cloud thickness [m]. Typical values range from
-0 to 1e-4 m.
+Liquid-equivalent cloud thickness [m], defined as the thickness of a
+layer of pure liquid water containing the same amount of water as the
+cloud. Typical values range from 0 to 1e-3 m.
 */
 
 cloud_liquid = 0 
@@ -139,6 +140,45 @@ variable.
 concentration_scaling_factors = 1 1 
 
 /*
+The default ‘up‘ and ‘down‘ irradiance detector orientations can be
+overridden by a conical radiation detector with an arbitrary
+orientation and acceptance angle.
+
+The first two numbers specify the viewing polar and azimuth angles,
+respectively. The third number specifies the acceptance half-angle
+[degrees], defining the angular extent of the cone within which
+incoming radiation is collected.
+
+For example,
+
+  detector_conical_radiation_override = 90 0 90
+
+is equivalent to a conventional irradiance sensor with its sensing
+surface oriented vertically and facing the sun.
+
+To activate the conical irradiance detector, the acceptance half-angle
+must be non-zero, and the numbers of radiance polar and azimuth angles
+specified by ‘detector_radiance_distribution_override‘ must both be
+non-zero. 
+
+Note that if Flick is linked directly to the AccuRT kernel (see
+`use_AccuRT_kernel_if_exists`), the conical irradiance detector can be
+used without enabling `detector_radiance_distribution_override`.
+
+If ‘detector_type‘ is set to ‘plane_irradiance‘, irradiance is
+calculated by integrating radiance over the acceptance cone with
+cosine weighting. If ‘detector_type‘ is set to ‘scalar_irradiance‘,
+radiance is integrated without cosine weighting, yielding cone-limited
+scalar irradiance.
+
+Note that conical irradiance calculations require computing the full
+radiance distribution and are therefore slower than ordinary
+hemispherical irradiance calculations.
+*/
+
+detector_conical_radiation_override = 0 0 0 
+
+/*
 Detector height relative to sea level [m]. A positive value
 corresponds to a height in the atmosphere, and a negative value
 corresponds to a depth in the ocean.
@@ -156,7 +196,7 @@ detector_orientation = down
 Polar and azimuth viewing angles for overriding the default slant
 radiance view [degrees].
 
-Setting the angles to '0 0' disables the override. In this case, the
+Setting the angles to ‘0 0‘ disables the override. In this case, the
 radiance detector is oriented vertically upward when
 detector_orientation = ‘up’, and vertically downward when
 detector_orientation = ‘down’.
@@ -176,7 +216,7 @@ detector_orientation_override = 0 0
 Number of polar and azimuth viewing angles used to override the default
 settings for detection of angularly distributed radiance.
 
-Setting the values to '0 0' disables the override. In this case, the
+Setting the values to ‘0 0‘ disables the override. In this case, the
 radiance detector is oriented vertically upward when
 detector_orientation = ‘up’, and vertically downward when
 detector_orientation = ‘down’.
@@ -185,6 +225,11 @@ For nonzero override values, the first number specifies the number of
 polar viewing angles, linearly spaced from 0 to 180 degrees, and the
 second number specifies the number of azimuth viewing angles, linearly
 spaced from -180 to 180 degrees.
+
+For higher accuracy, it is recommended to increase
+stream_upper_slab_size and the corresponding n_angles, where n_angles
+= round(pow(stream_upper_slab_size, 1.6)). At least 16 streams are
+generally required for reasonable radiance accuracy.
 
 If detector_radiance_distribution_override is enabled, Flick returns a
 3D array containing radiance values for each wavelength, polar angle,
@@ -218,7 +263,7 @@ flick_tmp_directory_name = flick_tmp
 /*
 Atmospheric spectral region for pre-calculated, smoothed gas
 absorption spectra. Valid options are ‘uv_vis’, ‘uv_vis_toa’, and
-´solar´.  ‘uv_vis’ option is optimized for bottom-of-atmosphere
+´solar´. ‘uv_vis’ option is optimized for bottom-of-atmosphere
 calculations in the 280-1030 nm region with line-by-line IOPs smoothed
 to about 0.5 nm bandwidth; ‘uv_vis_toa’ option is optimized for
 top-of-atmosphere calculations in the 280-1030 nm region with
@@ -360,9 +405,11 @@ Dry mass concentration of nonalgal particles in the water column
 
 nap_concentration = 0 
 
-/* 
-Ozone column thickness m at STP. Note that 100 DU corresponds to
-0.001 m.  
+/*
+Ozone-equivalent column thickness [m] at standard temperature and
+pressure (STP: T = 273.15 K, P = 1e5 Pa). A column of 100 Dobson units
+(DU) corresponds to 0.001 m.
+
 */
 
 ozone = 0.003 
@@ -371,7 +418,7 @@ ozone = 0.003
 Atmosphere ground pressure [Pa].
 */
 
-pressure = 100000 
+pressure = 101325 
 
 /*
 Option for printing of inherent optical properties in the
@@ -414,9 +461,11 @@ Relative humidity ratio of the atmosphere at the ground.
 relative_humidity = 0.5 
 
 /*
-Ice equivalent snow thickness [m], defined as the thickness the snow
-layer would have if compressed into a layer of ice with no air between
-the snow grains.
+Ice-equivalent snow thickness [m], defined as the thickness of a layer
+of pure ice containing the same amount of ice as the snow layer. Note
+that the radiative transfer equation is solved using a 1 m thick layer
+with scaled optical thickness, so any detector placed below 1 m in the
+atmosphere will be inside the snow.
 */
 
 snow_ice = 0 
@@ -440,7 +489,10 @@ the snow impurities listed in the `snow_impurity_names` variable.
 snow_impurity_scaling_factors = 1 
 
 /*
-Average snow grain radius [m].
+Average effective snow grain radius [m]. The effective radius should
+generally be smaller than the actual geometric radius to better
+represent the branches and arms of snow grains using smaller spherical
+ice particles.
 */
 
 snow_radius = 0.0001 
@@ -476,7 +528,7 @@ subtract_specular_radiance = false
 Atmosphere ground temperature [K].
 */
 
-temperature = 290 
+temperature = 293.15 
 
 /*
 Space-separated list of names of general tabulated iops materials. See
@@ -514,7 +566,7 @@ where the time must be given in UTC.
 For example, the following input gives a high-resolution midsummer
 solar irradiance spectrum above Bergen, Norway:
 
-toa_solar_multiplication = 2026 6 21 11 40 0.0 60.391 5.322 0
+  toa_solar_multiplication = 2026 6 21 11 40 0.0 60.391 5.322 0
 
 NOTE: If the ‘toa_solar_multiplication’ variable is non-empty, any
 value set for the ‘source_zenith_angle’ variable will automatically be
@@ -523,6 +575,17 @@ time and location.
 */
 
 toa_solar_multiplication =  
+
+/*
+Option to use the Fortran kernel directly to solve the scalar
+radiative transfer equation for the coupled atmosphere–ocean
+system. If set to `false`, Flick instead uses the installed version of
+AccuRT (if available) by generating configuration files and reading
+the resulting text output files. Using the Fortran kernel directly is
+considerably faster. Valid values are `true` and `false`.
+*/
+
+use_AccuRT_kernel_if_exists = true 
 
 /*
 Salinity of the water column [PSU].
@@ -537,7 +600,8 @@ Temperature in the water column [K].
 water_temperature = 290 
 
 /*
-Vater vapor column thickness [m] at STP.
+Water vapor equivalent column thickness [m] at standard temperature
+and pressure (STP: T = 273.15 K, P = 1e5 Pa).
 */
 
 water_vapor = 17 
