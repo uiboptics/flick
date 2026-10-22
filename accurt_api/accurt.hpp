@@ -14,6 +14,8 @@
 #include "toa_sun.hpp"
 #include "radiation_field.hpp"
 
+#include <filesystem>
+
 namespace flick {
   class accurt_user_specified {
     std::shared_ptr<layered_iops> iops_;
@@ -165,8 +167,12 @@ surface oriented vertically and facing the sun.
 
 To activate the conical irradiance detector, the acceptance half-angle
 must be non-zero, and the numbers of radiance polar and azimuth angles
-specified by detector_radiance_distribution_override must both be
-non-zero.
+specified by ‘detector_radiance_distribution_override‘ must both be
+non-zero. 
+
+Note that if Flick is linked directly to the AccuRT kernel (see
+`use_AccuRT_kernel_if_exists`), the conical irradiance detector can be
+used without enabling `detector_radiance_distribution_override`.
 
 If ‘detector_type‘ is set to ‘plane_irradiance‘, irradiance is
 calculated by integrating radiance over the acceptance cone with
@@ -240,6 +246,15 @@ flick_tmp_directory during runtime. Valid options are ‘true’ or
 ‘false’.
 )");
 	
+	add<std::string>("use_AccuRT_kernel_if_exists","true", R"(
+Option to use the Fortran kernel directly to solve the scalar
+radiative transfer equation for the coupled atmosphere–ocean
+system. If set to `false`, Flick instead uses the installed version of
+AccuRT (if available) by generating configuration files and reading
+the resulting text output files. Using the Fortran kernel directly is
+considerably faster. Valid values are `true` and `false`.
+)");
+
 	add<std::string>("toa_solar_multiplication","", R"(
 The default output ratio between the detector and reference detector
 radiation spectra may be multiplied by the top-of-atmosphere solar
@@ -330,9 +345,16 @@ time and location.
       c_.add<double>("relative_wind_direction",0);
       c_.add<std::string>("usrang","false");
       c_.add<double>("lpick",0);
+
       wavelengths_ = c_.get_vector<double>("detector_wavelengths");
       c_.set<double>("detector_wavelengths",wavelengths_*1e9);
-      
+
+#ifdef FLICK_HAS_ACCURT_KERNEL
+      link_to_accurt_kernel_ =
+	c_.get_boolean("use_AccuRT_kernel_if_exists") &&
+	std::filesystem::exists("../external/accurt-kernel/kernel.f95");
+#endif
+
       set_bottom_albedo();
     }
     void set_bottom_albedo() {
@@ -378,7 +400,12 @@ time and location.
     bool detector_orientation_override() {
       return (c_.get_vector<double>("detector_orientation_override").at(0) > 1e-5);
     }
-    void print_radiance_distribution(const std::vector<std::vector<std::vector<double>>>& r) {
+
+    using vector_1d = std::vector<double>;
+    using vector_2d = std::vector<vector_1d>;
+    using vector_3d = std::vector<vector_2d>;
+
+    void print_radiance_distribution(const vector_3d& r) {
       for (size_t i=0; i<r.size(); ++i) {
 	for (size_t j=0; j<r[i].size(); ++j) {
 	  for (size_t k=0; k<r[i][j].size(); ++k) {
@@ -388,9 +415,6 @@ time and location.
 	}
       }      
     }
-    using vector_1d = std::vector<double>;
-    using vector_2d = std::vector<vector_1d>;
-    using vector_3d = std::vector<vector_2d>;
     std::pair<vector_3d, vector_2d> relative_distributed_radiance() {
       auto n_d = c_.get_vector<size_t>("detector_radiance_distribution_override");
       stdvector polar = range(180,0, n_d.at(0)).linspace();
@@ -467,7 +491,8 @@ time and location.
       }
       return bv;
     }
-    double benchmark_scale(irradiance_type type, double bench, const radiation_field& rf) {
+    double benchmark_scale(irradiance_type type,
+			   double bench, const radiation_field& rf) {
       bool faces_up = c_.get<std::string>("detector_orientation") == "up";
       double theta_low = faces_up ? pi/2 : 0;
       double theta_high = faces_up ? pi : pi/2;
@@ -483,32 +508,47 @@ time and location.
       }
       return scale;
     }
+    std::pair<unit_vector, double> get_conical_geometry() {
+      stdvector cro = c_.get_vector<double>("detector_conical_radiation_override");
+      unit_vector viewing_direction(cro.at(0)/180*pi,(180-cro.at(1))/180*pi); 
+      double acceptance_half_angle = cro.at(2)/180*pi;
+      return {viewing_direction, acceptance_half_angle};
+    }
     pp_function conical_relative_radiation() {
       irradiance_type type = irradiance_type::plane;
       if (c_.get<std::string>("detector_type") == "scalar_irradiance") {
 	c_.set<std::string>("save_scalar_irradiance","true");
 	type = irradiance_type::scalar;
       }	
-      auto [L, axis] = relative_distributed_radiance();
-
-      pp_function bench = (type == irradiance_type::scalar)
-	? relative_scalar_irradiance()
-	: relative_plane_irradiance();
       
+      auto [L, axis] = relative_distributed_radiance();
       const stdvector& wl = axis[0];
       const stdvector& theta = axis[1]/180*pi;
       const stdvector& phi = axis[2]/180*pi;
-      stdvector cro = c_.get_vector<double>("detector_conical_radiation_override");
-      unit_vector viewing_direction(cro.at(0)/180*pi,(180-cro.at(1))/180*pi); 
-      double acceptance_half_angle = cro.at(2)/180*pi;
+      auto [viewing_direction, acceptance_half_angle] = get_conical_geometry();
+
       stdvector F(wl.size());
-      auto beam_down = beam_vector(direction::down);
-      auto beam_up = beam_vector(direction::up);
-      for (size_t i=0; i < wl.size(); ++i) {
-	radiation_field rf(theta, phi, L[i], {beam_down[i],beam_up[i]});
-	double scale = benchmark_scale(type, bench.value(wl[i]), rf);
-	rf.rotate_z_axis_to(-viewing_direction);
-	F[i] = rf.irradiance(0,acceptance_half_angle,-pi,pi,type)*scale;
+      if (link_to_accurt_kernel_) {
+	for (size_t i=0; i<wavelengths_.size(); i++) {
+	  unit_vector radiation_direction = -viewing_direction;
+	  fourier_fields_[i][0].rotate_frame_about_z_axis(radiation_direction.phi());
+	  fourier_fields_[i][0].rotate_frame_about_y_axis(radiation_direction.theta());
+	}
+	F = (type == irradiance_type::plane) ? conical_plane_irradiance(0,acceptance_half_angle)
+	  : conical_scalar_irradiance(0,acceptance_half_angle);
+	F = F / plane_irradiance(1);
+      } else {
+	pp_function bench = (type == irradiance_type::scalar)
+	  ? relative_scalar_irradiance()
+	  : relative_plane_irradiance();
+	auto beam_down = beam_vector(direction::down);
+	auto beam_up = beam_vector(direction::up);
+	for (size_t i=0; i < wl.size(); ++i) {
+	  radiation_field rf(theta, phi, L[i], {beam_down[i],beam_up[i]});
+	  double scale = benchmark_scale(type, bench.value(wl[i]), rf);
+	  rf.rotate_z_axis_to(-viewing_direction);
+	  F[i] = rf.irradiance(0,acceptance_half_angle,-pi,pi,type)*scale;
+	}
       }
       return pp_function(wl,F);
     }
@@ -665,18 +705,6 @@ time and location.
       
       return result;
     }
-    /*
-    template<typename T, typename F>
-    auto collect(const std::vector<std::vector<T>>& objects,
-		 size_t index, F func) {
-      using R = std::invoke_result_t<F, const T&>;
-      std::vector<R> result;
-      result.reserve(objects.size());
-      for (const auto& obj : objects)
-	result.push_back(std::invoke(func, obj.at(index)));
-      return result;
-    }
-    */
     stdvector radiance(size_t type_no, double polar, double azimuth) {
 	return collect(fourier_fields_, type_no,
 		       &fourier_field::radiance, polar, azimuth);
@@ -690,6 +718,16 @@ time and location.
 		       &fourier_field::plane_irradiance_upper_heimisphere);
       } else
 	throw std::runtime_error("detector_orientation");      
+    }
+    stdvector conical_plane_irradiance(size_t type_no, double theta) {
+      return collect(fourier_fields_, type_no,
+		     &fourier_field::conical_plane_irradiance,
+		     0,theta,0,2*pi);
+    }
+    stdvector conical_scalar_irradiance(size_t type_no, double theta) {
+      return collect(fourier_fields_, type_no,
+		     &fourier_field::conical_scalar_irradiance,
+		     0,theta,0,2*pi);
     }
     stdvector scalar_irradiance(size_t type_no) {
       if (c_.get<std::string>("detector_orientation")=="up") {
@@ -906,11 +944,11 @@ time and location.
       a.refractive_index(l->refractive_index()[0]);
       return a;
     }
-    using field = std::vector<std::vector<fourier_field>>;
-    field run_accurt_kernel() {
+    using all_fields = std::vector<std::vector<fourier_field>>;
+    all_fields run_accurt_kernel() {
       const auto& u = layered_upper_slab_;
       const auto& l = layered_lower_slab_;
-      field f;
+      all_fields af;
       double h_d = c_.get<double>("detector_height");    
       double h_r = c_.get<double>("reference_detector_height");
       for (const auto& wl : wavelengths_) {
@@ -936,18 +974,18 @@ time and location.
 	double bottom_albedo = bottom_albedo_.value(wl) *
 	  c_.get<double>("bottom_boundary_surface_scaling_factor");
 	a.bottom_albedo(std::clamp(bottom_albedo, 0.0, 1.0));
-	// TODO: implement rotate
 	a.solve_rte();
 	const auto& fc = a.radiance_fourier_components();
 	const auto& qc = a.quadrature_cosines();
 	const auto& db = a.dirac_delta_beams();
-	std::vector<fourier_field> ff;
+	std::vector<fourier_field> fields;
 	for (size_t i=0; i<2; i++) {
-	  ff.push_back(fourier_field(fc[i],qc[i],db[i]));
+	  fourier_field f(fc[i],qc[i],db[i]);
+	  fields.push_back(f);
 	}
-	f.push_back(ff);		  
+	af.push_back(fields);		  
       }
-      return f;
+      return af;
     }
     void run() {
       std::string arg = c_.get_one_string("toa_solar_multiplication");

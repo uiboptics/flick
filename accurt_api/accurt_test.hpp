@@ -271,7 +271,6 @@ namespace flick {
     ac.set<size_t>("stream_upper_slab_size",6);
     ac.set<size_t>("detector_radiance_distribution_override",{8,9});
     ac.set<double>("detector_conical_radiation_override",{0,0,90});
-    
     material::atmosphere_ocean::configuration mc;
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
     if (getenv("ACCURT_PATH")) {

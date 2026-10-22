@@ -28,6 +28,8 @@ namespace flick {
       template<typename Function>
       double weighted_average(const Function& radiation_spectrum) const {
 	const Function &f = radiation_spectrum;
+	if (f.size()==1)
+	  return f.y()[0];
 	return transmission(f).integral() /
 	  transmittance_spectrum<Function>(f.x()).integral();
       }
