@@ -14,6 +14,7 @@ int main() {
   t.include<radiation_field_test_B>();
   t.include<radiation_field_test_C>();
   t.include<radiation_field_test_D>();
+  t.include<radiation_field_test_E>();
   
   t.include<toa_sun_test_A>();
   t.include<toa_sun_test_B>();

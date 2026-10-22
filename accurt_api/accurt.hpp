@@ -441,6 +441,9 @@ time and location.
 	}
       } else {
 	grid_4d g = read_radiance(output_+"/radiance.txt");
+	// AccuRT returns polar samples in its own order and slightly offsets the
+	// poles. Use that actual axis so each radiance row retains its coordinates.
+	polar = g.x[2];
 	for (size_t i=0; i<polar.size(); i++) {
 	  for (size_t j=0; j<azimuth.size(); j++) {
 	    for (size_t k=0; k<wls.size(); k++) {

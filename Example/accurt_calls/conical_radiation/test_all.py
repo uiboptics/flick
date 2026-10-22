@@ -14,6 +14,11 @@ class test_all_python_plots(unittest.TestCase):
 
             module_name = path.stem
 
+            # Ignore editor lock/backup files such as ".#make_config.py".
+            # Their stems are not valid Python module names.
+            if not module_name.isidentifier():
+                continue
+
             try:
                 print(f"Importing {path}")
                 importlib.import_module(module_name)

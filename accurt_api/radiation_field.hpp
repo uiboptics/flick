@@ -25,13 +25,24 @@ public:
 		  const std::vector<std::vector<double>>& r,
 		  const std::vector<flick::vector>& dirac_delta_beam) {
     ensure(r.size() == theta.size());
-    ensure(std::is_sorted(theta.begin(), theta.end(), std::greater<double>{}));
+    const bool theta_ascending =
+      std::is_sorted(theta.begin(), theta.end(), std::less<double>{});
+    const bool theta_descending =
+      std::is_sorted(theta.begin(), theta.end(), std::greater<double>{});
+    ensure(theta_ascending || theta_descending);
     ensure(std::is_sorted(phi.begin(), phi.end(), std::less<double>{}));
     mu_ = std::vector<double>(theta.begin(), theta.end());
     for (auto& x : mu_)
       x = std::clamp<double>(std::cos(x),-1,1);
+    auto table_values = r;
+    // pl_table requires its row coordinate (mu) to increase. Since cosine is
+    // decreasing on [0, pi], reverse ascending theta input and its values.
+    if (theta_ascending && !theta_descending) {
+      std::reverse(mu_.begin(), mu_.end());
+      std::reverse(table_values.begin(), table_values.end());
+    }
     phi_ = phi;
-    radiance_ = pl_table(mu_, phi_, r);
+    radiance_ = pl_table(mu_, phi_, table_values);
     dirac_delta_beam_ = dirac_delta_beam;
   }
   double radiance(double theta, double phi) const {

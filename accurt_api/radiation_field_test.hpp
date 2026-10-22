@@ -51,4 +51,15 @@ namespace flick {
 					       {0,0,0}}, {{0,0,1}});
     check_small(rf.irradiance(pi/4,pi/2,0,pi,irradiance_type::scalar),1e-9);
   } end_test_case()
+
+  begin_test_case(radiation_field_test_E) {
+    // Ascending polar angles are accepted without changing the field.
+    const double pi = std::numbers::pi;
+    radiation_field rf({0,pi/2,pi},{-pi,0,pi},{{1,1,1},
+					       {1,1,1},
+					       {0,0,0}}, {});
+    check_close(rf.irradiance(0,pi,-pi,pi,irradiance_type::plane),pi, 1e-6_pct);
+    check_close(rf.radiance(0,0),1,1e-6_pct);
+    check_small(rf.radiance(pi,0),1e-9);
+  } end_test_case()
 }
