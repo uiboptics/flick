@@ -67,7 +67,7 @@ MODULE_DIRS := \
 TEST_DIRS := $(filter-out main Example/% material/gas/smooth_input,$(MODULE_DIRS))
 CLEAN_DIRS := $(MODULE_DIRS) 
 
-.PHONY: all with-python build test clean python install-eigen update-eigen install-env install-accurt-kernel update-accurt-kernel
+.PHONY: all with-python build test clean test-python install-eigen update-eigen install-env install-accurt-kernel update-accurt-kernel
 
 all:	install-env install-eigen build test
 
@@ -90,7 +90,7 @@ clean:
 	@rm -rf external/eigen
 	@rm -f *~
 
-python:	
+test-python:	
 	@echo ''
 	@echo 'Testing all python scripts. May take a while ...'
 	cd Example/python_plots; python3 test_all.py
