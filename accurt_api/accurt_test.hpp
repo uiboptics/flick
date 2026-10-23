@@ -275,7 +275,7 @@ namespace flick {
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
     if (getenv("ACCURT_PATH")) {
       auto a =  accurt(ac, m);
-      double r = a.conical_relative_radiation().y().at(0);
+      double r = a.relative_radiation().y().at(0);
       check_close(r, 1, 0.002_pct);
     }
   } end_test_case()

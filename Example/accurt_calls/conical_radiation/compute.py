@@ -22,7 +22,7 @@ c.set('cdom_440', 0.1)
 c.set('chl_concentration', 1e-6)
 c.set('nap_concentration', 1e-3)
 c.set("gases",["o3", "o2", "h2o"])
-c.set("detector_radiance_distribution_override", [25, 15])
+#c.set("detector_radiance_distribution_override", [25, 15])
 
 """ Sun at one astronomical unit distance and solar zenith angle 60
 degrees """
@@ -34,11 +34,11 @@ c.set("wavelengths",[wl0-3e-9, wl0, wl0+3e-9])
 
 c.set_streams(16)
 
-compute_all_angles = False
+compute_all_angles = True
 
 if compute_all_angles:
-    orientation_angles = [0, 90, 180]
-    acceptance_half_angles = np.linspace(1, 90, 15)
+    orientation_angles = [0]#[0, 90, 180]
+    acceptance_half_angles = np.linspace(1, 90, 10)
 else:
     orientation_angles = [90]
     acceptance_half_angles = [10, 90] 

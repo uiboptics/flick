@@ -14,8 +14,6 @@
 #include "toa_sun.hpp"
 #include "radiation_field.hpp"
 
-#include <filesystem>
-
 namespace flick {
   class accurt_user_specified {
     std::shared_ptr<layered_iops> iops_;
@@ -350,9 +348,7 @@ time and location.
       c_.set<double>("detector_wavelengths",wavelengths_*1e9);
 
 #ifdef FLICK_HAS_ACCURT_KERNEL
-      link_to_accurt_kernel_ =
-	c_.get_boolean("use_AccuRT_kernel_if_exists") &&
-	std::filesystem::exists("../external/accurt-kernel/kernel.f95");
+      link_to_accurt_kernel_ = c_.get_boolean("use_AccuRT_kernel_if_exists");
 #endif
 
       set_bottom_albedo();
@@ -380,17 +376,6 @@ time and location.
 	  ofs << x[i] << " " << y[i] << '\n';
       }
     }
-    pp_function relative_radiation() {
-      std::string t = c_.get<std::string>("detector_type"); 
-      if (t=="radiance")
-	return relative_radiance();
-      else if (t=="scalar_irradiance")
-	return relative_scalar_irradiance();
-      else if (t=="plane_irradiance")
-	return relative_plane_irradiance();
-      else
-	throw std::runtime_error("detector_type");
-    }
     bool conical_radiation_override() {
       return (c_.get_vector<double>("detector_conical_radiation_override").at(2) > 0);
     }
@@ -399,6 +384,19 @@ time and location.
     }
     bool detector_orientation_override() {
       return (c_.get_vector<double>("detector_orientation_override").at(0) > 1e-5);
+    }
+    pp_function relative_radiation() {
+      std::string t = c_.get<std::string>("detector_type");
+      if (conical_radiation_override())
+	return relative_conical_radiation();	  
+      else if (t=="radiance")
+	return relative_radiance();
+      else if (t=="scalar_irradiance")
+	return relative_scalar_irradiance();
+      else if (t=="plane_irradiance")
+	return relative_plane_irradiance();
+      else
+	throw std::runtime_error("detector_type");
     }
 
     using vector_1d = std::vector<double>;
@@ -525,30 +523,31 @@ time and location.
       double acceptance_half_angle = cro.at(2)/180*pi;
       return {viewing_direction, acceptance_half_angle};
     }
-    pp_function conical_relative_radiation() {
+    stdvector detector_conical_radiation() {
       irradiance_type type = irradiance_type::plane;
       if (c_.get<std::string>("detector_type") == "scalar_irradiance") {
 	c_.set<std::string>("save_scalar_irradiance","true");
 	type = irradiance_type::scalar;
       }	
       
-      auto [L, axis] = relative_distributed_radiance();
-      const stdvector& wl = axis[0];
-      const stdvector& theta = axis[1]/180*pi;
-      const stdvector& phi = axis[2]/180*pi;
       auto [viewing_direction, acceptance_half_angle] = get_conical_geometry();
-
-      stdvector F(wl.size());
+      
       if (link_to_accurt_kernel_) {
 	for (size_t i=0; i<wavelengths_.size(); i++) {
 	  unit_vector radiation_direction = -viewing_direction;
 	  fourier_fields_[i][0].rotate_frame_about_z_axis(radiation_direction.phi());
 	  fourier_fields_[i][0].rotate_frame_about_y_axis(radiation_direction.theta());
 	}
-	F = (type == irradiance_type::plane) ? conical_plane_irradiance(0,acceptance_half_angle)
+	stdvector F_det = (type == irradiance_type::plane) ?
+	  conical_plane_irradiance(0,acceptance_half_angle)
 	  : conical_scalar_irradiance(0,acceptance_half_angle);
-	F = F / plane_irradiance(1);
+	return F_det;	
       } else {
+	auto [L, axis] = relative_distributed_radiance();
+	const stdvector& wl = axis[0];
+	const stdvector& theta = axis[1]/180*pi;
+	const stdvector& phi = axis[2]/180*pi;
+	stdvector F_rel(wl.size());
 	pp_function bench = (type == irradiance_type::scalar)
 	  ? relative_scalar_irradiance()
 	  : relative_plane_irradiance();
@@ -558,10 +557,10 @@ time and location.
 	  radiation_field rf(theta, phi, L[i], {beam_down[i],beam_up[i]});
 	  double scale = benchmark_scale(type, bench.value(wl[i]), rf);
 	  rf.rotate_z_axis_to(-viewing_direction);
-	  F[i] = rf.irradiance(0,acceptance_half_angle,-pi,pi,type)*scale;
+	  F_rel[i] = rf.irradiance(0,acceptance_half_angle,-pi,pi,type)*scale;
 	}
+	return F_rel;	
       }
-      return pp_function(wl,F);
     }
     void print_iops(std::ostream& os = std::cout) {
       build_layered_iops();
@@ -653,6 +652,10 @@ time and location.
       c_.set<std::string>("save_scalar_irradiance","true");  
       run();
       return weighted_radiation(detector_scalar_irradiance());
+    }
+    pp_function relative_conical_radiation() {
+      run();
+      return weighted_radiation(detector_conical_radiation());
     }
     pp_function relative_beam_irradiance_down() {
       return weighted_radiation(detector_beam_irradiance_down());

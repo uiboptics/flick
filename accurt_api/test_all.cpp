@@ -31,7 +31,6 @@ int main() {
   t.include<accurt_test_I>();
   
   t.include<accurt_test_J>();
- 
   t.include<accurt_test_K>();
   
   t.run_test_cases();
