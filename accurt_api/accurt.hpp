@@ -413,13 +413,13 @@ time and location.
 	}
       }      
     }
-    std::pair<vector_3d, vector_2d> relative_distributed_radiance() {
+    std::pair<vector_3d, vector_2d> distributed_radiance(bool relative) {
       auto n_d = c_.get_vector<size_t>("detector_radiance_distribution_override");
       stdvector polar = range(0,180, n_d.at(0)).linspace();
       // range::linspace accumulates its step, so the final value can end up a
       // few ulps above 180 degrees.  fourier_field correctly rejects the
       // corresponding angle as greater than pi; keep the physical endpoints
-      // exact before converting the grid to radians.
+      // exact before converting the grid to radians:
       if (polar.size() > 1) {
 	polar.front() = 0.0;
 	polar.back() = 180.0;
@@ -452,21 +452,31 @@ time and location.
       }
       // Relative to reference:
       stdvector output_wls = wls;
+      pp_function weighted;
       vector_3d L_r;
       for (size_t i = 0; i < polar.size(); ++i) {
 	for (size_t j = 0; j < azimuth.size(); ++j) {
-	  pp_function weighted = weighted_radiation(L[i][j]);
+	  if (relative) {
+	    weighted = weighted_radiation(L[i][j]);
+	    output_wls = weighted.x();
+	  }
 	  if (L_r.empty()) {
-            output_wls = weighted.x();
             L_r.resize(output_wls.size(),
                        vector_2d(polar.size(),
                                  vector_1d(azimuth.size())));
 	  }
-	  for (size_t k = 0; k < output_wls.size(); ++k)
-            L_r[k][i][j] = weighted.y()[k];
+	  for (size_t k = 0; k < output_wls.size(); ++k) {
+	    if (relative)
+	      L_r[k][i][j] = weighted.y()[k];
+	    else
+	      L_r[k][i][j] = L[i][j][k];
+	  }
 	}
       }
       return {L_r, {output_wls, polar, azimuth}};
+    }
+    std::pair<vector_3d, vector_2d> relative_distributed_radiance() {
+      return distributed_radiance(true);
     }
     stdvector beam_zenith_angle(const stdvector& wls) {
       double za_atm = c_.get<double>("source_zenith_angle") * pi / 180;
@@ -481,11 +491,11 @@ time and location.
     }
     enum class direction {down, up};
     std::vector<flick::vector> beam_vector(direction d) {
-      pp_function b = (d == direction::down)
-        ? relative_beam_irradiance_down()
-        : relative_beam_irradiance_up();
+      stdvector b = (d == direction::down)
+	? detector_beam_irradiance_down()
+	: detector_beam_irradiance_up();
       
-      stdvector wls = b.x();
+      const stdvector& wls = wavelengths_;
       stdvector bza = beam_zenith_angle(wls);
       
       std::vector<flick::vector> bv;
@@ -496,7 +506,7 @@ time and location.
       
       for (size_t i = 0; i < wls.size(); ++i) {
         double theta = std::abs(theta_turn - bza[i]);
-        bv.push_back(unit_vector(theta, 0) * b.y()[i]/cos(bza[i]));
+        bv.push_back(unit_vector(theta, 0) * b[i]/cos(bza[i]));
       }
       return bv;
     }
@@ -543,23 +553,23 @@ time and location.
 	  : conical_scalar_irradiance(0,acceptance_half_angle);
 	return F_det;	
       } else {
-	auto [L, axis] = relative_distributed_radiance();
+	auto [L, axis] = distributed_radiance(false);
 	const stdvector& wl = axis[0];
 	const stdvector& theta = axis[1]/180*pi;
 	const stdvector& phi = axis[2]/180*pi;
-	stdvector F_rel(wl.size());
-	pp_function bench = (type == irradiance_type::scalar)
-	  ? relative_scalar_irradiance()
-	  : relative_plane_irradiance();
+	stdvector F_raw(wl.size());
+	stdvector bench = (type == irradiance_type::scalar)
+	  ? detector_scalar_irradiance()
+	  : detector_plane_irradiance();
 	auto beam_down = beam_vector(direction::down);
 	auto beam_up = beam_vector(direction::up);
 	for (size_t i=0; i < wl.size(); ++i) {
 	  radiation_field rf(theta, phi, L[i], {beam_down[i],beam_up[i]});
-	  double scale = benchmark_scale(type, bench.value(wl[i]), rf);
+	  double scale = benchmark_scale(type, bench[i], rf);
 	  rf.rotate_z_axis_to(-viewing_direction);
-	  F_rel[i] = rf.irradiance(0,acceptance_half_angle,-pi,pi,type)*scale;
+	  F_raw[i] = rf.irradiance(0,acceptance_half_angle,-pi,pi,type)*scale;
 	}
-	return F_rel;	
+	return F_raw;
       }
     }
     void print_iops(std::ostream& os = std::cout) {
