@@ -20,21 +20,21 @@ namespace flick {
 
 #ifdef FLICK_HAS_ACCURT_KERNEL
   extern "C" {
-    void kernel_(int&, int&, double&, double*, double*, double*, 
-		    double&, double&, int&, int&, double*, int&, 
-		    int&, int&, int&, double*, int&, double*, 
-		    int&, double*, double&, double&, double&, double&, 
-		    int&, double&, double&, double&, double&, 
-		    int&, int&, int&, int*, 
-		    int&, int&, int&, int&, int&, 
-		    double*, double*, double*, double*, double*, double*,  
-		    double*, double*, double*, double*, int&,
-		    double*, double*, double*, double*, 
-		    double*, int&,
-		    int&, int&, double&, double&, int&, double*);
+    void accurt_kernel(int*, int*, double*, double*, double*, double*,
+		    double*, double*, bool*, int*, double*, int*,
+		    int*, bool*, int*, double*, int*, double*,
+		    int*, double*, double*, double*, double*, double*,
+		    bool*, double*, double*, double*, double*,
+		    bool*, bool*, bool*, bool*,
+		    int*, int*, int*, int*, int*,
+		    double*, double*, double*, double*, double*, double*,
+		    double*, double*, double*, double*, bool*,
+		    double*, double*, double*, double*,
+		    double*, bool*,
+		    bool*, bool*, double*, double*, int*, double*);
   }
 #endif
-  
+
   class accurt_kernel_wrapper
   /* Wrapper for the AccuRT FORTRAN kernel that solves the scalar
      radiative transfer equation, using the discrete ordinate
@@ -52,13 +52,13 @@ namespace flick {
 
     double wvmlo = 0;
     double wvmhi = 0;
-    int do_user_optical_depths = 1;
+    bool do_user_optical_depths = true;
     int n_user_optical_depths = 0;
     std::vector<double> user_optical_depths;
     int n_streams_upper = 4;
-    
+
     int n_streams_lower = 4;
-    int do_user_angles = 0;
+    bool do_user_angles = false;
     int n_cos_polar_angles_upper = 0;
     std::vector<double> cos_polar_angles_upper_output;
     int n_cos_polar_angles_lower = 0;
@@ -71,17 +71,17 @@ namespace flick {
     double solar_azimuth_angle = 0;
     double fisot = 0;
 
-    int lamber = 1;
+    bool lamber = true;
     double bottom_albedo_ = 0;
     double btemp = 0;
     double ttemp = 0;
     double temis = 0;
 
-    int do_delta_m = 0;
-    int no_planck = 1;
-    int do_flux_only = 1;
-    std::vector<int> do_printing = std::vector<int>(7, 0);
-    
+    bool do_delta_m = false;
+    bool no_planck = true;
+    bool do_flux_only = true;
+    std::array<bool, 7> do_printing{};
+
     int max_n_total_layers = n_total_layers;
     int max_n_user_optical_depths = n_user_optical_depths;
     int max_n_user_cos_polar_angles = n_cos_polar_angles_lower;
@@ -94,12 +94,12 @@ namespace flick {
     std::vector<double> diffuse_plane_irradiance_up;
     std::vector<double> dfdt;
     std::vector<double> scalar_irradiance;
-    
+
     std::vector<double> user_radiance;
     std::vector<double> user_azimuthally_averaged_radiance;
     std::vector<double> scalar_irradiance_up_output;
     std::vector<double> scalar_irradiance_down_output;
-    int onlyim = 0;
+    bool onlyim = false;
 
     std::vector<double> beam_sine_irradiance_down;
     std::vector<double> diffuse_sine_irradiance_down;
@@ -107,9 +107,9 @@ namespace flick {
     std::vector<double> diffuse_sine_irradiance_up;
 
     std::vector<double> geometrical_depth; // Input
-    int do_pseudo_spherical_correction = 0;
-    int do_2d_rough_surface = 0;
-    int do_1d_rough_surface = 0;
+    bool do_pseudo_spherical_correction = false;
+    bool do_2d_rough_surface = false;
+    bool do_1d_rough_surface = false;
     double wind_speed = 0;
     double wind_direction = 0;
 
@@ -295,7 +295,7 @@ namespace flick {
         throw std::invalid_argument("Bottom albedo must be in [0, 1]");
       bottom_albedo_ = value;
     }
-    
+
     void enable_azimuthal_radiance_dependence(bool enabeled) {
       do_flux_only = enabeled ? 0 : 1;
     }
@@ -408,77 +408,77 @@ namespace flick {
       auto flattened_phase_function_moments =
           flatten(kernel_phase_function_moments);
 
-      kernel_(kernel_upper_layers,
-			    kernel_total_layers,
-				    refractive_index_,
+      accurt_kernel(&kernel_upper_layers,
+			    &kernel_total_layers,
+				    &refractive_index_,
 			    kernel_optical_depths.data(),
 			    kernel_single_scattering_albedos.data(),
 			    flattened_phase_function_moments.data(),
-		    
-			    wvmlo,
-			    wvmhi,
-			    do_user_optical_depths,
-			    n_user_optical_depths,
+
+			    &wvmlo,
+			    &wvmhi,
+			    &do_user_optical_depths,
+			    &n_user_optical_depths,
 			    user_optical_depths.data(),
-			    n_streams_upper,
-		    
-			    n_streams_lower,
-			    do_user_angles,
-			    n_cos_polar_angles_upper,
+			    &n_streams_upper,
+
+			    &n_streams_lower,
+			    &do_user_angles,
+			    &n_cos_polar_angles_upper,
 			    cos_polar_angles_upper_output.data(),
-			    n_cos_polar_angles_lower,
+			    &n_cos_polar_angles_lower,
 			    cos_polar_angles_lower_output.data(),
-		    
-			    n_azimuth_angles,
+
+			    &n_azimuth_angles,
 			    azimuth_angles.data(),
-			    incident_beam_irradiance,
-			    cos_source_zenith_angle,
-			    solar_azimuth_angle,
-			    fisot,                 
-			    
-			    lamber,
-	                    bottom_albedo_,
-			    btemp,
-			    ttemp,
-			    temis,                     
-			    do_delta_m,
-			    
-			    no_planck,
-			    do_flux_only,
-			    do_printing.data(),                         
-			    max_n_total_layers,
-			    max_n_user_optical_depths,
-			    max_n_user_cos_polar_angles,
-		    
-			    max_n_cos_polar_angles,
-			    max_n_azimuth_angles,
+			    &incident_beam_irradiance,
+			    &cos_source_zenith_angle,
+			    &solar_azimuth_angle,
+			    &fisot,
+
+			    &lamber,
+	                    &bottom_albedo_,
+			    &btemp,
+			    &ttemp,
+			    &temis,
+			    &do_delta_m,
+
+			    &no_planck,
+			    &do_flux_only,
+			    do_printing.data(),
+			    &max_n_total_layers,
+			    &max_n_user_optical_depths,
+			    &max_n_user_cos_polar_angles,
+
+			    &max_n_cos_polar_angles,
+			    &max_n_azimuth_angles,
 			    beam_plane_irradiance_down_output.data(),
 			    diffuse_plane_irradiance_down.data(),
 			    beam_plane_irradiance_up_output.data(),
 			    diffuse_plane_irradiance_up.data(),
 			    dfdt.data(),
 			    scalar_irradiance.data(),
-		    
+
 			    user_radiance.data(),
 			    user_azimuthally_averaged_radiance.data(),
 			    scalar_irradiance_up_output.data(),
 			    scalar_irradiance_down_output.data(),
-			    onlyim,
-		    
+			    &onlyim,
+
 			    beam_sine_irradiance_down.data(),
 			    diffuse_sine_irradiance_down.data(),
 			    beam_sine_irradiance_up.data(),
 			    diffuse_sine_irradiance_up.data(),
-		    
+
 			    geometrical_depth.data(),
-			    do_pseudo_spherical_correction,                      
-		    
-			    do_2d_rough_surface,
-			    do_1d_rough_surface,
-			    wind_speed,
-			    wind_direction,
-		    
-			    do_lpick, radiance_fourier_components_output.data());
+			    &do_pseudo_spherical_correction,
+
+			    &do_2d_rough_surface,
+			    &do_1d_rough_surface,
+			    &wind_speed,
+			    &wind_direction,
+
+			    &do_lpick, radiance_fourier_components_output.data());
 #endif
     }
     std::vector<double> plane_irradiance_up() const {

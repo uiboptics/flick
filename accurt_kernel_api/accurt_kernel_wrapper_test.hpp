@@ -7,7 +7,7 @@ namespace flick {
     // Compare with van de Hulst 1980, vol 1, chapter 9, table 12,
     // p258, FLUX U and AVERAGE N for mu_0 = 1.0
     accurt_kernel_wrapper a;
-    a.streams_upper_slab(6);
+    a.streams_upper_slab(10);
     a.append_output_optical_depth(0);
     a.bottom_albedo(0);
     a.refractive_index(1.0);
