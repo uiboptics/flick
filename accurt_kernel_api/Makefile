@@ -6,7 +6,7 @@ NAME     := $(CPP_SRC:.cpp=)
 CXX      := $(if $(FLICK_COMPILER),$(FLICK_COMPILER),clang++)
 FC       := gfortran
 CXXFLAGS ?= -std=c++20
-FFLAGS   += -O3 -fallow-argument-mismatch -finit-integer=0
+FFLAGS   += -O2 -fallow-argument-mismatch -finit-integer=0
 
 ACCURT_KERNEL_DIR ?= ../external/accurt-kernel
 FORTRAN_SRC       := $(ACCURT_KERNEL_DIR)/kernel.f95

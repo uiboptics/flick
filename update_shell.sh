@@ -11,10 +11,10 @@ FLICK_FOLDER=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 # Detect shell and select appropriate profile + compiler
 if [ -n "$($SHELL -c 'echo $ZSH_VERSION')" ]; then
     PROFILE="$HOME/.zprofile"
-    COMPILER='clang++ -std=c++20'
+    COMPILER='clang++ -O2 -std=c++20'
 elif [ -n "$($SHELL -c 'echo $BASH_VERSION')" ]; then
     PROFILE="$HOME/.bashrc"
-    COMPILER='g++ -std=c++20'
+    COMPILER='g++ -O2 -std=c++20'
 else
     echo "⚠️  Unknown shell. Please set environmental variables manualla"
     echo "     based on information in update_shell.sh."
