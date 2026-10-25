@@ -3,16 +3,21 @@ OBJ      = $(SRC:.cpp=.o)
 DEP      = $(patsubst %.cpp,%.d,$(SRC))
 NAME     = $(SRC:.cpp=)
 
-all:	obj link test
+.PHONY: all clean parent obj link test
+
+all:	test
 
 clean:
 	@rm -f $(OBJ) $(DEP) ./$(NAME) ./*~ ./obj
-link:
+parent:
+	$(MAKE) -C .. obj link
+
+link:	obj
 	$(FLICK_COMPILER) -o $(NAME) $(OBJ)
 
 obj:	$(OBJ)
 
-test:
+test:	parent link
 	@./$(NAME)
 
 -include $(DEP) 

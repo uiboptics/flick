@@ -11,7 +11,8 @@ import subprocess
 import os
 import scipy.special
 import numpy.polynomial.polynomial as poly
-
+from pathlib import Path
+import shutil
 
 top_of_atmosphere = 120e3
 
@@ -298,18 +299,25 @@ def _run_os(command):
 
 def _to_matrix(flick_output):
     try:
-        l = flick_output.stdout.decode('utf-8');
-        l = l.splitlines()
-        l = list(filter(None, l))
-        if not l:
+        lines = flick_output.stdout.decode('utf-8').splitlines()
+        matrices = []
+        rows = []
+        for line in lines:
+            if line.strip():
+                rows.append([float(x) for x in line.split()])
+            elif rows:
+                matrices.append(np.array(rows, dtype=float))
+                rows = []
+        if rows:
+            matrices.append(np.array(rows, dtype=float))
+
+        if not matrices:
             return np.ndarray(shape=(0,0),dtype=float) 
-        numbers_first_line = [float(x) for x in l[0].split()]
-        rows = len(l);
-        cols = len(numbers_first_line)
-        matrix = np.ndarray(shape=(rows,cols),dtype=float)
-        for i in range(rows):
-            floats = [float(x) for x in l[i].split()]
-            matrix[i] = floats
+
+        if len(matrices) > 1:
+            return matrices
+
+        matrix = matrices[0]
         num_rows, num_cols = matrix.shape
         if num_rows == 1 and num_cols == 1:
             return matrix[0][0]
@@ -351,21 +359,52 @@ def save_two_columns(array_2d, file_name, directory='output'):
 
 class accurt_config:
     def __init__(self, tmpdir="flick_tmp", name="config"):
-        self.fname = f"{tmpdir}/{name}"
-        _run_os(f"mkdir -p {tmpdir}")
-        run(f"accurt -g {self.fname}")
-        self.set("flick_tmp_directory_name", tmpdir)
-        
+        self._tmpdir = Path(tmpdir)
+        self._name = name
+        self._dirname = self._tmpdir
+        self._dirname.mkdir(parents=True, exist_ok=True)
+        self._fname = self._dirname / self._name
+        self._make_config()
+
+    def _make_config(self):
+        run(f"accurt -g {self._fname}")
+        config(
+            str(self._fname),
+            "flick_tmp_directory_name",
+            str(self._dirname)
+        )
+
+    def copy_config_to_parallel(self, subdir_no):
+        subdir = f'parallel_{subdir_no:03d}'
+        self._dirname = self._tmpdir / subdir
+        self._dirname.mkdir(parents=True, exist_ok=True)
+        self._fname = self._dirname / self._name
+        self._make_config()
+        shutil.copy2(self._tmpdir / self._name, self._fname)
+
+    def remove_parallel_directories(self):
+        for path in self._tmpdir.iterdir():
+            suffix = path.name.removeprefix("parallel_")
+            if (path.name.startswith("parallel_") and suffix.isdigit()
+                    and path.is_dir() and not path.is_symlink()):
+                shutil.rmtree(path)
+
+        self._dirname = self._tmpdir
+        self._fname = self._dirname / self._name
+
     def set(self, config_parameter, value):
-        config(self.fname, config_parameter, value)
-    
+        config(str(self._fname), config_parameter, value)
+
     def get(self, config_parameter):
-        return run('text '+self.fname+' get '+ config_parameter)
+        return run(f"text {self._fname} get {config_parameter}")
 
     def set_streams(self, n):
         self.set("stream_upper_slab_size", n)
         self.set("n_angles", int(n**1.6))
 
+    @property
+    def filename(self):
+        return self._fname
 
 class basic_radiation:
     _tmpdir = "flick_tmp"
