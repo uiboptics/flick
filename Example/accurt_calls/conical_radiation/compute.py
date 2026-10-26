@@ -24,7 +24,6 @@ c.set('cdom_440', 0.1)
 c.set('chl_concentration', 1e-6)
 c.set('nap_concentration', 1e-3)
 c.set("gases",["o3", "o2", "h2o"])
-c.set("pure_water_volume_fraction",0)
 c.set("use_AccuRT_kernel_if_exists","true")
 
 """ Sun at one astronomical unit distance and solar zenith angle 60

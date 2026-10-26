@@ -7,4 +7,3 @@ Second column: scattering matrix column number, counting form 1
 */
 
 1 1
-2 2

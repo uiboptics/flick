@@ -129,7 +129,7 @@ if __name__ == "__main__":
     r_median = 1e-7
     sigma = 0.1
     percent_accuracy = 1
-    wls = np.linspace(300e-9, 700e-9, 20)
+    wls = np.geomspace(280e-9, 2500e-9, 100)
 
     write_ab(wls)
     write_all_normalized_scattering_elements(wls, include_elements)

@@ -8,7 +8,6 @@
 #include <vector>
 #include <chrono>
 #include <iomanip>
-//#include <format>
 
 namespace flick {
   constexpr long double operator""_pct(long double p)
