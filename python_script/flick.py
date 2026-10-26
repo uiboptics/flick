@@ -55,6 +55,9 @@ def include_given_values(lower_limit,upper_limit,n,v):
         i += 2
     return v
 
+def solar_zenith_angle(time_pos):
+    tp = " ".join(map(str, time_pos))
+    return run(f'sun_position zenith_angle {tp}')
 
 def atmosphere_wavelengths(ao_config_file_name, wl_low, wl_high, n_wls):
     ot = atmosphere_optical_thickness(ao_config_file_name,wl_low,wl_high,n_wls*10).attenuation()

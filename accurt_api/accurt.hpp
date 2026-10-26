@@ -576,10 +576,14 @@ time and location.
       build_layered_iops();
       std::string ba_name = c_.get<std::string>("bottom_albedo_file");
       os << "\nLayered IOPs\n";
-      os << "------Upper slab-------------------------------------------------"; 
-      os << *layered_upper_slab_;
-      os << "------Lower slab-------------------------------------------------";
-      os << *layered_lower_slab_;
+      for (const auto& wl : wavelengths_) {
+	layered_upper_slab_->set_wavelength(wl);
+	layered_lower_slab_->set_wavelength(wl);
+	os << "------Upper slab-------------------------------------------------";
+	os << *layered_upper_slab_;
+	os << "------Lower slab-------------------------------------------------";
+	os << *layered_lower_slab_;
+      }
       os << "------Bottom albedo: "<< ba_name <<"\n";
     }
     double lower_slab_delta_fit_scaling_factor(size_t layer_no) {

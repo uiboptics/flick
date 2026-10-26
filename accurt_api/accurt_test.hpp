@@ -300,4 +300,24 @@ namespace flick {
       check(r[0][1][0]!=r[0][1][2]);
     }
   } end_test_case()
+
+  begin_test_case(accurt_test_L) {
+    /* Large bubble fraction */
+    accurt::configuration ac;
+    ac.set<double>("detector_wavelengths",{800e-9});
+    ac.set<double>("source_zenith_angle",20);
+    ac.set<double>("detector_height",1);
+    ac.set<size_t>("stream_upper_slab_size",4);
+    ac.set<std::string>("print_iops","true");
+    material::atmosphere_ocean::configuration mc;
+    mc.set<std::string>("ti_names","small_marine_bubbles");
+    mc.set<std::string>("gas_spectral_region","solar");
+    mc.set<double>("ti_volume_fractions", 1.0);
+    auto m = std::make_shared<material::atmosphere_ocean>(mc);
+    if (getenv("ACCURT_PATH")) {
+      auto a =  accurt(ac, m);
+      double r = a.relative_radiation().y().at(0);
+      check(r > 0);
+    }
+  } end_test_case()
 }

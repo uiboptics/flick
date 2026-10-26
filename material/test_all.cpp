@@ -27,6 +27,7 @@ int main() {
   t.include<layered_iops_test_C>(); 
   t.include<layered_iops_test_D>(); 
   t.include<layered_iops_test_E>();
+  t.include<layered_iops_test_F>();
   t.include<z_profile_test>();
   t.include<mixture_test_A>();
   t.include<mixture_test_B>();

@@ -4,6 +4,7 @@
 #include "mixture.hpp"
 #include "atmosphere_ocean.hpp"
 #include <numbers>
+#include <sstream>
 
 namespace flick {
   begin_test_case(layered_iops_test_A) {
@@ -80,5 +81,14 @@ namespace flick {
 		iops.scattering_coefficient()[2],epsilon);
     check_close(iops.absorption_coefficient()[0],
 		iops.absorption_coefficient()[2],epsilon);
+  } end_test_case()
+
+  begin_test_case(layered_iops_test_F) {
+    auto m = std::make_shared<material::white_isotropic>(1.0);
+    layered_iops iops(m,{-1,-1e-6,0},4);
+    iops.set_wavelength(500e-9);
+    std::ostringstream output;
+    output << iops;
+    check(output.str().find("(2)1.000e-06") != std::string::npos);
   } end_test_case()
 }

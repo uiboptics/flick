@@ -143,9 +143,7 @@ namespace flick {
       size_t n_last = oda.size()-1;
       for (size_t i = 0; i<oda.size(); i++) {
 	size_t n = n_last - i;
-	double dh = h[n_last];
-	if (i > 0)
-	  dh = h[n+1]-h[n];
+	double dh = h[n+1]-h[n];
 	os << std::scientific << std::setprecision(3) 
 	   << "(1)"<< h[n] << " (2)" << dh << " (3)"<< oda[n] << " (4)"
 	   << ods[n] << " (5)"
@@ -204,7 +202,9 @@ namespace flick {
     }
     void set_optical_depth(size_t i) {
       oda_[i] = m_->absorption_optical_depth(layer_thickness(i));
-      ods_[i] = m_->scattering_optical_depth(layer_thickness(i));      
+      ods_[i] = m_->scattering_optical_depth(layer_thickness(i));
+      if (oda_[i] < 0)
+	oda_[i] = 0; // Extream bubble concentrations in ocean my cause negative values
     }
     double layer_thickness(size_t i) const {
       return boundaries_.at(i+1)-boundaries_.at(i);
