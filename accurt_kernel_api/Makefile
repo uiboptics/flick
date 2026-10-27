@@ -15,8 +15,13 @@ KERNEL_CONFIG     := .accurt-kernel-$(if $(ACCURT_KERNEL_AVAILABLE),enabled,disa
 
 ifneq ($(ACCURT_KERNEL_AVAILABLE),)
 FORTRAN_OBJ       := kernel.o
+ifeq ($(shell uname -s),Linux)
+LDFLAGS           += -O2
+LDLIBS            += -lgfortran -lquadmath -llapack -lblas
+else
 FORTRAN_LIB_DIR   := $(dir $(shell $(FC) -print-file-name=libgfortran.dylib))
 LDLIBS            += -L$(FORTRAN_LIB_DIR) -lgfortran -lquadmath -framework Accelerate
+endif
 CXXFLAGS          += -DFLICK_HAS_ACCURT_KERNEL
 endif
 
