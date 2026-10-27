@@ -14,6 +14,8 @@
 #include "toa_sun.hpp"
 #include "radiation_field.hpp"
 
+#include <filesystem>
+
 namespace flick {
   class accurt_user_specified {
     std::shared_ptr<layered_iops> iops_;
@@ -1025,7 +1027,7 @@ time and location.
 	toa_sun ts(arg);
 	c_.set<double>("source_zenith_angle",ts.zenith_angle()/pi*180);
       }
-      system(("mkdir -p " + tmpdir_).c_str());      
+      std::filesystem::create_directories(tmpdir_);
       if (c_.get_boolean("print_iops")) {
 	std::ofstream file(tmpdir_+"/iops_last_run.txt");
 	print_iops(file);
@@ -1038,8 +1040,8 @@ time and location.
 	c_.set_text_qualifiers("#","##");
 	c_.set_uppercase(true);
 	write(c_, tmpdir_+"/accurt",precision_);
-	system(("mkdir -p "+tmpdir_+"/accurtMaterials").c_str());
-	system(("mkdir -p "+tmpdir_+"/accurtOutput").c_str());
+	std::filesystem::create_directories(tmpdir_+"/accurtMaterials");
+	std::filesystem::create_directories(tmpdir_+"/accurtOutput");
 	make_material_files();
 	int s=system(("DYLD_LIBRARY_PATH=$ACCURT_PATH/lib AccuRT "+tmpdir_+
 		      "/accurt").c_str());
