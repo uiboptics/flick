@@ -85,12 +85,24 @@ this unit is an exception to the SI mks unit convention.
 cdom_slope = 0.017 
 
 /*
-Chlorophyll concentration in the water column [kg/m^3]. A
-concentration of e.g., 10.0 mg/m^3 may be written as 10.0e-6 kg/m^3
-for clarity.
+Chlorophyll concentration in the water column [kg/m^3], used by the
+three-component ocean-matter model comprising phytoplankton,
+non-algal particles (NAP), and colored dissolved organic matter
+(CDOM). For example, a concentration of 10.0 mg/m^3 may be specified
+as 10.0e-6 kg/m^3.  
 */
 
 chl_concentration = 0 
+
+/*
+Chlorophyll concentration in the water column [kg/m^3]. This parameter
+is used only by the Case-1 water model, which calculates all inherent
+optical properties (IOPs) from the chlorophyll concentration. If set to
+zero, the Case-1 water model is disabled. A concentration
+of 10.0 mg/m^3 may be specified as 10.0e-6 kg/m^3.
+*/
+
+chl_concentration_case_one = 0 
 
 /*
 Liquid-equivalent cloud thickness [m], defined as the thickness of a

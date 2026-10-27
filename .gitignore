@@ -13,6 +13,8 @@ output
 *.png
 *.pdf
 *.jpg
+*.mod
+.accurt-kernel-enabled
 log
 tmp*.txt
 flick

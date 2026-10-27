@@ -7,15 +7,17 @@
 namespace flick {
 namespace material {
   class phytoplankton : public base {
-    double asymmetry_factor_ = 0.98;
-    double chl_concentration_ = 1e-6; // [kg/m^3]    
-    flick::fournier_forand ff_{asymmetry_factor_};
+    double asymmetry_factor_;
+    double chl_concentration_; // [kg/m^3]    
+    flick::fournier_forand ff_;
     pl_function A_;
     pl_function B_;
     const double epsilon_ = 10*std::numeric_limits<double>::epsilon();
   public:
-    phytoplankton(double chl_concentration = 1e-6)
-      : chl_concentration_{chl_concentration} {
+    phytoplankton(double chl_concentration = 1e-6, double asymmetry_factor=0.98)
+      : chl_concentration_{chl_concentration},
+	asymmetry_factor_{asymmetry_factor},
+	ff_{asymmetry_factor} {
       const std::string path_{"/material/water"};
       pl_flist AB = read<pl_flist>(path_+"/phytoplankton.txt");
       A_ = AB(0);

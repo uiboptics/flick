@@ -33,10 +33,7 @@ namespace flick {
     atmosphere_ocean::configuration c;
     c.set<std::string>("gases","co2");
     auto ao = std::make_shared<atmosphere_ocean>(c);
-    std::cout << ao->absorption_coefficient();
-
-    ao->set_wavelength(5.08309e-07);
-    
+    ao->set_wavelength(5.08309e-07);    
     ao->absorption_optical_depth(120e3);
   } end_test_case()  
 }

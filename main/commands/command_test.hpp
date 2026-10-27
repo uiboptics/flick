@@ -21,6 +21,12 @@ namespace flick {
     system("mv test_config_tmp flick_test_parallel_tmp/parallel_001/test_config");
 
     check(system("flick accurt --parallel flick_tmp > flick_test_tmp")==0);
+    system("rm -fr flick_tmp");
+    system("rm -fr flick_test_parallel_tmp");
+    system("rm -f flick_test_tmp");
+    system("rm -f flick_test_config");
+    system("rm -f config");
+    system("rm -f test_config");
 
   } end_test_case()
 }

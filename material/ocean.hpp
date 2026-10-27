@@ -4,6 +4,7 @@
 #include "water/pure_water.hpp"
 #include "water/cdom.hpp"
 #include "water/phytoplankton.hpp"
+#include "water/case_one_matter.hpp"
 #include "water/nap.hpp"
 #include "tabulated_iops/tabulated_iops.hpp"
 #include "marine_particles/marine_particles.hpp"
@@ -69,10 +70,20 @@ contribution of pure water to radiative quantities. If set to zero,
 the water is replaced by a vacuum with a refractive index of 1.0.
 )");
 		    	
+	add<double>("chl_concentration_case_one", 0, R"(
+Chlorophyll concentration in the water column [kg/m^3]. This parameter
+is used only by the Case-1 water model, which calculates all inherent
+optical properties (IOPs) from the chlorophyll concentration. If set to
+zero, the Case-1 water model is disabled. A concentration
+of 10.0 mg/m^3 may be specified as 10.0e-6 kg/m^3.
+)");
+	
 	add<double>("chl_concentration", 0, R"(
-Chlorophyll concentration in the water column [kg/m^3]. A
-concentration of e.g., 10.0 mg/m^3 may be written as 10.0e-6 kg/m^3
-for clarity.
+Chlorophyll concentration in the water column [kg/m^3], used by the
+three-component ocean-matter model comprising phytoplankton,
+non-algal particles (NAP), and colored dissolved organic matter
+(CDOM). For example, a concentration of 10.0 mg/m^3 may be specified
+as 10.0e-6 kg/m^3.  
 )");
 
 	add<double>("nap_concentration", 0, R"(
@@ -207,6 +218,7 @@ Radius of sea ice brine pocket inclusions [m].
       add_pure_water();
       add_cdom();
       add_phytoplankton();
+      add_case_one_matter();
       add_nap();
       add_water_bubbles();
       add_tabulated_iops(); 
@@ -316,6 +328,12 @@ Radius of sea ice brine pocket inclusions [m].
       double chl = c_.get<double>("chl_concentration");
       if (chl > 0) {
 	add_concentration_profile(std::make_shared<phytoplankton>(chl),"phytoplankton");
+      }
+    }
+    void add_case_one_matter() {
+      double chl = c_.get<double>("chl_concentration_case_one");
+      if (chl > 0) {
+	add_concentration_profile(std::make_shared<phytoplankton>(chl),"case_one_matter");
       }
     }
     void add_nap() {
