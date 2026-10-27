@@ -37,7 +37,7 @@ c.set('toa_solar_multiplication',time_pos+[10e-9])
 wavelengths = np.geomspace(300e-9, 2500e-9, 30)
 n_cores = max(1, (os.cpu_count() or 1) - 1)
 print(f'Using {n_cores} CPU cores')
-bubble_volume_fractions = np.geomspace(1e-8,1e-1,n_cores)
+bubble_volume_fractions = np.geomspace(1e-8,1.0,n_cores)
 c.set("wavelengths", wavelengths)
 
 c.set_streams(8)

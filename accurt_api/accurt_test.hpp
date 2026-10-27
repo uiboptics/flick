@@ -302,7 +302,8 @@ namespace flick {
   } end_test_case()
 
   begin_test_case(accurt_test_L) {
-    /* Large bubble fraction */
+    /* Large bubble fraction should not cause negative absorption
+       optial depth and no water resulting radiation */
     accurt::configuration ac;
     ac.set<double>("detector_wavelengths",{800e-9});
     ac.set<double>("source_zenith_angle",20);

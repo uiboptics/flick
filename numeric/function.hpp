@@ -537,7 +537,8 @@ namespace flick {
     double fi = f.integral();
 
     /* No scaling for zero profiles */
-    if (std::abs(integral_value) < eps || std::abs(fi-integral_value) < eps)
+    if (std::abs(integral_value) < eps || std::abs(fi-integral_value) < eps
+	|| std::abs(fi) < eps)
       return f;
     
     double factor = integral_value/fi;

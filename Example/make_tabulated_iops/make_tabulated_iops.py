@@ -128,7 +128,7 @@ if __name__ == "__main__":
     include_elements = [[0,0]] # [[0,0], [1,1]]
     r_median = 1e-7
     sigma = 0.1
-    percent_accuracy = 1
+    percent_accuracy = 0.01
     wls = np.geomspace(280e-9, 2500e-9, 100)
 
     write_ab(wls)

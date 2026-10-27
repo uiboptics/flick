@@ -26,12 +26,13 @@ c.set('nap_concentration', 1e-3)
 c.set("gases",["o3", "o2", "h2o"])
 c.set("use_AccuRT_kernel_if_exists","true")
 
-""" Sun at one astronomical unit distance and solar zenith angle 60
-degrees """
-time_pos = [2000, 4, 4, 9, 32, 20, 60.42, 5.27]
+""" Gran Canaria """
+time_pos = [2026, 6, 21, 11, 37, 0, 28, -15.6] # 20.1 deg solar zenith angle
+print(f'Solar zenith angle: {flick.solar_zenith_angle(time_pos):.1f} deg')
+
 c.set('toa_solar_multiplication',time_pos+[10e-9])
 
-wl0 = 440e-9
+wl0 = 532e-9
 c.set("wavelengths",[wl0])
 
 c.set_streams(24)
@@ -44,20 +45,15 @@ if compute_all_angles:
 else:
     acceptance_half_angles = [10, 90] 
 
-c.remove_parallel_directories()
 conical = np.empty((len(acceptance_half_angles), len(orientation_angles)))
 for i, acceptance_half_angle in enumerate(acceptance_half_angles):
+    c.remove_parallel_directories()
     for j, orientation_angle in enumerate(orientation_angles):
         c.copy_config_to_parallel(j)
         c.set("detector_conical_radiation_override", [orientation_angle,
                                                       90,
                                                       acceptance_half_angle])
     parallel = flick.run("accurt --parallel flick_tmp")
-    if len(parallel) != len(orientation_angles):
-        raise RuntimeError(
-            f"Expected {len(orientation_angles)} result matrices, "
-            f"but AccuRT returned {len(parallel)}"
-        )
     for j, result in enumerate(parallel):
         conical[i, j] = result[0, 1] * 1e-9  # [W/m2/nm]
 
