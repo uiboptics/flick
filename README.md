@@ -11,7 +11,7 @@ Flick is a radiative transfer modeling framework that currently supports generat
 
  - *make* - to compile, build, and test
 
- - *make install* - to make `flick` available from any directory (use a
+ - *make install* - to make the already-built `flick` available from any directory (use a
    different executable directory with, for example,
    `make install BINDIR=$HOME/.local/bin`)
 
@@ -21,6 +21,19 @@ The launcher configures Flick's environment for each invocation. No
 Flick-specific variables need to be added to the user's shell profile. The
 default installation directory is `/usr/local/bin`; depending on its
 permissions, installation there may require `sudo make install`.
+
+#### Install a downloaded macOS binary
+
+After extracting the archive, Flick can be run directly with `./flick help` or
+installed for the current user with:
+
+ - `./install.sh`
+
+The installer copies the self-contained package to `~/.local/share/flick` and
+creates `~/.local/bin/flick`. If that bin directory is not in `PATH`, it prints
+the shell-profile line needed to add it. Use `./install.sh --prefix /usr/local`
+to select another prefix, and run `./uninstall.sh` with the same optional
+`--prefix` to remove the installation.
 
 You will need a c++ compiler (e.g. clang++ or g++) already installed.
 On most Linux variants "sudo apt install build-essential" should

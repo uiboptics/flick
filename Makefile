@@ -81,7 +81,11 @@ test-python:
 	cd Example/accurt_calls/surface_reference; python3 test_all.py
 	cd Example/accurt_calls/conical_radiation; python3 test_all.py
 
-install: build
+install:
+	@if [ ! -x "$(CURDIR)/main/flick" ]; then \
+		echo "Flick has not been built. Run 'make build' before installing." >&2; \
+		exit 1; \
+	fi
 	@{ \
 		mkdir -p "$(BINDIR)" && \
 		ln -sfn "$(CURDIR)/flick" "$(BINDIR)/flick"; \

@@ -112,13 +112,183 @@ codesign --force --sign - "$stage/bin/flick-bin" >/dev/null
 
 cat > "$stage/flick" <<'LAUNCHER'
 #!/usr/bin/env bash
-set -e
-package_dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+set -euo pipefail
+
+# Follow an installed symlink back to the self-contained Flick package.
+launcher=$0
+while [ -L "$launcher" ]; do
+    launcher_dir=$(cd -P -- "$(dirname -- "$launcher")" && pwd -P)
+    launcher=$(readlink "$launcher")
+    case "$launcher" in
+        /*) ;;
+        *) launcher="$launcher_dir/$launcher" ;;
+    esac
+done
+
+package_dir=$(cd -P -- "$(dirname -- "$launcher")" && pwd -P)
 export FLICK_PATH="$package_dir/resources"
 export DYLD_LIBRARY_PATH="$package_dir/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
 exec "$package_dir/bin/flick-bin" "$@"
 LAUNCHER
 chmod +x "$stage/flick"
+
+cat > "$stage/install.sh" <<'INSTALLER'
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: ./install.sh [--prefix DIRECTORY] [--force]
+
+Install Flick for the current user (default prefix: $HOME/.local).
+Use --force to replace an existing installation at the selected prefix.
+EOF
+}
+
+prefix=${HOME:?HOME is not set}/.local
+force=0
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --prefix)
+            [ "$#" -ge 2 ] || { echo "--prefix requires a directory" >&2; exit 2; }
+            prefix=$2
+            shift 2
+            ;;
+        --force)
+            force=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+case "$prefix" in
+    /*) ;;
+    *) prefix=$(cd -P -- "$(dirname -- "$prefix")" && pwd -P)/$(basename -- "$prefix") ;;
+esac
+
+source_dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+install_dir="$prefix/share/flick"
+bin_dir="$prefix/bin"
+launcher="$bin_dir/flick"
+
+if [ "$source_dir" = "$install_dir" ]; then
+    echo "Flick is already installed in $install_dir"
+    exit 0
+fi
+if [ -e "$install_dir" ] && [ "$force" -ne 1 ]; then
+    echo "Flick is already installed in $install_dir" >&2
+    echo "Run with --force to replace it." >&2
+    exit 1
+fi
+if { [ -e "$launcher" ] || [ -L "$launcher" ]; } && \
+   { [ ! -L "$launcher" ] || [ "$(readlink "$launcher")" != "$install_dir/flick" ]; }; then
+    echo "Refusing to replace $launcher because it does not belong to this installation." >&2
+    exit 1
+fi
+
+mkdir -p "$prefix/share" "$bin_dir"
+temporary="$prefix/share/.flick-install.$$"
+backup="$prefix/share/.flick-backup.$$"
+cleanup() {
+    rm -rf "$temporary"
+    if [ -e "$backup" ]; then
+        if [ ! -e "$install_dir" ]; then
+            mv "$backup" "$install_dir"
+        else
+            rm -rf "$backup"
+        fi
+    fi
+}
+trap cleanup EXIT
+cp -R "$source_dir" "$temporary"
+
+if [ -e "$install_dir" ]; then
+    mv "$install_dir" "$backup"
+fi
+mv "$temporary" "$install_dir"
+ln -sfn "$install_dir/flick" "$launcher"
+rm -rf "$backup"
+trap - EXIT
+
+echo "Installed Flick in $install_dir"
+echo "Created $launcher"
+
+case ":${PATH:-}:" in
+    *:"$bin_dir":*) ;;
+    *)
+        echo
+        echo "$bin_dir is not currently in PATH. Add this line to your shell profile:"
+        echo "  export PATH=\"$bin_dir:\$PATH\""
+        ;;
+esac
+INSTALLER
+chmod +x "$stage/install.sh"
+
+cat > "$stage/uninstall.sh" <<'UNINSTALLER'
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: ./uninstall.sh [--prefix DIRECTORY]
+
+Remove Flick from the selected prefix (default: $HOME/.local).
+EOF
+}
+
+prefix=${HOME:?HOME is not set}/.local
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --prefix)
+            [ "$#" -ge 2 ] || { echo "--prefix requires a directory" >&2; exit 2; }
+            prefix=$2
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+case "$prefix" in
+    /*) ;;
+    *) prefix=$(cd -P -- "$(dirname -- "$prefix")" && pwd -P)/$(basename -- "$prefix") ;;
+esac
+
+install_dir="$prefix/share/flick"
+launcher="$prefix/bin/flick"
+expected="$install_dir/flick"
+
+if [ -L "$launcher" ] && [ "$(readlink "$launcher")" = "$expected" ]; then
+    rm "$launcher"
+elif [ -e "$launcher" ] || [ -L "$launcher" ]; then
+    echo "Refusing to remove $launcher because it does not belong to this installation." >&2
+    exit 1
+fi
+
+if [ -d "$install_dir" ]; then
+    rm -rf "$install_dir"
+    echo "Removed $install_dir"
+else
+    echo "Flick is not installed in $install_dir"
+fi
+UNINSTALLER
+chmod +x "$stage/uninstall.sh"
 
 cat > "$stage/README.txt" <<EOF
 Flick for macOS ($arch)
@@ -127,6 +297,19 @@ Run from Terminal:
 
     ./flick help
 
+Install for the current user so that it can be run from any directory:
+
+    ./install.sh
+
+If ~/.local/bin is not already in PATH, the installer prints the line to add
+to your shell profile. To select another location, use for example:
+
+    ./install.sh --prefix /usr/local
+
+Remove that installation with:
+
+    ./uninstall.sh
+
 This package is self-contained and does not require compilation. It is built
 for $arch Macs and may require a macOS version at least as new as the build Mac.
 The AccuRT kernel is distributed under its license in:
@@ -134,6 +317,9 @@ The AccuRT kernel is distributed under its license in:
     resources/external/accurt-kernel/AccuRT-license-NC-v2.pdf
 EOF
 
+for script in "$stage/flick" "$stage/install.sh" "$stage/uninstall.sh"; do
+    bash -n "$script"
+done
 "$stage/flick" help >/dev/null
 tar -C "$dist_dir" -czf "$archive" "$package_name"
 echo "Created $archive"
