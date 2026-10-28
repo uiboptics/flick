@@ -3,6 +3,8 @@ OBJ      = $(SRC:.cpp=.o)
 DEP      = $(patsubst %.cpp,%.d,$(SRC))
 NAME     = $(SRC:.cpp=)
 
+include ../../flick-env.mk
+
 .PHONY: all clean parent obj link test
 
 all:	test

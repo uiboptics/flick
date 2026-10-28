@@ -1,3 +1,5 @@
+include ../flick-env.mk
+
 SRC      = $(wildcard *.cpp)
 OBJ      = $(SRC:.cpp=.o)
 DEP      = $(patsubst %.cpp,%.d,$(SRC))

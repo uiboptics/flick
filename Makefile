@@ -1,31 +1,9 @@
 
 # Read README.md for information about compilation and running
 
-# Keep the first build usable before the shell profile has been reloaded.
-# update_shell.sh persists these values for future shells, while these exports
-# make them available to recursive makes and tests in the current invocation.
-FLICK_ENV_MISSING := $(if $(strip $(FLICK_PATH)),,1)
-
-ifeq ($(FLICK_ENV_MISSING),1)
-FLICK_PATH := $(CURDIR)
-endif
-
-ifeq ($(strip $(FLICK_COMPILER)),)
-ifeq ($(shell uname -s),Darwin)
-FLICK_COMPILER := clang++ -std=c++20
-else
-FLICK_COMPILER := g++ -std=c++20
-endif
-endif
-
-ifeq ($(strip $(EIGEN_PATH)),)
-EIGEN_PATH := $(FLICK_PATH)/external/eigen
-endif
-
-CPLUS_INCLUDE_PATH := $(FLICK_PATH):$(EIGEN_PATH):$(CPLUS_INCLUDE_PATH)
-PATH := $(FLICK_PATH)/main:$(PATH)
-
-export FLICK_PATH FLICK_COMPILER EIGEN_PATH CPLUS_INCLUDE_PATH PATH
+# Configure both root and direct module builds without requiring shell-profile
+# variables. The optional install-shell-env target remains for older workflows.
+include flick-env.mk
 
 ACCURT_KERNEL_DIR ?= $(FLICK_PATH)/external/accurt-kernel
 ACCURT_KERNEL_AVAILABLE := $(if $(wildcard $(ACCURT_KERNEL_DIR)/kernel.f95),1,)
@@ -67,9 +45,11 @@ MODULE_DIRS := \
 TEST_DIRS := $(filter-out main Example/% material/gas/smooth_input,$(MODULE_DIRS))
 CLEAN_DIRS := $(MODULE_DIRS) 
 
-.PHONY: all with-python build test clean test-python install-eigen update-eigen install-env install-accurt-kernel update-accurt-kernel
+BINDIR ?= /usr/local/bin
 
-all:	install-env install-eigen build test
+.PHONY: all with-python build test clean test-python install install-eigen update-eigen install-shell-env install-accurt-kernel update-accurt-kernel binary-mac
+
+all:	install-eigen build test
 
 with-python:	all python
 
@@ -101,6 +81,11 @@ test-python:
 	cd Example/accurt_calls/surface_reference; python3 test_all.py
 	cd Example/accurt_calls/conical_radiation; python3 test_all.py
 
+install: build
+	@mkdir -p "$(BINDIR)"
+	@ln -sfn "$(CURDIR)/flick" "$(BINDIR)/flick"
+	@echo "Installed Flick launcher in $(BINDIR)/flick"
+
 
 EIGEN_DIR = external/eigen
 EIGEN_REPO = https://gitlab.com/libeigen/eigen.git
@@ -124,6 +109,12 @@ update-accurt-kernel:
 		exit 1; \
 	fi
 
+# Build a relocatable macOS archive containing Flick, its run-time input data,
+# Eigen, the AccuRT kernel sources, and all non-system dynamic libraries used by
+# the executable.  The resulting archive is written below dist/.
+binary-mac: install-eigen install-accurt-kernel build
+	@./scripts/package_binary_mac.sh
+
 install-eigen:
 	@if [ ! -d "$(EIGEN_DIR)" ]; then \
 		echo "Eigen not found. Cloning from $(EIGEN_REPO)..."; \
@@ -141,7 +132,5 @@ update-eigen:
 		exit 1; \
 	fi
 
-install-env:
-	@if [ "$(FLICK_ENV_MISSING)" = "1" ]; then \
-		./update_shell.sh; \
-	fi
+install-shell-env:
+	@./update_shell.sh

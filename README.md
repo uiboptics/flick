@@ -9,9 +9,18 @@ Flick is a radiative transfer modeling framework that currently supports generat
 
  - *cd flick* - to enter the flick directory
 
- - *make* - to compile and build
+ - *make* - to compile, build, and test
+
+ - *make install* - to make `flick` available from any directory (use a
+   different executable directory with, for example,
+   `make install BINDIR=$HOME/.local/bin`)
 
  - *flick help* - for further documentation and usage examples.
+
+The launcher configures Flick's environment for each invocation. No
+Flick-specific variables need to be added to the user's shell profile. The
+default installation directory is `/usr/local/bin`; depending on its
+permissions, installation there may require `sudo make install`.
 
 You will need a c++ compiler (e.g. clang++ or g++) already installed.
 On most Linux variants "sudo apt install build-essential" should

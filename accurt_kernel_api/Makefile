@@ -3,6 +3,8 @@ CPP_OBJ  := $(CPP_SRC:.cpp=.o)
 DEP      := $(CPP_SRC:.cpp=.d)
 NAME     := $(CPP_SRC:.cpp=)
 
+include ../flick-env.mk
+
 CXX      := $(if $(FLICK_COMPILER),$(FLICK_COMPILER),clang++)
 FC       := gfortran
 CXXFLAGS ?= -std=c++20

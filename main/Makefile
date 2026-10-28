@@ -3,6 +3,8 @@ OBJ      = $(SRC:.cpp=.o)
 DEP      = $(patsubst %.cpp,%.d,$(SRC))
 NAME     = $(SRC:.cpp=)
 
+include ../flick-env.mk
+
 ACCURT_KERNEL_DIR ?= ../external/accurt-kernel
 ACCURT_KERNEL_AVAILABLE := $(if $(wildcard $(ACCURT_KERNEL_DIR)/kernel.f95),1,)
 KERNEL_CONFIG := .accurt-kernel-$(if $(ACCURT_KERNEL_AVAILABLE),enabled,disabled)

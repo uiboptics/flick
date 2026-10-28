@@ -8,6 +8,7 @@ external
 __pycache__
 flick_tmp
 output
+dist/
 .\#*
 \#*\#
 *.png
@@ -18,6 +19,7 @@ output
 log
 tmp*.txt
 flick
+!/flick
 single_layer_slab
 generate_smooth_input
 Example/make_tabulated_iops/*.txt

@@ -6,6 +6,14 @@
 #include "accurt.hpp"
 
 namespace flick {
+  inline bool accurt_is_available() {
+#ifdef FLICK_HAS_ACCURT_KERNEL
+    return true;
+#else
+    return getenv("ACCURT_PATH") != nullptr;
+#endif
+  }
+
   begin_test_case(accurt_test_A) {
     // Compare with van de Hulst 1980, vol 1, chapter 9, table 12,
     // p258, FLUX U and AVERAGE N for mu_0 = 1.0
@@ -21,7 +29,7 @@ namespace flick {
     c.set<double>("bottom_boundary_surface_scaling_factor",0);
     c.set<double>("detector_wavelengths",400e-9);
     auto m = std::make_shared<material::henyey_greenstein>(a,b,g);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto ac =  accurt(c,m);
       double FLUX_U = 0.34133;
       check_close(ac.relative_radiation().y()[0],FLUX_U, 0.01_pct);
@@ -52,7 +60,7 @@ namespace flick {
     c.set<double>("bottom_boundary_surface_scaling_factor",0);
     c.set<double>("detector_wavelengths",400e-9);
     auto m = std::make_shared<material::henyey_greenstein>(a,b,g);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto acc =  accurt(c,m);
       check_close(acc.relative_radiation().y()[0],0.82792, 0.001_pct);
     }
@@ -79,7 +87,7 @@ namespace flick {
     mc.set<double>("water_temperature",273+15);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
     m->set_wavelength(wl);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a =  accurt(ac, m);
       double Rrs = a.relative_radiation().y()[0];
       check_close(Rrs, 0.11e-3, 8_pct);
@@ -101,7 +109,7 @@ namespace flick {
     mc.set<size_t>("n_heights",3);
     mc.set<double>("nap_concentration",1e-3);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a_above =  accurt(ac,m);
       double L_above = a_above.relative_radiation().y()[0];
       ac.set<double>("detector_height",-0.01);
@@ -127,7 +135,7 @@ namespace flick {
     mc.set<size_t>("n_heights",3);
     mc.set<double>("nap_concentration",1e-3);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a =  accurt(ac, m);
       pp_function f = a.relative_radiation();
       check(f.size()==1);
@@ -155,7 +163,7 @@ namespace flick {
     mc.set<double>("aerosol_od",0);
     mc.set<double>("nap_concentration",1e-3);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a_avg =  accurt(ac, m);
       double r_avg = a_avg.relative_radiation().y()[0];
       ac.set<double>("detector_orientation_override",{179.99,180});
@@ -183,7 +191,7 @@ namespace flick {
     mc.set<size_t>("n_heights",8);
     mc.set<std::string>("gases","no2");
     auto m_clear = std::make_shared<material::atmosphere>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a_clear =  accurt(ac,m_clear);
       double L_toa_clear = a_clear.relative_radiation().y()[0];
       mc.set<double>("cloud_liquid",1e-7);
@@ -223,7 +231,7 @@ namespace flick {
     mc.set<double>("bottom_depth", 100);
     
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a =  accurt(ac,m);
       double albedo = a.relative_radiation().y()[0];
       check(albedo > 0 && albedo < 1);
@@ -250,7 +258,7 @@ namespace flick {
     mc.set<double>("chl_concentration",1e-6);
     mc.set<double>("nap_concentration",1e-3);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a =  accurt(ac, m);
       double r = a.relative_radiation().y()[1];
       check_close(r, 7.884e8, 0.2_pct);
@@ -273,7 +281,7 @@ namespace flick {
     ac.set<double>("detector_conical_radiation_override",{0,0,90});
     material::atmosphere_ocean::configuration mc;
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a =  accurt(ac, m);
       double r = a.relative_radiation().y().at(0);
       check_close(r, 1, 0.002_pct);
@@ -287,11 +295,11 @@ namespace flick {
     ac.set<double>("detector_wavelengths",{300e-9});
     ac.set<double>("source_zenith_angle",40);
     ac.set<double>("detector_height",-1);
-    ac.set<size_t>("stream_upper_slab_size",4);
+    ac.set<size_t>("stream_upper_slab_size",6);
     ac.set<size_t>("detector_radiance_distribution_override",{3,4});
     material::atmosphere_ocean::configuration mc;
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a =  accurt(ac, m);
       std::vector<std::vector<stdvector>> r = a.relative_distributed_radiance().first;
       check_close(r.size(), 1, 1e-9);
@@ -308,14 +316,14 @@ namespace flick {
     ac.set<double>("detector_wavelengths",{800e-9});
     ac.set<double>("source_zenith_angle",20);
     ac.set<double>("detector_height",1);
-    ac.set<size_t>("stream_upper_slab_size",4);
+    ac.set<size_t>("stream_upper_slab_size",6);
     ac.set<std::string>("print_iops","true");
     material::atmosphere_ocean::configuration mc;
     mc.set<std::string>("ti_names","small_marine_bubbles");
     mc.set<std::string>("gas_spectral_region","solar");
     mc.set<double>("ti_volume_fractions", 1.0);
     auto m = std::make_shared<material::atmosphere_ocean>(mc);
-    if (getenv("ACCURT_PATH")) {
+    if (accurt_is_available()) {
       auto a =  accurt(ac, m);
       double r = a.relative_radiation().y().at(0);
       check(r > 0);
