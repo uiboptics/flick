@@ -82,8 +82,22 @@ test-python:
 	cd Example/accurt_calls/conical_radiation; python3 test_all.py
 
 install: build
-	@mkdir -p "$(BINDIR)"
-	@ln -sfn "$(CURDIR)/flick" "$(BINDIR)/flick"
+	@{ \
+		mkdir -p "$(BINDIR)" && \
+		ln -sfn "$(CURDIR)/flick" "$(BINDIR)/flick"; \
+	} || { \
+		echo >&2; \
+		echo "Could not install Flick in $(BINDIR) (permission denied)." >&2; \
+		echo >&2; \
+		echo "Recommended: install for the current user:" >&2; \
+		echo '  make install BINDIR="$$HOME/.local/bin"' >&2; \
+		echo '  Make sure $$HOME/.local/bin is in your PATH.' >&2; \
+		echo >&2; \
+		echo "Alternatively, install system-wide:" >&2; \
+		echo "  make build" >&2; \
+		echo "  sudo make install" >&2; \
+		exit 1; \
+	}
 	@echo "Installed Flick launcher in $(BINDIR)/flick"
 
 
