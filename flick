@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Follow an installed symlink back to this launcher in the Flick tree.
+launcher=$0
+while [ -L "$launcher" ]; do
+    launcher_dir=$(cd -P -- "$(dirname -- "$launcher")" && pwd -P)
+    launcher=$(readlink "$launcher")
+    case "$launcher" in
+        /*) ;;
+        *) launcher="$launcher_dir/$launcher" ;;
+    esac
+done
+
+FLICK_PATH=$(cd -P -- "$(dirname -- "$launcher")" && pwd -P)
+export FLICK_PATH
+export EIGEN_PATH="${EIGEN_PATH:-$FLICK_PATH/external/eigen}"
+
+if [ ! -x "$FLICK_PATH/main/flick" ]; then
+    echo "Flick has not been built. Run 'make' in $FLICK_PATH first." >&2
+    exit 1
+fi
+
+exec "$FLICK_PATH/main/flick" "$@"

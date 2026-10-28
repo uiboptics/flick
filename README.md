@@ -15,6 +15,9 @@ Flick is a radiative transfer modeling framework that currently supports generat
    different executable directory with, for example,
    `make install BINDIR=$HOME/.local/bin`)
 
+ - *make uninstall* - to remove the installed launcher (use the same `BINDIR`
+   passed to `make install`, if any)
+
  - *flick help* - for further documentation and usage examples.
 
 The launcher configures Flick's environment for each invocation. No

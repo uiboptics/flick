@@ -47,7 +47,7 @@ CLEAN_DIRS := $(MODULE_DIRS)
 
 BINDIR ?= /usr/local/bin
 
-.PHONY: all with-python build test clean test-python install install-eigen update-eigen install-shell-env install-accurt-kernel update-accurt-kernel binary-mac
+.PHONY: all with-python build test clean test-python install uninstall install-eigen update-eigen install-shell-env install-accurt-kernel update-accurt-kernel binary-mac
 
 all:	install-eigen build test
 
@@ -103,6 +103,18 @@ install:
 		exit 1; \
 	}
 	@echo "Installed Flick launcher in $(BINDIR)/flick"
+
+uninstall:
+	@if [ -L "$(BINDIR)/flick" ] && \
+	   [ "$$(readlink "$(BINDIR)/flick")" = "$(CURDIR)/flick" ]; then \
+		rm "$(BINDIR)/flick"; \
+		echo "Removed Flick launcher from $(BINDIR)/flick"; \
+	elif [ -e "$(BINDIR)/flick" ] || [ -L "$(BINDIR)/flick" ]; then \
+		echo "Refusing to remove $(BINDIR)/flick because it was not installed from this Flick tree." >&2; \
+		exit 1; \
+	else \
+		echo "Flick is not installed in $(BINDIR)."; \
+	fi
 
 
 EIGEN_DIR = external/eigen
