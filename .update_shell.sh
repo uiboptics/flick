@@ -17,7 +17,7 @@ elif [ -n "$($SHELL -c 'echo $BASH_VERSION')" ]; then
     COMPILER='g++ -O2 -std=c++20'
 else
     echo "⚠️  Unknown shell. Please set environmental variables manualla"
-    echo "     based on information in update_shell.sh."
+    echo "     based on information in .update_shell.sh."
     exit 1
 fi
 

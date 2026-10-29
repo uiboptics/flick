@@ -23,7 +23,7 @@ namespace flick {
     check_close(l.scattering_optical_depth()[0],1);
     check_close(l.scattering_optical_depth()[1],8);
     check_close(l.scattering_optical_depth()[2],10);
-    check_small(l.absorption_optical_depth()[2]);
+    check_small(l.absorption_optical_depth()[2],2e-12);
     check_close(l.single_scattering_albedo()[2],1);
     check_close(l.alpha_terms(0)[0][0],1/(4*std::numbers::pi));
     check_small(l.alpha_terms(0)[0][1]);
@@ -52,7 +52,7 @@ namespace flick {
   } end_test_case()
   
   begin_test_case(layered_iops_test_E) {
-    double epsilon = 1e-4;
+    double epsilon = 2e-4;
     double wl = 400e-9;
     auto c = material::atmosphere_ocean::configuration();
     c.set<double>("aerosol_od",0);

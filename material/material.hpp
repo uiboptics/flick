@@ -89,39 +89,21 @@ namespace material {
     }
   };
 
-  class phase_function
-  // Phase function relative to current traveling direction, keeping
-  // azimuth angle equal to zero
-  {    
-    material::base& mat_;
-    const size_t n_integration_points_ = 2000;
-  public:
-    phase_function(material::base& mat)
-      : mat_{mat} {}
-    double value(double mu) const {
-      mu = std::clamp<double>(mu, -1, 1);
-      double theta = acos(mu);
-      mueller m = mat_.mueller_matrix(unit_vector{theta,0});
-      return m.value(0,0);
+  tabulated_phase_function make_tabulated_phase_function(const material::base& mat) {
+    constexpr size_t n_points = 300;
+    constexpr size_t q = 4;
+    std::vector<double> fsha = range(1.0/n_points,1,n_points).linspace();
+    if (fsha.back()>1)
+      fsha.back() = 1;
+    std::vector<double> mu_values = angle_converter(q).to_mu(fsha);
+    std::vector<double> p;
+    p.reserve(mu_values.size());
+    for (double mu : mu_values) {
+      mueller m = mat.mueller_matrix(unit_vector(mu));
+      p.push_back(m.value(0,0)); 
     }
-    double integral_4pi() {
-      return tabulate().integral_4pi();
-    }
-    double asymmetry_factor() {
-      return tabulate().asymmetry_factor();
-    }
-  private:
-    tabulated_phase_function tabulate() {
-      double g = 0.7;
-      std::vector<double> angles = hg_importance_sampling(g, n_integration_points_+1);
-      angles.erase(angles.begin());
-      std::vector<double> p(angles.size());
-      for (size_t i = 0; i<p.size(); i++) {
-	p[i] = value(cos(angles[i])); 
-      }
-      return tabulated_phase_function(to_cos_x(pe_function{angles,p}));
-    }
-  };
+    return tabulated_phase_function(pe_function(mu_values,p),q);
+  }
 
   class optical_depth
   // Optical depth spectrum at a given distance from current position
@@ -356,61 +338,8 @@ namespace material {
     }
   };
 
-  class material : public fabric {
-    std::shared_ptr<profile> profile_{std::make_shared<constant_profile>()};
-  public:
-    void profile(const std::shared_ptr<profile>& p) {
-      profile_ = p;
-    }
-    const flick::profile& profile() const {return *profile_;}
-    virtual double absorption_coefficient() const = 0;
-    // [per length]
-
-    virtual double scattering_coefficient() const = 0;
-    // [per length]
-
-    double scattering_optical_depth(double height, double angle, double distance) {
-      return concentration()*scattering_coefficient()*
-	profile().column(height,angle,distance);
-    }
-    double distance(double height, double angle,
-		    double scattering_optical_depth) {
-      return 0;
-    }
-  };
   */
-  /*
-  class composite_material : public material {
-    std::vector<std::shared_ptr<fabric>> materials_; 
-  public:
-    double absorption_coefficient() override {
-      double a = 0
-      for (size_t i=0; i<materials_.size(); ++i)
-	a += materials_[i].absorption_coefficient();
-      return a;
-    }
-    void add(std::shared_ptr<fabric> f) {
-      materials_.emplace_back(f);
-    }
-  };
-
-  {
-    composite_material ice;
-    auto m = std::make_shared<pure_ice>();
-    m->temperature(273);
-    m->salinity(0.03);
-    ice->add(m)
-  }
-  class value { // maybe not?
-    double reference;
-    double value;
-  public:
-    value(double reference, double v) {
-      frequency f( ) NO.
-    }
-    double dB() {}
-  };
-  */
+ 
 }
 }
 

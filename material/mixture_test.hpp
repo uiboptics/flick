@@ -29,7 +29,7 @@ namespace flick {
     double p = sky.mueller_matrix(unit_vector{pi/2,0}).value(0,0);
     check_close(p,1/(4*pi),1e-7_pct);
     
-    auto pf = material::phase_function(sky);
+    auto pf = make_tabulated_phase_function(sky);
     check_close(delta_fit(pf,8).coefficients()[0]*4*pi,1,1e-7_pct);
     sky.add_material(std::make_shared<material::rural_aerosols>(300,0.1,0.5),
 		     "rural_aerosols");
@@ -42,7 +42,7 @@ namespace flick {
     auto p2 = sky.mueller_matrix(unit_vector{pi,0}).value(0,0);
     check(p1 > 2/(4*pi));
     check(p2/p1 < 0.3);
-    auto pf2 = material::phase_function(sky);
+    auto pf2 = make_tabulated_phase_function(sky);
     check_close(delta_fit(pf2,16).coefficients()[0]*4*pi,1,0.2_pct);   
 
   } end_test_case()
@@ -70,7 +70,8 @@ namespace flick {
     check_close(m1.absorption_optical_depth(distance),
 		m2.absorption_optical_depth(distance));
     double mu = 0.1;
-    check_close(phase_function(m1).value(mu),phase_function(m2).value(mu),1e-6);
+    check_close(make_tabulated_phase_function(m1).value(mu),
+		make_tabulated_phase_function(m2).value(mu),1e-6);
   } end_test_case()
 
    begin_test_case(mixture_test_C) {

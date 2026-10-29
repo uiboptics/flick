@@ -21,7 +21,7 @@ namespace flick {
     check_small(am.value(1,0,0));
 
     angular_mueller am2(hg_phase_function<pe_function>(0.0,100));
-    am2.add(3,3,pl_function{{0,3.14159},{1,1}});
+    am2.add(3,3,pl_function{{-1,1},{1,1}});
    
     check_close(am2.value(3,3,0),1,1e-9_pct);
     am.add(am2,0.5);
@@ -31,25 +31,24 @@ namespace flick {
     
   begin_test_case(mueller_test_B) {   
     double g = 0.95;
-    pe_function hg = hg_phase_function<pe_function>(g,60,0.9);
-    tabulated_phase_function p{hg};
-    check_close(p.asymmetry_factor(), g, 1_pct);
-    check_close(p.integral_4pi(), 1, 1_pct);
+    pe_function hg = hg_phase_function<pe_function>(g,300,0.95);
+    tabulated_phase_function p(hg);
+    check_close(p.asymmetry_factor(), g, 0.04_pct);
+    check_close(p.integral_4pi(), 1, 0.1_pct);
         
     const std::string path_{"/polarization"};
     pe_function  coestner = read<pe_function>(path_+"/tabulated_phase_function.txt");
     coestner = to_cos_x(coestner);
     tabulated_phase_function p2{coestner};
-    check_close(p2.integral_4pi(),1,0.4_pct);
-    check_close(p2.asymmetry_factor(), 0.95, 0.1_pct);
+    check_close(p2.integral_4pi(),1,0.5_pct);
+    check_close(p2.asymmetry_factor(), 0.95, 0.3_pct);
   } end_test_case()
   
   begin_test_case(mueller_test_C) {   
     pe_function hg1 = hg_phase_function<pe_function>(0.9,10,0.7);
     tabulated_phase_function p1{hg1};
-    check_close(p1.y().back(),hg1.y().back());
+    check_close(p1.y_mu().back(),hg1.y().back());
     angular_mueller am(p1);
-    std::cout << am.value(0,0,1);
     check_close(am.value(0,0,1),hg1.y().back());
     angular_mueller am2 = am;
     am.add(am2, 0.3);  

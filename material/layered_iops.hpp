@@ -84,7 +84,7 @@ namespace flick {
     double phase_function(size_t layer_no, double angle) const {
       double h = m_->pose().position().z();
       m_->set_position({0,0,s_height_.at(layer_no)});
-      double p = material::phase_function(*m_).value(cos(angle));
+      double p = make_tabulated_phase_function(*m_).value(cos(angle));
       m_->set_position({0,0,h});
       return p;
     }

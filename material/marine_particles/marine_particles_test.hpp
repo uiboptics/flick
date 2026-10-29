@@ -15,8 +15,8 @@ namespace flick {
     auto p_backward = mp.mueller_matrix(unit_back).value(0,0);
     
     check(p_forward/p_backward > 1e4);
-    check_close(material::phase_function(mp).integral_4pi(),1,1_pct);
-    check_close(material::phase_function(mp).asymmetry_factor(),0.943,5);
+    check_close(make_tabulated_phase_function(mp).integral_4pi(),1,1_pct);
+    check_close(make_tabulated_phase_function(mp).asymmetry_factor(),0.943,5);
 
     double bleaching = 1;
     double scat_scale = 1;

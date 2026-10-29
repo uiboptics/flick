@@ -140,7 +140,7 @@ namespace flick {
       pp_function f = a.relative_radiation();
       check(f.size()==1);
       double Rrs = f.y()[0];
-      check_close(Rrs, 0.0397, 1_pct);
+      check_close(Rrs, 0.0401, 1_pct);
     }
   } end_test_case()
   

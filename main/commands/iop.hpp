@@ -278,7 +278,7 @@ namespace flick {
 	for (auto wl:wls_)
 	  std::cout << wl*1e9 << " ";
 	std::cout << "#\n";
-	delta_fit df(material::phase_function(m),n_terms);
+	delta_fit df(make_tabulated_phase_function(m),n_terms);
 	auto normalized_scaled_coef = df.coefficients()/df.scaling_factor()
 	  * 4 * constants::pi;
 	for (size_t i=0; i<wls_.size(); ++i) {

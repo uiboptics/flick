@@ -27,8 +27,11 @@ namespace flick {
     vector(double x, double y, double z)
       : x_{x}, y_{y}, z_{z} {} 
     static vector from_spherical(double r, double theta, double phi) {
-      return vector{r*sin(theta)*cos(phi),
-	  r*sin(theta)*sin(phi), r*cos(theta)};
+      return from_spherical_mu(r,cos(theta),phi);
+    }
+    static vector from_spherical_mu(double r, double mu, double phi) {
+      double sin_theta = std::sqrt(std::max(0.0, 1.0 - mu * mu));
+      return vector{r*sin_theta*cos(phi),r*sin_theta*sin(phi), r*mu};
     }
     static vector from_cylindrical(double s, double phi, double z) {
       return vector{s*cos(phi),s*sin(phi),z};
@@ -124,6 +127,8 @@ namespace flick {
     unit_vector() : vector{0,0,1} {}
     unit_vector(double theta, double phi)
       : vector{vector::from_spherical(1,theta,phi)} {}
+    unit_vector(double mu)
+      : vector{vector::from_spherical_mu(1,mu,0)} {}
     unit_vector(double x, double y, double z)
       : vector{x,y,z} {
       double r = norm(*this);

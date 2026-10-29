@@ -3,7 +3,9 @@
 #include "../numeric/function.hpp"
 #include "../numeric/physics_function.hpp"
 #include "../numeric/std_operators.hpp"
-
+#include <numbers>
+#include <algorithm>
+#include <vector>
 
 namespace flick {
   class mueller
@@ -105,50 +107,106 @@ namespace flick {
     }
     return Function{x,y};    
   }
- 
+
+  class angle_converter
+  // Converts back and forth between mu = cos(angle) and forward
+  // streached half-angles (fsha)
+  {
+    double q_;
+  public:
+    explicit angle_converter(double q) : q_{q} {
+    }
+    double to_fsha(double mu) const {
+      return std::pow((1 - mu) / 2, 1 / q_);
+    }
+    double to_mu(double fsha) const {
+      return 1 - 2 * std::pow(fsha, q_);
+    }
+    std::vector<double> to_fsha(const std::vector<double>& mu_values) const {
+      std::vector<double> fsha_values;
+      fsha_values.reserve(mu_values.size());
+      for (double mu : mu_values) {
+	fsha_values.push_back(to_fsha(mu));
+      }
+      std::reverse(fsha_values.begin(), fsha_values.end());
+      return fsha_values;
+    }
+    std::vector<double> to_mu(const std::vector<double>& fsha_values) const {
+      std::vector<double> mu_values;
+      mu_values.reserve(fsha_values.size());
+      for (double fsha : fsha_values) {
+	mu_values.push_back(to_mu(fsha));
+      }
+      std::reverse(mu_values.begin(), mu_values.end());
+      return mu_values;
+    }
+    static std::vector<double> reversed(const std::vector<double>& values) {
+      return {values.rbegin(), values.rend()};
+    }
+  };
+
   class tabulated_phase_function {
-    pe_function p_;
-    pl_function residual_;
+    pl_function p_;
+    double q_;
+    pe_function p_mu_;
+    static constexpr double pi_ = std::numbers::pi;
   public:
     tabulated_phase_function() = default;
-    tabulated_phase_function(const pe_function& p)
-      : p_{p} {
-      double epsilon = 1e-6;
-      ensure(p.x().front() > -1-epsilon && p.x().back() < 1+epsilon);
-    }  
-    const std::vector<double>& x() const {
-      return p_.x();
+    tabulated_phase_function(const pe_function& p_mu, double q=4)
+      : q_{q}, p_mu_{p_mu} {
+      std::vector<double> x = angle_converter(q).to_fsha(p_mu.x());
+      std::vector<double> y = angle_converter::reversed(p_mu.y());
+      if (x.front() > 0) {
+	x.insert(x.begin(), 0);
+	y.insert(y.begin(), y.front());
+      }
+      if (x.back() < 1) {
+	x.push_back(1);
+	y.push_back(y.back());
+      }
+      p_ = pl_function(x,y);
+    }
+    void normalize() {
+      double scale = 1/integral_4pi();
+      p_.scale_y(scale);
+      p_mu_.scale_y(scale);
+    }
+    const std::vector<double>& x_mu() const {
+      return p_mu_.x();
     }    
-    const std::vector<double>& y() const {
-      return p_.y();
-    }    
+    const std::vector<double>& y_mu() const {
+      return p_mu_.y();
+    }
     bool empty() const {
-      if (p_.size()==0)
-	return true;
-      return false;
+      return p_.size() == 0;
     }
     double value(double mu) const {
-      return p_.value(mu);
+      double fsha = angle_converter{q_}.to_fsha(mu);
+      return p_.value(fsha);
     }
-    double asymmetry_factor() const
-    // Represent phase function as Henyey-Greenstein plus a residual for
-    // more accurate interpolation and integration.
-    {
-      double const g = 0.9;
-      henyey_greenstein hg(g);
-      pl_function residual;
-      for (size_t i=0; i<p_.size();i++)
-	residual.append({p_.x()[i], p_.y()[i] - hg.value(p_.x()[i])});
-      return g + 2*constants::pi*pl_function{residual.x(),
-	residual.x()*residual.y()}.integral(-1,1);
+    double asymmetry_factor() const {
+      double deficit = 8*pi_*q_*weighted_integral(2*q_-1);
+      return 1-deficit/integral_4pi();
     }
     double integral_4pi() const {
-      return 2*constants::pi*p_.integral(-1,1);
+      return 4*pi_*q_*weighted_integral(q_-1);
     }  
   private:
-    void ensure(bool b) const {
-      if (!b)
-	throw std::runtime_error("polarization mueller tabulated_phase_function");
+    double weighted_integral(double power) const {
+      double integral = 0;
+      const std::vector<double>& x = p_.x();
+      const std::vector<double>& y = p_.y();
+      for (size_t i=0; i+1<x.size(); ++i) {
+	double x1 = x[i];
+	double x2 = x[i+1];
+	double slope = (y[i+1]-y[i])/(x2-x1);
+	double intercept = y[i]-slope*x1;
+	integral += slope/(power+2)*
+	  (pow(x2,power+2)-pow(x1,power+2));
+	integral += intercept/(power+1)*
+	  (pow(x2,power+1)-pow(x1,power+1));
+      }
+      return integral;
     }
   };
    
@@ -168,7 +226,7 @@ namespace flick {
     angular_mueller() = default;
     angular_mueller(const tabulated_phase_function& p)
       : p_{p} {
-      add(0,0,pl_function{p.x(),p.y()});
+      add(0,0,pl_function{p.x_mu(),p.y_mu()});
     }
     angular_mueller& append(size_t row, size_t col,
 			    double mu, double value) {
@@ -189,7 +247,7 @@ namespace flick {
       return *this;
     }
     angular_mueller& add(size_t row, size_t col,
-			 const pl_function& f) {
+			 const pl_function& f) {//should be tabulated phf
       elements_.push_back(element{row,col, normalize(f)});
       return *this;
     }
@@ -270,21 +328,20 @@ namespace flick {
 			     const pl_function& f2,
 			     const tabulated_phase_function& p2,
 			     double w) {
-      pe_function p = to_acos_x(pe_function{p_.x(),p_.y()});
-      std::vector<double> x = p.x();
+      std::vector<double> x = p_.x_mu();
       std::vector<double> y(x.size());
       for (size_t i=0; i<x.size(); ++i) {
-	double p = (1-w)*p1.value(x[i]) + w*p2.value(x[i]);
+	double mixed_p = (1-w)*p1.value(x[i]) + w*p2.value(x[i]);
 	y[i] = ((1-w)*f1.value(x[i])*p1.value(x[i]) +
-		w*f2.value(x[i])*p2.value(x[i])) / p;
+		w*f2.value(x[i])*p2.value(x[i])) / mixed_p;
       }
       return pl_function{x,y};
     }
     void update_phase_function(const angular_mueller& am,
 				double fractional_weight) {
       double w = fractional_weight;
-      pe_function p = pe_function{p_.x(),p_.y()};
-      pe_function amp = pe_function{am.p_.x(),am.p_.y()};
+      pe_function p = pe_function{p_.x_mu(),p_.y_mu()};
+      pe_function amp = pe_function{am.p_.x_mu(),am.p_.y_mu()};
       pl_function p1{p.x(),p.y()};
       pl_function p2{amp.x(),amp.y()};
       std::vector<double> x = p1.x();
@@ -300,6 +357,7 @@ namespace flick {
       pl_function f_new;
       for (size_t i=0; i < f.size(); ++i) {
 	double x = f.x()[i];
+	ensure(x >= -1-epsilon && x <= 1+epsilon);
 	double y = f.y()[i] / p_.value(x);
 	f_new.append({x,y});
       }
@@ -307,7 +365,7 @@ namespace flick {
     }
     void ensure(bool b) const {
       if (!b)
-	throw std::runtime_error("polarization angular_mueller");
+	throw std::runtime_error("angular_mueller");
     }
   };
 }

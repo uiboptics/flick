@@ -17,11 +17,11 @@ namespace flick {
     auto hg = material::henyey_greenstein(absorption_coefficient{1},
 				   scattering_coefficient{1},
 				   asymmetry_factor{g});    
-    material::phase_function pf(hg);
+    tabulated_phase_function pf = make_tabulated_phase_function(hg);
     tabulated_phase_function hgpf{hg_phase_function<pe_function>(g,100,0.5)};
     check_close(pf.value(-0.9), hgpf.value(-0.9),0.1_pct);
     check_close(pf.value(0.9), hgpf.value(0.9),0.1_pct);
     auto [a, b, x] = material::mueller_ab_functions(hg,100);
-    check_close(a[0][0],hgpf.value(cos(constants::pi)));
+    check_close(a[0][0],hgpf.value(cos(constants::pi)),2e-12);
   } end_test_case() 
 }

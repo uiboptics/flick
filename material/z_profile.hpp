@@ -57,7 +57,7 @@ namespace material {
       os << "column 5: Asymmetry factor" << "\n";
       for (size_t i = 0; i<h.size(); i++) {
 	p.set_position({0,0,h[i]});
-	phase_function pf(p);
+	tabulated_phase_function pf = make_tabulted_phase_function(p);
 	os << h[i] << "  " << p.absorption_coefficient() << "  "
 	   << p.scattering_coefficient() << "  "
 	   << p.real_refractive_index() << "  "

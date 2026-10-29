@@ -163,4 +163,4 @@ update-eigen:
 	fi
 
 install-shell-env:
-	@./update_shell.sh
+	@./.update_shell.sh
