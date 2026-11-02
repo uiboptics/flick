@@ -19,13 +19,14 @@ namespace flick {
   } end_test_case()
   
   begin_test_case(filter_test_B) {
-    check(filter::sentinel3(300e-9).closest_srf()==0);
-    check(filter::sentinel3(400e-9).transmittance(400e-9) > 1e-5);
-    check_small(filter::sentinel3(300e-9).transmittance(420e-9));
-    check_small(filter::sentinel3(300e-9).transmittance(380e-9));
-    check(filter::sentinel3(1090e-9).closest_srf()==20);
-    check(filter::sentinel3(938e-9).closest_srf()==19);
-  } end_test_case()
+    check(filter::sentinel3().closest_srf(300e-9)==0);
+    check(filter::sentinel3().transmittance(400e-9) > 1e-5);
+    check_small(filter::sentinel3().transmittance(300e-9));
+    check_small(filter::sentinel3().transmittance(1500e-9));
+    check(filter::sentinel3().closest_srf(1090e-9)==20);
+    check(filter::sentinel3().closest_srf(938e-9)==19);
+    check_close(filter::sentinel3().importance_sampled_wavelengths(1)[1], 412e-9,1_pct);
+ } end_test_case()
     
   begin_test_case(filter_test_C) {
     /* https://en.wikipedia.org/wiki/Standard_illuminant */
@@ -56,13 +57,15 @@ namespace flick {
     auto f2 = read<pp_function>("./toa_solar.txt");
     double wl_lo = 250e-9;
     double wl_hi = 4000e-9;
+    double wl_0 = 400e-9;
     double p = 0.003_pct;
     double fwhm = 10e-9;
     double a = f.integral(wl_lo, wl_hi);
-    double b1 = moving_average<filter::gaussian,pl_function>(f,fwhm).integral(wl_lo,wl_hi);
-    double b2 = moving_average<filter::triangular,pl_function>(f,fwhm).integral(wl_lo,wl_hi);
-    double b3 = moving_average<filter::square,pl_function>(f,fwhm).integral(wl_lo,wl_hi);
-    double b4 = moving_average<filter::gaussian,pp_function>(f2,fwhm).integral();
+    double b1 = moving_average(f,filter::gaussian(wl_0,fwhm)).integral(wl_lo,wl_hi);
+    double b2 = moving_average(f,filter::triangular(wl_0,fwhm)).integral(wl_lo,wl_hi);
+    filter::square filter(fwhm);
+    double b3 = moving_average(f,filter).integral(wl_lo,wl_hi);
+    double b4 = moving_average(f2,filter::gaussian(fwhm)).integral();
     check_close(a,b1,p);
     check_close(a,b2,p);
     check_close(a,b3,p);

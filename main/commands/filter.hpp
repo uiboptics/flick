@@ -95,8 +95,7 @@ namespace flick {
 	  std::cout << flick::filter::tabulated(f2).transmission(f).integral();
 	}
 	else if (a(2)=="sentinel3") {
-	  double wl0 = std::stod(a(3));
-	  std::cout << flick::filter::sentinel3(wl0).transmission(f).integral();
+	  std::cout << flick::filter::sentinel3().transmission(f).integral();
 	}
 	else
 	  error();

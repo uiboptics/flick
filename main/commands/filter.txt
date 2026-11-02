@@ -32,11 +32,10 @@ Parameters:
 
     'weighted_integral' <file_name_of_tabulated_filter_transmittance>
 
-    'sentinel3' <user_center_wavelength>
+    'sentinel3'
 
   Chromaticity gives the CIE 1931 2deg xyz values. The 'sentinel3'
-  option applies the OLCI spectral response function that is closest
-  to the given user center wavelength.
+  option applies the Sentinel-3 OLCI spectral response functions.
 
 Examples:
 
@@ -50,7 +49,7 @@ Examples:
   
   flick filter toa_solar.txt weighted_integral my_transmittance.txt
 
-  flick filter toa_solar.txt sentinel3 400e-9
+  flick filter toa_solar.txt sentinel3
 
   flick filter toa_solar.txt rgb
   

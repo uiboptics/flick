@@ -12,6 +12,7 @@
 #include "../material/z_profile.hpp"
 #include "../accurt_kernel_api/accurt_kernel_wrapper.hpp"
 #include "toa_sun.hpp"
+#include "../radiator/filter.hpp"
 #include "radiation_field.hpp"
 
 #include <filesystem>
@@ -191,9 +192,65 @@ Type of radiation to be detected. Valid options are
 )");
 	
 	add<double>("detector_wavelengths", {400e-9,500e-9}, R"(
-Space-separated list of radiation wavelengths [m] to be calculated and
-saved.  Note that a wavelength (e.g., 400 nm) may be written as 400e-9
-m for clarity.
+Space-separated list of radiation wavelengths [m] calculated. Note
+that a wavelength (e.g., 400 nm) may be written as 400e-9 m for
+clarity.  
+)");
+	
+	add<double>("detector_sentinel3_override", {0, 0, 0}, R"(
+Configures the simulation of top-of-atmosphere radiances measured by
+the Ocean and Land Colour Instrument (OLCI) aboard Sentinel-3. The
+value is a space-separated list containing the following three
+parameters:
+
+1) Number of wavelengths sampled within each of the 21 OLCI spectral
+   bands. The calculated radiances are weighted using the
+   top-of-atmosphere solar spectrum and the OLCI spectral response
+   function. One band-averaged spectral radiance
+   [mW m-2 nm-1 sr-1] is returned for each band.
+
+2) OLCI observation zenith angle (OZA) [degrees], as reported in the
+   Sentinel-3 OLCI Level-1 radiance product. OZA is measured from the
+   local upward vertical and has the range [0, 180] degrees. An OZA of
+   zero corresponds to a nadir observation.
+
+3) OLCI observation azimuth angle (OAA) [degrees], as reported in the
+   Sentinel-3 OLCI Level-1 radiance product. OAA is measured clockwise
+   from local geographic north and has the range (-180, 180] degrees:
+
+       north:    0 degrees
+       east:    90 degrees
+       south:  180 degrees
+       west:   -90 degrees
+
+   Equivalent angles may be supplied in the range [0, 360), in which
+   case they are internally wrapped to (-180, 180]. The supplied OAA
+   is converted internally to Flick's source-relative azimuth
+   convention.
+
+Sentinel-3 OLCI output is enabled when the first parameter is greater
+than zero. Enabling this option also overrides the following
+configuration variables:
+
+1) `detector_wavelengths`, which is set to wavelengths
+   importance-sampled according to the OLCI spectral response
+   functions and the top-of-atmosphere solar spectrum.
+
+2) `detector_height`, which is set to the model top of the atmosphere
+   at 120e3 m.
+
+3) `detector_orientation`, which is set to `down`.
+
+4) `detector_orientation_override`, which is set to the Flick polar
+   and azimuth angles corresponding to the supplied OLCI observation
+   angles.
+
+5) The final parameter of `toa_solar_multiplication`, which is not used
+   when the OLCI spectral response functions are applied.
+
+The UTC time of the Sentinel-3 overpass and the geographical position
+of the observed pixel must additionally be specified using
+`toa_solar_multiplication`.
 )");
 	
 	add<double>("reference_detector_height", 120e3, R"(
@@ -307,6 +364,7 @@ time and location.
     pl_function bottom_albedo_;
     std::vector<std::vector<fourier_field>> fourier_fields_;
     bool link_to_accurt_kernel_ = false;
+    toa_sun sun_;
   public:
     accurt(const basic_configuration& c, std::shared_ptr<material::base> material)
       : c_{c}, material_{material} {
@@ -388,6 +446,8 @@ time and location.
       return (c_.get_vector<double>("detector_orientation_override").at(0) > 1e-5);
     }
     pp_function relative_radiation() {
+      if (c_.get_vector<double>("detector_sentinel3_override").at(0) > 0)
+	c_.set<std::string>("detector_type","radiance"); 
       std::string t = c_.get<std::string>("detector_type");
       if (conical_radiation_override())
 	return relative_conical_radiation();	  
@@ -655,8 +715,7 @@ time and location.
       auto ratio = radiation_ratio(radiation);
       std::string arg = c_.get_one_string("toa_solar_multiplication");
       if (!arg.empty()) {
-	toa_sun ts(arg);
-	return toa_sun(arg).multiply_with(ratio);
+	return sun_.multiply_with(ratio);
       }
       return ratio;
     }
@@ -1022,10 +1081,28 @@ time and location.
       return af;
     }
     void run() {
-      std::string arg = c_.get_one_string("toa_solar_multiplication");
-      if (!arg.empty()) {
-	toa_sun ts(arg);
-	c_.set<double>("source_zenith_angle",ts.zenith_angle()/pi*180);
+      const std::string solar_arg = c_.get_one_string("toa_solar_multiplication");
+      if (!solar_arg.empty()) {
+	constexpr double to_degrees = 180 / std::numbers::pi;
+	sun_ = toa_sun(solar_arg);
+	c_.set<double>("source_zenith_angle",sun_.zenith_angle()*to_degrees);
+	const auto v = c_.get_vector<double>("detector_sentinel3_override");
+	const size_t n_wls = static_cast<size_t>(v.at(0));
+	if (n_wls > 0) {
+	  sun_.use_sentinel3_srf(true);
+	  const double olci_polar = size_t(v.at(1));
+	  const double olci_azimuth = size_t(v.at(2));
+	  wavelengths_ = filter::sentinel3{}.importance_sampled_wavelengths(n_wls);
+	  c_.set<double>("detector_wavelengths",wavelengths_);
+	  c_.set<double>("detector_height",120e3);
+	  c_.set<std::string>("detector_type","radiance");
+	  const double flick_polar = 180 - olci_polar;
+	  //const double flick_azimuth = std::remainder(sun_.azimuth_angle()*to_degrees-olci_azimuth,360);
+	  
+	  const double flick_azimuth = std::remainder(olci_azimuth-sun_.azimuth_angle()*to_degrees,360);
+	  
+	  c_.set<double>("detector_orientation_override",{flick_polar,flick_azimuth});
+	}
       }
       std::filesystem::create_directories(tmpdir_);
       if (c_.get_boolean("print_iops")) {

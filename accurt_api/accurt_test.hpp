@@ -329,4 +329,29 @@ namespace flick {
       check(r > 0);
     }
   } end_test_case()
+  
+  begin_test_case(accurt_test_M) {
+    // Sentinel-3 override configuration agianst Hamre et al 2026.
+    accurt::configuration ac;
+    ac.set<std::string>("toa_solar_multiplication",
+			"2023 4 22 10 14 0 59.95 5.76 0");
+    ac.set<double>("detector_sentinel3_override",{1,24,104});
+    ac.set<size_t>("stream_upper_slab_size",8);
+    material::atmosphere_ocean::configuration mc;
+    std::string mp_name = "ECOSENS_HF23_B3";
+    mc.set<std::string>("mp_names",mp_name);
+    mc.set<double>("mp_concentrations",0.97e-3);
+    mc.set<std::string>("mcdom_names",mp_name);
+    mc.set<double>("mcdom_scaling_factors",1);
+    mc.set<double>("aerosol_od",0.09);
+    auto m = std::make_shared<material::atmosphere_ocean>(mc);
+    if (accurt_is_available()) {
+      auto a =  accurt(ac, m);
+      auto r = a.relative_radiation().y();
+      check(r.size()==21);
+      check_close(r.at(0),60,9_pct);
+      check_close(r.at(2),54,1_pct);
+      check_close(r.back(),1.2,6_pct);
+    }
+  } end_test_case()
 }

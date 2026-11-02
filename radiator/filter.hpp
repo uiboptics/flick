@@ -30,8 +30,22 @@ namespace flick {
 	const Function &f = radiation_spectrum;
 	if (f.size()==1)
 	  return f.y()[0];
-	return transmission(f).integral() /
-	  transmittance_spectrum<Function>(f.x()).integral();
+	if (!use_piecewise_linear_integration())
+	  return transmission(f).integral() /
+	    transmittance_spectrum<Function>(f.x()).integral();
+	const auto wl = extract_range(f.x());
+	pl_function transmittance;
+	pl_function transmitted;
+	for (double wavelength : wl) {
+	  const double t = this->transmittance(wavelength);
+	  transmittance.append({wavelength,t});
+	  transmitted.append({wavelength,t*f.value(wavelength)});
+	}
+	return transmitted.integral()/transmittance.integral();
+      }
+    protected:
+      virtual bool use_piecewise_linear_integration() const {
+	return false;
       }
     private:
       template<typename Function>
@@ -45,15 +59,38 @@ namespace flick {
       }
     };
 
+    class tabulated : public filter {
+      pl_function t_;
+      double wavelength_shift_ = 0;
+    public:
+      tabulated(const pl_function& filter_transmittance)
+        : t_{filter_transmittance} {
+      }
+      double transmittance(double wavelength) const override {
+        return t_.value(wavelength-wavelength_shift_);
+      }
+      void shift(double wavelength) {
+        wavelength_shift_ = wavelength;
+      }
+    };
+    
     class band_filter : public filter {
     protected:
-      double wl0_{500e-9};
-      double fwhm_{10e-9};
+      double wl0_;
+      double fwhm_;
     public:
       band_filter(double center_wavelength, double fwhm)
 	: wl0_{center_wavelength}, fwhm_{fwhm} {
-	if (fwhm <= 0)
-	  throw std::invalid_argument("band_filter: fwhm must be positive");
+      }
+      band_filter(double fwhm) : band_filter(400e-9,fwhm) {
+      }
+      band_filter() : band_filter(400e-9, 10e-9) {
+      }      
+      void center_wavelength(double cwl) {
+	wl0_ = cwl;
+      }
+      double fwhm() {
+	return fwhm_;
       }
     private:
       std::vector<double> extract_range(const std::vector<double>& wl) const override {
@@ -114,21 +151,6 @@ namespace flick {
       }
     };
     
-    class tabulated : public filter {
-      pl_function t_;
-      double wavelength_shift_ = 0;
-    public:
-      tabulated(const pl_function& filter_transmittance)
-	: t_{filter_transmittance} {
-      }
-      double transmittance(double wavelength) const override {
-	return t_.value(wavelength-wavelength_shift_);
-      }
-      void shift(double wavelength) {
-	wavelength_shift_ = wavelength;
-      }
-    };
-
     template<int Lms_no>
     class cone_lms : public filter
     // Normalized human cone cell spectral sensitivity
@@ -189,41 +211,63 @@ namespace flick {
       }
     };
 
-    class sentinel3 : public filter
-    // Use closest normalized sentinel3 OLIC spectral response
+    class sentinel3 : public band_filter
+    // Use closest normalized sentinel3a OLIC spectral response
     // function around a given user wavelength
     {
       pl_function centers_;
-      std::shared_ptr<tabulated> srf_;
-      double user_center_wavelength_;
+      std::vector<pl_function> srf_;
+      std::vector<double> fwhm_;      
     public:
-      sentinel3(double user_center_wavelength)
-	: user_center_wavelength_{user_center_wavelength} {
+      sentinel3() : band_filter() {
 	std::string p = path()+"/radiator/filter_data/sentinel3/srf";
 	centers_ = read<pl_function>(p+"/center_wavelength.txt");
 	centers_.scale_x(1e-9);
-	size_t n = closest_srf();
-	pl_function f = read<pl_function>(p+"/band_"+std::to_string(n)+".txt");
-	f.scale_x(1e-9);
-	f.scale_y(1/f.integral());
-	f.add_zero_extrapolation();
-	srf_ = std::make_shared<tabulated>(tabulated(f));
-	srf_->shift(user_center_wavelength_-centers_.x()[n]);
+	for (size_t i=0; i<centers_.size(); i++) {
+	  auto f = read<pl_function>(p+"/band_"+std::to_string(i)+".txt");
+	  f.scale_x(1e-9);
+	  f.normalize();
+	  f.add_zero_extrapolation();
+	  srf_.push_back(f);
+	  fwhm_.push_back(2.35482 * sqrt(second_moment(f)));
+	}
+      }
+      const std::vector<double>& center_wavelengths() const {
+	return centers_.x();
+      }
+      std::vector<double> importance_sampled_wavelengths(size_t n_per_channel) {
+	double wl_start = srf_.front().x().front();
+	double wl_end = srf_.back().x().back();
+	size_t n_points = 10000;
+	std::vector<double> wl = range(wl_start,wl_end,n_points).linspace();
+	pl_function f(wl,std::vector<double>(wl.size(),0));
+	for (auto s : srf_) {
+	  s.add_zero_extrapolation();
+	  f = add(f, s, wl);
+	}
+	size_t n_total = n_per_channel*centers_.size();
+	double move_ends = 1.0/(3*n_total);
+	return importance_sampled(f,n_total,move_ends).x();
       }
       double transmittance(double wavelength) const override {
-	return srf_->transmittance(wavelength);
+	size_t n = closest_srf(wavelength);
+	return srf_[n].value(wavelength);
       }
-      size_t closest_srf() const {
-	double n = centers_.value(user_center_wavelength_);
+      size_t closest_srf(double wavelength) const {
+	double n = centers_.value(wavelength);
 	if (n > centers_.size()-1)
 	  return centers_.size()-1;
 	if (n < 0)
 	  return 0;
 	return std::round(n);
       }
+    protected:
+      bool use_piecewise_linear_integration() const override {
+	return true;
+      }
     };
-
-      class gaussian : public band_filter {
+      
+    class gaussian : public band_filter {
     public:
       using band_filter::band_filter;
       double transmittance(double wavelength) const override {
@@ -299,18 +343,18 @@ namespace flick {
     return rgb;
   }
 
-  template<typename Band_filter, typename Function>
-  inline Function moving_average(const Function& radiation_spectrum, double fwhm) {
-    if (fwhm > 0) {
-      auto& f = radiation_spectrum;
-      auto& wl = f.x();
-      std::vector<double> y(f.size());
-      for (size_t i=0; i<wl.size(); ++i) {
-	y[i] = Band_filter(wl[i],fwhm).weighted_average(f);
-      }
-      return Function(wl,y);
+  template<typename Function, typename BandFilter>
+  Function moving_average(const Function& radiation_spectrum, BandFilter filter) {
+    if (filter.fwhm() <= 0)
+      return radiation_spectrum;
+    auto& f = radiation_spectrum;
+    auto& wl = f.x();
+    std::vector<double> y(f.size());
+    for (size_t i=0; i<wl.size(); ++i) {
+      filter.center_wavelength(wl[i]);
+      y[i] = filter.weighted_average(f);
     }
-    return radiation_spectrum;
+    return Function(wl,y);
   }
 }
 

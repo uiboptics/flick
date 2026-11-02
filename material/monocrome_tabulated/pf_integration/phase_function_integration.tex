@@ -1,0 +1,198 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=25mm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+\newcommand{\dd}{\,\mathrm{d}}
+
+\title{Half-Angle Integration of a Tabulated Phase Function}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Phase-function convention}
+
+Let $p(\mu)$ be an azimuthally symmetric phase function, where
+\begin{equation}
+    \mu = \cos\theta,
+    \qquad -1\leq \mu\leq 1,
+    \qquad 0\leq\theta\leq\pi.
+\end{equation}
+The normalization convention used here is
+\begin{equation}
+    2\pi\int_{-1}^{1}p(\mu)\dd\mu = 1.
+    \label{eq:normalization}
+\end{equation}
+The asymmetry factor is the first angular moment,
+\begin{equation}
+    g = 2\pi\int_{-1}^{1}\mu p(\mu)\dd\mu.
+    \label{eq:g-direct}
+\end{equation}
+For a strongly forward-peaked phase function, evaluating
+Equation~\eqref{eq:g-direct} directly is undesirable: most of the normalization
+and most of $g$ come from a narrow region close to $\mu=1$, and $g$ may be very
+close to one.
+
+Using Equation~\eqref{eq:normalization}, it is better to compute the small
+deficit $1-g$:
+\begin{align}
+    1-g
+    &=2\pi\int_{-1}^{1}p(\mu)\dd\mu
+      -2\pi\int_{-1}^{1}\mu p(\mu)\dd\mu \\
+    &=2\pi\int_{-1}^{1}(1-\mu)p(\mu)\dd\mu.
+    \label{eq:deficit-mu}
+\end{align}
+The factor $1-\mu$ suppresses the sharp forward peak and makes the moment less
+sensitive to errors extremely close to $\mu=1$.
+
+\section{Half-angle coordinate}
+
+Introduce the half-angle variable
+\begin{equation}
+    x=\sin^2\left(\frac{\theta}{2}\right)
+     =\frac{1-\mu}{2},
+    \qquad
+    \mu=1-2x,
+    \qquad
+    \dd\mu=-2\dd x.
+\end{equation}
+The forward direction $\theta=0$ is mapped to $x=0$, while the backward
+direction $\theta=\pi$ is mapped to $x=1$.  Reversing the integration limits
+gives
+\begin{align}
+    2\pi\int_{-1}^{1}p(\mu)\dd\mu
+        &=4\pi\int_0^1p(1-2x)\dd x, \\
+    1-g
+        &=8\pi\int_0^1x\,p(1-2x)\dd x.
+\end{align}
+
+To obtain still more resolution near the forward direction, set
+\begin{equation}
+    x=u^q,
+    \qquad
+    u=x^{1/q}
+      =\left(\frac{1-\mu}{2}\right)^{1/q},
+    \qquad
+    \dd x=q u^{q-1}\dd u,
+    \label{eq:u-transform}
+\end{equation}
+with, for example, $q=2$ or $q=3$.  A uniform grid in $u$ corresponds to
+\begin{equation}
+    \mu(u)=1-2u^q.
+\end{equation}
+For $q>1$, this places many corresponding $\mu$ points close to $\mu=1$.
+
+The transformed normalization and deficit are
+\begin{align}
+    N
+    &=4\pi q\int_0^1
+      u^{q-1}p(1-2u^q)\dd u,
+      \label{eq:N}\\
+    D
+    &=8\pi q\int_0^1
+      u^{2q-1}p(1-2u^q)\dd u.
+      \label{eq:D}
+\end{align}
+Here $D$ is the unnormalized $1-g$ numerator.  If the tabulated phase function
+is not exactly normalized, the normalization-corrected asymmetry factor is
+\begin{equation}
+    \boxed{g=1-\frac{D}{N}}.
+    \label{eq:g-corrected}
+\end{equation}
+When $N=1$, Equation~\eqref{eq:g-corrected} reduces to $g=1-D$.
+
+\section{Interpolation in the transformed coordinate}
+
+Suppose the original table contains angles $\theta_i$ and values $p_i$.  The
+coordinates used for interpolation are
+\begin{equation}
+    \mu_i=\cos\theta_i,
+    \qquad
+    u_i=\left(\frac{1-\mu_i}{2}\right)^{1/q}.
+\end{equation}
+The pairs $(u_i,p_i)$ are sorted in increasing $u_i$.  On the interval
+$[u_i,u_{i+1}]$, the code uses the linear interpolant
+\begin{equation}
+    \widetilde p(u)=m_i u+b_i,
+    \label{eq:linear-interpolant}
+\end{equation}
+where
+\begin{equation}
+    m_i=\frac{p_{i+1}-p_i}{u_{i+1}-u_i},
+    \qquad
+    b_i=p_i-m_i u_i.
+\end{equation}
+Transforming the original points before interpolation is important.  Linear
+interpolation in $u$ and linear interpolation in $\mu$ define different
+approximations between the tabulated samples.  Interpolation in $u$ allocates
+more of the representation to the forward-angle structure.
+
+If the first tabulated angle is slightly greater than zero, then $u_0>0$.
+The implementation extends the nearest tabulated value as a constant from
+$u=0$ to $u_0$.  The same constant-endpoint convention is used near $u=1$ if
+the table does not reach $\theta=\pi$.
+
+\section{Exact integration of the linear interpolant}
+
+The transformed normalization integrand can remain sharply peaked even after
+the coordinate change.  Instead of resolving that peak with a dense generic
+quadrature rule, one can integrate Equation~\eqref{eq:linear-interpolant}
+analytically on every tabulated interval.
+
+For any exponent $a>-1$,
+\begin{align}
+    I_i(a)
+    &=\int_{u_i}^{u_{i+1}}u^a\widetilde p(u)\dd u \\
+    &=\int_{u_i}^{u_{i+1}}u^a(m_i u+b_i)\dd u \\
+    &=\frac{m_i}{a+2}
+      \left(u_{i+1}^{a+2}-u_i^{a+2}\right)
+      +\frac{b_i}{a+1}
+      \left(u_{i+1}^{a+1}-u_i^{a+1}\right).
+    \label{eq:interval-integral}
+\end{align}
+Consequently, the two required quantities are
+\begin{align}
+    N
+    &=4\pi q\sum_i I_i(q-1),
+    \label{eq:N-exact}\\
+    D
+    &=8\pi q\sum_i I_i(2q-1),
+    \label{eq:D-exact}\\
+    g
+    &=1-\frac{D}{N}.
+\end{align}
+Equations~\eqref{eq:N-exact} and~\eqref{eq:D-exact} are exact for the chosen
+piecewise-linear interpolant.  Their accuracy is therefore controlled by the
+quality and spacing of the original phase-function table, not by the number of
+additional quadrature points.  The number of points used to draw a smooth plot
+can be changed without changing $N$, $D$, or $g$.
+
+For comparison, the implementation also permits a uniform-$u$ trapezoidal rule
+and Gauss--Legendre quadrature on $u\in[0,1]$.  These are useful convergence
+checks, but the interval-analytic method is preferable when the adopted model
+is piecewise linear in $u$.
+
+\section{Quantities shown in the four-panel plot}
+
+The plotting script displays the following quantities:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Panel & Quantity \\
+\midrule
+Upper left & $p(\mu)$ and its linear interpolation in $\mu$ \\
+Upper right & $p(1-2u^q)$ and its linear interpolation in $u$ \\
+Lower left & $4\pi q\,u^{q-1}p(1-2u^q)$, whose integral is $N$ \\
+Lower right & $8\pi q\,u^{2q-1}p(1-2u^q)$, whose integral is $D$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The extra power of $u^q$ in the deficit integrand explains why its forward
+peak is much more strongly suppressed than the normalization integrand.
+
+\end{document}

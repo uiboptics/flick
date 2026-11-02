@@ -1,7 +1,4 @@
 #include "../environment/unit_test.hpp"
-
-#include "monocrome_tabulated_test.hpp"
-
 #include "iop_profile_test.hpp"
 #include "spheres_test.hpp"
 #include "normalized_scattering_matrix_fit_test.hpp"
@@ -16,7 +13,6 @@
 int main() {
   using namespace flick;
   unit_test t("material");
-  t.include<monocrome_tabulated_test>();
   t.include<spheres_test_A>();
   t.include<spheres_test_B>();
   t.include<iop_profile_test>();

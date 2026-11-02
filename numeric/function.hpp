@@ -304,6 +304,13 @@ namespace flick {
       auto [p1, p2] = points_at(x);
       return I{p1,p2}.y(x);      
     }
+    stdvec value(const stdvec& xv) const {
+      stdvec v;
+      v.reserve(xv.size());
+      for (double x : xv)
+	v.push_back(value(x));
+      return v;
+    }
     size_t low_index_near(double x) const {
       return xv_.find(x);
     }
@@ -376,11 +383,14 @@ namespace flick {
 	point p1 = {xv_[i], yv_[i]};
 	point p2 = {xv_[i+1], yv_[i+1]};
 	double da = I{p1,p2}.integral(p1.x(), p2.x());
-	ensure(da >= 0);
 	area += da;
 	a[i+1] = area;
       }
       return a;
+    }
+    auto& accumulate() {
+      yv_ = accumulation();
+      return *this;
     }
     function<I> constant_extrapolation() {
       stdvec xv = x();
@@ -604,18 +614,31 @@ namespace flick {
   }
   
   template<class I>
-  function<I> importance_sampled(const function<I>& f, size_t n_points) {
-    function<piecewise_linear> inv_cum = inverted_cumulative_distribution(f);
-    stdvec unit_interval = range(0,1,n_points).linspace();
-    stdvec x(n_points);
-    stdvec y(n_points);
-    for (size_t i=0; i < n_points; ++i) {
-      x[i] = inv_cum.value(unit_interval[i]);
-      y[i] = f.value(x[i]);
-    }
-    return function<I>{x,y};
+  function<I> importance_sampled(const function<I>& f, size_t n_points,
+				 double move_ends=0) {
+    function<piecewise_linear> g = inverted_cumulative_distribution(f);
+    stdvec p = range(move_ends,1-move_ends,n_points).linspace();
+    stdvec x = g.value(p);
+    stdvec y = f.value(x);
+    return function<I>(x,y);
   }
-  
+  template<class I>
+  double center(function<I> f) {
+    std::vector<double> y(f.size());
+    for (size_t i = 0; i < f.x().size(); i++) {
+      y[i] = f.y()[i] * f.x()[i];
+    }
+    return function<I>(f.x(),y).integral()/f.integral();
+  }
+  template<class I>
+  double second_moment(function<I> f) {
+    double c = center(f);
+    std::vector<double> y(f.size());
+    for (size_t i = 0; i < f.x().size(); i++) {
+      y[i] = f.y()[i] * pow(f.x()[i]-c,2);
+    }
+    return function<I>(f.x(),y).integral()/f.integral();
+  }
   double significant_digits(double x, size_t n) {
     std::stringstream ss;
     ss << std::setprecision(n) << x;

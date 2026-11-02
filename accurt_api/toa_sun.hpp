@@ -17,7 +17,10 @@ namespace flick {
     double longitude_;
     double spectral_width_;
     pp_function spectrum_;
+    filter::sentinel3 sentinel3_srf_;
+    bool use_sentinel3_srf_ = false;
   public:
+    toa_sun() = default;
     toa_sun(const std::string& s) {
       std::istringstream is(s);
       is >> tp_;
@@ -31,6 +34,9 @@ namespace flick {
       spectrum_ = radiator::toa_solar().spectrum();
       spectrum_.scale_y(distance_factor()*angle_factor());
     }
+    void use_sentinel3_srf(bool use) {
+      use_sentinel3_srf_ = use;
+    }
     pp_function spectrum() const {
       return band_average(spectrum_);
     }
@@ -43,6 +49,9 @@ namespace flick {
     double zenith_angle() const {
       return sp_.zenith_angle();
     }
+    double azimuth_angle() const {
+      return sp_.azimuth_angle();
+    }
   private:
     double distance_factor() const {
       earth_orbit eo(tp_.year(), tp_.day_of_year());
@@ -52,7 +61,13 @@ namespace flick {
       return std::max(0.0, cos(sp_.zenith_angle()));
     }
     pp_function band_average(const pp_function& f) const {
-      return moving_average<filter::gaussian,pp_function>(f,spectral_width_);
+      if (use_sentinel3_srf_) {
+	const auto& g = moving_average(f,sentinel3_srf_);
+	auto& cwl = sentinel3_srf_.center_wavelengths();
+	double to_mW_per_nm = 1e-6;
+	return pp_function(cwl, g.value(cwl)).scale_y(to_mW_per_nm);
+      }
+      return moving_average(f,filter::gaussian(spectral_width_));
     } 
   };
 }

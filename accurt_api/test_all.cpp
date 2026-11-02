@@ -9,7 +9,7 @@ int main() {
   }
   using namespace flick;
   unit_test t("accurt");
-  
+ 
   t.include<radiation_field_test_A>();
   t.include<radiation_field_test_B>();
   t.include<radiation_field_test_C>();
@@ -34,6 +34,7 @@ int main() {
   t.include<accurt_test_K>();
   
   t.include<accurt_test_L>();
+  t.include<accurt_test_M>();
   
   t.run_test_cases();
   return 0;
