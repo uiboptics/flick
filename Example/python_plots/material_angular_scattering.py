@@ -4,9 +4,8 @@ Wavelength dependent differential scattering cross section of spheres
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import sys
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
 s = "450e-9 650e-9 3 pure_water 294 0"
 scat_l = flick.run("iop scattering_length "+ s)

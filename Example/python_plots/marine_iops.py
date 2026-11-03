@@ -5,12 +5,9 @@ degrees are used unless otherwise specified.
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import sys
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
-path = os.environ['FLICK_PATH']+"/Example/python_plots"
-os.chdir(path)
 
 station = "ECOSENS_HF22_D1"
 user_path = "../accurt_calls/atmosphere_ocean/input"

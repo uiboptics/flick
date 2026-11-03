@@ -2,10 +2,9 @@
 Pure water and ice absorption coefficient
 """
 import matplotlib.pyplot as plt
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
 sub_command = "iop absorption_length 300e-9 700e-9 900"
 l_w = flick.run(sub_command+" pure_water 273.15 35")

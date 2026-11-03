@@ -1,9 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import sys
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
 fig, ax = plt.subplots(2,2,sharex=False)
 fig.tight_layout(pad=3)

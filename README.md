@@ -11,12 +11,13 @@ Flick is a radiative transfer modeling framework that currently supports generat
 
  - *make* - to compile, build, and test
 
- - *make install* - to make the already-built `flick` available from any directory (use a
-   different executable directory with, for example,
-   `sudo make install BINDIR=/usr/local/bin`)
+ - *make install* - to make the already-built `flick` command and Python module available
+   from any directory. For a current-user installation, use
+   `make install BINDIR="$HOME/.local/bin"`. For a system-wide installation, use
+   `sudo make install BINDIR=/usr/local/bin PYTHON_INSTALL_FLAGS=`.
 
- - *make uninstall* - to remove the installed launcher (use the same `BINDIR`
-   passed to `make install`, if any)
+ - *make uninstall* - to remove the installed launcher and Python module (use the
+   same `BINDIR` passed to `make install`, if any)
 
  - *flick help* - for further documentation and usage examples.
 

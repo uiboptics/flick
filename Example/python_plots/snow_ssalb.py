@@ -3,10 +3,9 @@ Single scattering albedo of snow
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
 command = "iop absorption_length 300e-9 700e-9 900"
 l = flick.run("iop absorption_length 300e-9 800e-9 900 pure_ice")

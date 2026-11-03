@@ -46,8 +46,10 @@ TEST_DIRS := $(filter-out main Example/% material/gas/smooth_input,$(MODULE_DIRS
 CLEAN_DIRS := $(MODULE_DIRS) 
 
 BINDIR ?= /usr/local/bin
+PYTHON ?= python3
+PYTHON_INSTALL_FLAGS ?= --user
 
-.PHONY: all with-python build test clean test-python install uninstall install-eigen update-eigen install-shell-env install-accurt-kernel update-accurt-kernel binary-mac
+.PHONY: all with-python build test clean test-python install install-python uninstall uninstall-python install-eigen update-eigen install-shell-env install-accurt-kernel update-accurt-kernel binary-mac
 
 all:	install-eigen build test
 
@@ -99,10 +101,17 @@ install:
 		echo >&2; \
 		echo "Alternatively, install system-wide:" >&2; \
 		echo "  make build" >&2; \
-		echo "  sudo make install" >&2; \
+		echo "  sudo make install PYTHON_INSTALL_FLAGS=" >&2; \
 		exit 1; \
 	}
-	@echo "Installed Flick launcher in $(BINDIR)/flick"
+	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) .
+	@echo "Installed Flick launcher in $(BINDIR)/flick and Python module"
+
+install-python:
+	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) .
+
+uninstall-python:
+	$(PYTHON) -m pip uninstall -y uiboptics-flick
 
 uninstall:
 	@if [ -L "$(BINDIR)/flick" ] && \
@@ -115,6 +124,7 @@ uninstall:
 	else \
 		echo "Flick is not installed in $(BINDIR)."; \
 	fi
+	$(PYTHON) -m pip uninstall -y uiboptics-flick
 
 
 EIGEN_DIR = external/eigen

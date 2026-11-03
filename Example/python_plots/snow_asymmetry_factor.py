@@ -3,10 +3,9 @@ Shows how the asymmetry factor of snow varies with number of volume scattering
 function expansion terms
 """
 import matplotlib.pyplot as plt
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
 n_terms = [10, 30]
 sub_command = " 500e-9 500e-9 1 snow full_mie 0.2 5e-6 0"

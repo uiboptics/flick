@@ -7,12 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import os
-import sys
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
-from pathlib import Path
-os.chdir(Path(__file__).resolve().parent)
 
 station = "ECOSENS_HF22_D1"
 show_computed_data = True

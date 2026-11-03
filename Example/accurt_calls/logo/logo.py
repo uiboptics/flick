@@ -6,18 +6,16 @@ degrees are used unless otherwise specified.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 from matplotlib import cm
 from matplotlib.colors import LightSource
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 from matplotlib.textpath import TextPath
 import flick
+flick.setup_script(__file__)
 
 from pathlib import Path
-os.chdir(Path(__file__).resolve().parent)
 
 black_background = True
 n_polar = 90

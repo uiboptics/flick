@@ -4,12 +4,9 @@ plot with plot_albedo.py
 """
 import numpy as np
 import os
-import sys
-sys.path.append(os.environ['FLICK_PATH']+'/python_script')
 import flick
+flick.setup_script(__file__)
 
-from pathlib import Path
-os.chdir(Path(__file__).resolve().parent)
 
 f = flick.relative_radiation()
 f._generate_config("toa_reflectance", "flick_tmp")

@@ -1,9 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
 colors = ['r','g','b']
 lms = ["L","M","S"]

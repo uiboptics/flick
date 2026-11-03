@@ -7,12 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import shutil
-import sys
-sys.path.append(os.environ['FLICK_PATH']+'/python_script')
 import flick
+flick.setup_script(__file__)
 
-from pathlib import Path
-os.chdir(Path(__file__).resolve().parent)
 
 full_spectral_resolution = False
 extend_to_2500nm = False

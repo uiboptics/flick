@@ -7,10 +7,9 @@ are used unless otherwise specified.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
 time_point_utc = "2022 5 20 11 24 0"
 latitude = "59.878675"

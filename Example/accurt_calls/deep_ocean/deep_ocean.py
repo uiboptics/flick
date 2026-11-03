@@ -6,12 +6,11 @@ degrees are used unless otherwise specified.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 from matplotlib import cm
 from matplotlib.colors import LightSource
 import flick
+flick.setup_script(__file__)
 
 def xyz_surface(radiance, n_polar, n_azimuth):
     r = radiance

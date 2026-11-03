@@ -34,12 +34,9 @@ with a given band_width.
 """
 import numpy as np
 import os
-import sys
-sys.path.append(os.environ['FLICK_PATH']+'/python_script')
 import flick
+flick.setup_script(__file__)
 
-from pathlib import Path
-os.chdir(Path(__file__).resolve().parent)
 
 station = 'ECOSENS_HF22_D1'
 irradiance_height = -0.5

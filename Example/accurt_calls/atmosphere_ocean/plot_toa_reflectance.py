@@ -8,10 +8,9 @@ are used throughout unless stated otherwise.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH'])
-from python_script import flick
+import flick
+flick.setup_script(__file__)
 
 wl_grid = np.linspace(400e-9,700e-9,30);
 solar_zenith_angle = 50

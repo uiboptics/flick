@@ -5,10 +5,9 @@ for large spheres
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate
-import sys
 import os
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
 n_points = 1e4
 radius = np.logspace(np.log10(1e-6), np.log10(50e-6), 30)

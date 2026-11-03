@@ -8,12 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import shutil
-import sys
-sys.path.append(os.environ['FLICK_PATH']+'/python_script')
 import flick
+flick.setup_script(__file__)
 
-path = os.environ['FLICK_PATH']+"/Example/python_plots"
-os.chdir(path)
 
 def nm_to_m(E):
     E[:,0] *= 1e-9

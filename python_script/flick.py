@@ -16,6 +16,14 @@ import shutil
 
 top_of_atmosphere = 120e3
 
+def setup_script(script_file):
+    """Run a script with its own directory as the working directory.
+
+    The Flick Python module and command-line launcher are installed by
+    ``make install``, so scripts do not need FLICK_PATH or sys.path changes.
+    """
+    os.chdir(Path(script_file).resolve().parent)
+
 def run(arguments):
     flick_output = _run_os("flick "+arguments)
     if flick_output.stdout:

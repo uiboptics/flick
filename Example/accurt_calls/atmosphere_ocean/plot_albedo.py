@@ -6,12 +6,9 @@ import numpy as np
 import matplotlib.ticker as mticker
 import matplotlib.pyplot as plt
 import os
-import sys
-sys.path.append(os.environ['FLICK_PATH']+"/python_script")
 import flick
+flick.setup_script(__file__)
 
-from pathlib import Path
-os.chdir(Path(__file__).resolve().parent)
 
 data = flick.table('output/computed_albedo.txt')
 wls = data[:,0]

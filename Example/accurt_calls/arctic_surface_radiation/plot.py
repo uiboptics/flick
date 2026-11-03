@@ -7,13 +7,11 @@ See also README.txt
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import sys
 from pathlib import Path
 
-sys.path.append(os.environ['FLICK_PATH'] + "/python_script")
 import flick
+flick.setup_script(__file__)
 
-os.chdir(Path(__file__).resolve().parent)
 
 fig, ax = plt.subplots()
 
