@@ -12,7 +12,6 @@ from pathlib import Path
 import flick
 flick.setup_script(__file__)
 
-
 fig, ax = plt.subplots()
 
 directory = Path("output")

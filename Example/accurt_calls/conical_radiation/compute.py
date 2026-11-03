@@ -12,8 +12,8 @@ This script works only with link to the external AccuRT kernel.
 """
 
 import numpy as np
-import make_config
-from make_config import c, sys, os, flick
+from make_config import c
+import flick
 
 """ See flick_tmp/config for parameter documentation """
 

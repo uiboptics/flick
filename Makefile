@@ -55,7 +55,7 @@ all:	install-eigen build test
 
 with-python:	all python
 
-build:
+build: install-eigen
 	@set -e; for dir in $(MODULE_DIRS); do \
 		$(MAKE) -C "$$dir" obj link; \
 	done

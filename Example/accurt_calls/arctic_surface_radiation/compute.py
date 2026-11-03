@@ -11,7 +11,8 @@ degrees.
 
 import numpy as np
 from dataclasses import dataclass
-from make_config import c, sys, os, flick
+from make_config import c
+import flick
 
 """ See flick_tmp/config for parameter documentation """
 

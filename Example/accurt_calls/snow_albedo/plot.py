@@ -5,7 +5,7 @@ See also README.txt
 """
 import matplotlib.pyplot as plt
 import numpy as np
-from make_config import sys, os, flick
+import os
 
 fig, ax = plt.subplots()
 
