@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uiboptics-flick"
+version = "0.1.0"
+description = "Python wrapper for the Flick radiative transfer framework"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "scipy",
+]
+
+[tool.setuptools]
+package-dir = {"" = "python_script"}
+py-modules = ["flick", "snow_optics"]
