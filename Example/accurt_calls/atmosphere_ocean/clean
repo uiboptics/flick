@@ -1,7 +1,0 @@
-rm -fr flick_tmp
-rm -f *~
-rm -f ./#*#  
-rm -f output/*_plotted_radiation*.pdf
-rm -f output/*_computed_*.txt
-
-

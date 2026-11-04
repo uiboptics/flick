@@ -27,10 +27,8 @@ class deep_ocean:
     def __init__(self, depth, sza):
         self.depth = depth
         self.F_0 = 1
-        self.config = flick.basic_radiation()
-        self.config._generate_config('toa_reflectance', './flick_tmp')
+        self.config = flick.accurt_config() 
         self.config.set('detector_height', -depth)
-        self.config.set_n_angles(100)
         self.config.set("n_heights", 8)
         self.config.set("pressure",0.001)
         self.config.set("source_zenith_angle", sza)
@@ -41,6 +39,7 @@ class deep_ocean:
         self.config.set("cdom_440", 0.004)
         self.config.set("bottom_depth", depth)
         self.config.set('detector_wavelengths', [430e-9])
+        self.config.set_streams(34)
 
     def run(self):
         return flick.run('accurt ./flick_tmp/config')

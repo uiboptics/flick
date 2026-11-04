@@ -8,7 +8,6 @@ import os
 import flick
 flick.setup_script(__file__)
 
-
 c = flick.accurt_config()
 c.set('detector_orientation','down')
 c.set('detector_type','plane_irradiance')

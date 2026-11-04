@@ -9,7 +9,8 @@ degrees.
 """
 
 import numpy as np
-from make_config import c, flick
+from make_config import c
+import flick
 
 """ See flick_tmp/config for parameter documentation """
 
