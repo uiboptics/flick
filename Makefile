@@ -49,6 +49,14 @@ BINDIR ?= /usr/local/bin
 PYTHON ?= python3
 PYTHON_INSTALL_FLAGS ?= --user
 
+# Debian and Ubuntu mark their system Python as externally managed (PEP 668),
+# which makes even a user install require pip's explicit opt-in.  Add that
+# opt-in only for Linux, only when the marker is present, and only for the
+# default user-scoped installation.  Explicit/system-wide installs remain
+# under the caller's control.
+PYTHON_EXTERNALLY_MANAGED := $(shell $(PYTHON) -c 'import os, sysconfig; print(int(os.path.isfile(os.path.join(sysconfig.get_path("stdlib"), "EXTERNALLY-MANAGED"))))' 2>/dev/null)
+PYTHON_INSTALL_FLAGS_EFFECTIVE = $(PYTHON_INSTALL_FLAGS) $(if $(and $(filter Linux,$(shell uname -s)),$(filter 1,$(PYTHON_EXTERNALLY_MANAGED)),$(filter --user,$(PYTHON_INSTALL_FLAGS)),$(if $(filter --break-system-packages,$(PYTHON_INSTALL_FLAGS)),,1)),--break-system-packages)
+
 .PHONY: all with-python build test clean test-python install install-python uninstall uninstall-python install-eigen update-eigen install-shell-env install-accurt-kernel update-accurt-kernel binary-mac
 
 all:	install-eigen build test
@@ -104,11 +112,11 @@ install:
 		echo "  sudo make install PYTHON_INSTALL_FLAGS=" >&2; \
 		exit 1; \
 	}
-	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) .
+	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS_EFFECTIVE) .
 	@echo "Installed Flick launcher in $(BINDIR)/flick and Python module"
 
 install-python:
-	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) .
+	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS_EFFECTIVE) .
 
 uninstall-python:
 	$(PYTHON) -m pip uninstall -y uiboptics-flick

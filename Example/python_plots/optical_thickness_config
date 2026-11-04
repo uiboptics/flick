@@ -251,6 +251,64 @@ and azimuth angle, respectively.
 detector_radiance_distribution_override = 0 0 
 
 /*
+Configures the simulation of top-of-atmosphere radiances measured by
+the Ocean and Land Colour Instrument (OLCI) aboard Sentinel-3. The
+value is a space-separated list containing the following three
+parameters:
+
+1) Number of wavelengths sampled within each of the 21 OLCI spectral
+   bands. The calculated radiances are weighted using the
+   top-of-atmosphere solar spectrum and the OLCI spectral response
+   function. One band-averaged spectral radiance
+   [mW m-2 nm-1 sr-1] is returned for each band.
+
+2) OLCI observation zenith angle (OZA) [degrees], as reported in the
+   Sentinel-3 OLCI Level-1 radiance product. OZA is measured from the
+   local upward vertical and has the range [0, 180] degrees. An OZA of
+   zero corresponds to a nadir observation.
+
+3) OLCI observation azimuth angle (OAA) [degrees], as reported in the
+   Sentinel-3 OLCI Level-1 radiance product. OAA is measured clockwise
+   from local geographic north and has the range (-180, 180] degrees:
+
+       north:    0 degrees
+       east:    90 degrees
+       south:  180 degrees
+       west:   -90 degrees
+
+   Equivalent angles may be supplied in the range [0, 360), in which
+   case they are internally wrapped to (-180, 180]. The supplied OAA
+   is converted internally to Flick's source-relative azimuth
+   convention.
+
+Sentinel-3 OLCI output is enabled when the first parameter is greater
+than zero. Enabling this option also overrides the following
+configuration variables:
+
+1) `detector_wavelengths`, which is set to wavelengths
+   importance-sampled according to the OLCI spectral response
+   functions and the top-of-atmosphere solar spectrum.
+
+2) `detector_height`, which is set to the model top of the atmosphere
+   at 120e3 m.
+
+3) `detector_orientation`, which is set to `down`.
+
+4) `detector_orientation_override`, which is set to the Flick polar
+   and azimuth angles corresponding to the supplied OLCI observation
+   angles.
+
+5) The final parameter of `toa_solar_multiplication`, which is not used
+   when the OLCI spectral response functions are applied.
+
+The UTC time of the Sentinel-3 overpass and the geographical position
+of the observed pixel must additionally be specified using
+`toa_solar_multiplication`.
+*/
+
+detector_sentinel3_override = 0 0 0 
+
+/*
 Type of radiation to be detected. Valid options are
 ‘plane_irradiance’, ‘scalar_irradiance’, and ‘radiance’.
 */
@@ -258,9 +316,9 @@ Type of radiation to be detected. Valid options are
 detector_type = radiance 
 
 /*
-Space-separated list of radiation wavelengths [m] to be calculated and
-saved.  Note that a wavelength (e.g., 400 nm) may be written as 400e-9
-m for clarity.
+Space-separated list of radiation wavelengths [m] calculated. Note
+that a wavelength (e.g., 400 nm) may be written as 400e-9 m for
+clarity.  
 */
 
 detector_wavelengths = 4e-07 5e-07 
@@ -401,7 +459,7 @@ mp_scattering_scaling_factors = 1
 Number of grid points used to sample the volume scattering function.
 */
 
-n_angles = 27 
+n_angles = 50 
 
 /*
 Number of grid points used sample vertical atmospheric gas profiles.
