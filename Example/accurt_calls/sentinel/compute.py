@@ -15,7 +15,10 @@ timefame of the optics module.
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.ticker import LogLocator, NullFormatter
 from types import SimpleNamespace
+from time import perf_counter
 import flick
 
 flick.setup_script(__file__)
@@ -155,8 +158,12 @@ class cost_function:
         """
         cls.parameter = parameter
         cls.modeled = np.asarray(modeled_radiance(cls.parameter))[:,1]
-        print(cls.modeled)
         cls.value = np.mean((cls.modeled - cls.measured) ** 2)
+        return cls
+
+    @classmethod
+    def my_super_version(cls, parameter):
+        """ better method could be implement here"""
         return cls
 
     @classmethod
@@ -175,14 +182,178 @@ class optimizer:
     """Optimize the model parameters by minimizing the cost function."""
 
     best = None
+    best_history = []
+    cost_history = []
+    figure = None
+    spectrum_axis = None
+    summary_axis = None
+    start_time = None
+
+    @classmethod
+    def format_spectrum_axis(cls):
+        """Show every OLCI band centre and both major and minor grids."""
+        wavelengths = cost_function.wavelengths
+        labels = [f"{wavelength:g}" for wavelength in wavelengths]
+
+        cls.spectrum_axis.set_xticks(wavelengths, labels=labels)
+        cls.spectrum_axis.tick_params(axis="x", labelrotation=90, labelsize=8)
+        cls.spectrum_axis.xaxis.set_minor_locator(
+            LogLocator(base=10, subs=np.arange(2, 10) * 0.1)
+        )
+        cls.spectrum_axis.yaxis.set_minor_locator(
+            LogLocator(base=10, subs=np.arange(2, 10) * 0.1)
+        )
+        cls.spectrum_axis.xaxis.set_minor_formatter(NullFormatter())
+        cls.spectrum_axis.yaxis.set_minor_formatter(NullFormatter())
+        cls.spectrum_axis.grid(True, which="major", alpha=0.35)
+        cls.spectrum_axis.grid(
+            True, which="minor", linestyle=":", linewidth=0.6, alpha=0.3
+        )
+
+    @classmethod
+    def initialize_plot(cls):
+        """Create the live spectrum and optimization-summary display."""
+        if cls.figure is not None and plt.fignum_exists(cls.figure.number):
+            plt.close(cls.figure)
+        plt.ion()
+        cls.figure, (cls.spectrum_axis, cls.summary_axis) = plt.subplots(
+            1,
+            2,
+            figsize=(12, 5),
+            gridspec_kw={"width_ratios": (3, 2)},
+        )
+        cls.figure.canvas.manager.set_window_title("Sentinel spectrum optimization")
+
+        cls.spectrum_axis.plot(
+            cost_function.wavelengths,
+            cost_function.measured,
+            "o-",
+            label="Measured",
+        )
+        cls.spectrum_axis.set(
+            xlabel="Wavelength [nm]",
+            ylabel=r"Spectral radiance [mW m$^{-2}$ nm$^{-1}$ sr$^{-1}$]",
+            title="Measured and best spectra",
+            xscale="log",
+            yscale="log",
+        )
+        cls.format_spectrum_axis()
+        cls.spectrum_axis.legend()
+
+        cls.summary_axis.set_title("Current best parameters")
+        cls.summary_axis.axis("off")
+        cls.summary_axis.text(
+            0.5,
+            0.5,
+            "Waiting for the first evaluation...",
+            ha="center",
+            va="center",
+            transform=cls.summary_axis.transAxes,
+        )
+        cls.figure.tight_layout()
+        cls.figure.canvas.draw()
+        cls.figure.canvas.flush_events()
+
+    @classmethod
+    def update_plot(cls):
+        """Refresh the figure after one cost-function evaluation."""
+        if cls.figure is None or not plt.fignum_exists(cls.figure.number):
+            cls.initialize_plot()
+
+        cls.spectrum_axis.clear()
+        for number, previous_best in enumerate(cls.best_history[:-1]):
+            cls.spectrum_axis.plot(
+                cost_function.wavelengths,
+                previous_best.modeled,
+                "o-",
+                color="0.75",
+                alpha=0.9,
+                label="Previous best" if number == 0 else None,
+            )
+        cls.spectrum_axis.plot(
+            cost_function.wavelengths,
+            cost_function.measured,
+            "o-",
+            label="Measured",
+        )
+        cls.spectrum_axis.plot(
+            cost_function.wavelengths,
+            cls.best.modeled,
+            "o-",
+            label="Current best",
+        )
+        cls.spectrum_axis.set(
+            xlabel="Wavelength [nm]",
+            ylabel=r"Spectral radiance [mW m$^{-2}$ nm$^{-1}$ sr$^{-1}$]",
+            title="Measured and best spectra",
+            xscale="log",
+            yscale="log",
+        )
+        cls.format_spectrum_axis()
+        cls.spectrum_axis.legend()
+
+        cls.summary_axis.clear()
+        cls.summary_axis.set_title("Current best parameters")
+        cls.summary_axis.axis("off")
+        rows = [
+            [name, f"{lower:#.1e}", f"{value:#.1e}", f"{upper:#.1e}"]
+            for name, lower, value, upper in zip(
+                parameter.name,
+                parameter.lower_limit,
+                cls.best.parameter.value,
+                parameter.upper_limit,
+            )
+        ]
+        table = cls.summary_axis.table(
+            cellText=rows,
+            colLabels=["Parameter", "Lower limit", "Best value", "Upper limit"],
+            cellLoc="center",
+            colLoc="center",
+            loc="center",
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(9)
+        table.scale(0.9, 1.5)
+        cls.summary_axis.text(
+            0.5,
+            0.12,
+            (
+                f"Best cost-function value: {cls.best.value:#.1e}\n"
+                f"Total time used: {perf_counter() - cls.start_time:#.1e} s"
+            ),
+            ha="center",
+            va="center",
+            fontsize=11,
+            transform=cls.summary_axis.transAxes,
+        )
+
+        cls.figure.tight_layout()
+        cls.figure.canvas.draw_idle()
+        cls.figure.canvas.flush_events()
+        plt.pause(0.001)
 
     @classmethod
     def store_if_best(cls, candidate):
         if cls.best is None or candidate.value < cls.best.value:
             cls.best = candidate.copy()
-
+            cls.best_history.append(cls.best)
+    
     @classmethod
-    def lucky_guess(cls, n_iterations=5):
+    def initialize_optimization(cls):
+        cls.best = None
+        cls.best_history = []
+        cls.cost_history = []
+        cls.start_time = perf_counter()
+        cls.initialize_plot()
+        
+    @classmethod
+    def update_optimization(cls, evaluated):
+        cls.cost_history.append(evaluated.value)
+        cls.store_if_best(evaluated)
+        cls.update_plot()
+        
+    @classmethod
+    def lucky_guess(cls, n_iterations=10):
         """Perform a simple random-search inversion.
 
         This is probably the simplest and slowest optimization algorithm.
@@ -196,16 +367,38 @@ class optimizer:
         with finite-difference derivatives, Powell's method, L-BFGS-B,
         or another suitable optimization method.
         """
+        cls.initialize_optimization()
         for _ in range(n_iterations):
             candidate = parameter.set_random()
-            cls.store_if_best(cost_function.simple_least_square(candidate))
+            evaluated = cost_function.simple_least_square(candidate)
+            cls.update_optimization(evaluated)
+        return cls.best
+
+    @classmethod
+    def my_serious_version_not_based_on_luck(cls):
+        cls.initialize_optimization()
+        tolerance = 1; # find suitable value from cost function
+        happy = False
+        while not happy:
+            """
+            better optimization ideas could be implemented here. AI could help.
+            candidate = find_parameters_in_a_clever_way()
+            """
+            evaluated = cost_function.my_super_version(candidate)
+            cls.update_optimization(evaluated)
+            if cls.best.value < tolerance:
+                happy = True
         return cls.best
     
 
 if __name__ == "__main__":
     set_fixed_parameter()
-    best = optimizer.lucky_guess(5)
-    
-#output = np.column_stack((bubble_volume_fractions, albedo))
-#flick.save_two_columns(output, "albedo_versus_volume_fraction.txt")
+    best = optimizer.lucky_guess(8)
 
+    p = best.parameter.value
+    output = np.column_stack((np.arange(1, len(p) + 1), p))
+    flick.save_two_columns(output, "best_parameter_values.txt")
+    optimizer.figure.savefig("output/optimization_result.png", dpi=300)
+
+    plt.ioff()
+    plt.show()
