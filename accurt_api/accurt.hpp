@@ -234,7 +234,7 @@ configuration variables:
 
 1) `detector_wavelengths`, which is set to wavelengths
    importance-sampled according to the OLCI spectral response
-   functions and the top-of-atmosphere solar spectrum.
+   functions.
 
 2) `detector_height`, which is set to the model top of the atmosphere
    at 120e3 m.
@@ -1090,17 +1090,16 @@ time and location.
 	const size_t n_wls = static_cast<size_t>(v.at(0));
 	if (n_wls > 0) {
 	  sun_.use_sentinel3_srf(true);
-	  const double olci_polar = size_t(v.at(1));
-	  const double olci_azimuth = size_t(v.at(2));
+	  const double olci_polar = v.at(1);
+	  const double olci_azimuth = v.at(2);
 	  wavelengths_ = filter::sentinel3{}.importance_sampled_wavelengths(n_wls);
 	  c_.set<double>("detector_wavelengths",wavelengths_);
 	  c_.set<double>("detector_height",120e3);
 	  c_.set<std::string>("detector_type","radiance");
 	  const double flick_polar = 180 - olci_polar;
-	  //const double flick_azimuth = std::remainder(sun_.azimuth_angle()*to_degrees-olci_azimuth,360);
-	  
-	  const double flick_azimuth = std::remainder(olci_azimuth-sun_.azimuth_angle()*to_degrees,360);
-	  
+	  const double sun_azimuth_degrees = sun_.azimuth_angle() * to_degrees;
+	  const double flick_azimuth =
+	    std::remainder(sun_azimuth_degrees - olci_azimuth, 360.0);
 	  c_.set<double>("detector_orientation_override",{flick_polar,flick_azimuth});
 	}
       }

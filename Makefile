@@ -2,7 +2,7 @@
 # Read README.md for information about compilation and running
 
 # Configure both root and direct module builds without requiring shell-profile
-# variables. The optional install-shell-env target remains for older workflows.
+# variables.
 include flick-env.mk
 
 ACCURT_KERNEL_DIR ?= $(FLICK_PATH)/external/accurt-kernel
@@ -57,11 +57,9 @@ PYTHON_INSTALL_FLAGS ?= --user
 PYTHON_EXTERNALLY_MANAGED := $(shell $(PYTHON) -c 'import os, sysconfig; print(int(os.path.isfile(os.path.join(sysconfig.get_path("stdlib"), "EXTERNALLY-MANAGED"))))' 2>/dev/null)
 PYTHON_INSTALL_FLAGS_EFFECTIVE = $(PYTHON_INSTALL_FLAGS) $(if $(and $(filter Linux,$(shell uname -s)),$(filter 1,$(PYTHON_EXTERNALLY_MANAGED)),$(filter --user,$(PYTHON_INSTALL_FLAGS)),$(if $(filter --break-system-packages,$(PYTHON_INSTALL_FLAGS)),,1)),--break-system-packages)
 
-.PHONY: all with-python build test clean test-python install install-python uninstall uninstall-python install-eigen update-eigen install-shell-env install-accurt-kernel update-accurt-kernel binary-mac
+.PHONY: all build test clean test-python install install-python uninstall uninstall-python install-eigen update-eigen install-accurt-kernel update-accurt-kernel binary-mac binary-linux
 
 all:	install-eigen build test
-
-with-python:	all python
 
 build: install-eigen
 	@set -e; for dir in $(MODULE_DIRS); do \
@@ -164,6 +162,12 @@ update-accurt-kernel:
 binary-mac: install-eigen install-accurt-kernel build
 	@./scripts/package_binary_mac.sh
 
+# Build a relocatable Linux archive containing Flick, its run-time input data,
+# Eigen, the AccuRT kernel sources, and its non-glibc shared libraries.  The
+# resulting archive is written below dist/.
+binary-linux: install-eigen install-accurt-kernel build
+	@./scripts/package_binary_linux.sh
+
 install-eigen:
 	@if [ ! -d "$(EIGEN_DIR)" ]; then \
 		echo "Eigen not found. Cloning from $(EIGEN_REPO)..."; \
@@ -180,6 +184,3 @@ update-eigen:
 		echo "Eigen repository not found in $(EIGEN_DIR). Run 'make install-eigen' first."; \
 		exit 1; \
 	fi
-
-install-shell-env:
-	@./.update_shell.sh
