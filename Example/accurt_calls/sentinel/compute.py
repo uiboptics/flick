@@ -16,9 +16,10 @@ timefame of the optics module.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import LogLocator, NullFormatter
+from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
 from types import SimpleNamespace
 from time import perf_counter
+import textwrap
 import flick
 
 flick.setup_script(__file__)
@@ -90,9 +91,9 @@ class parameter:
 
     name = ["aerosol_od","cdom_440","chl_concentration","nap_concentration"]
     lower_limit = np.array([0.02, 0.02, 0.1e-6, 0.2e-3])
-    upper_limit = np.array([1.0, 1.0, 10e-6, 22e-3])
+    upper_limit = np.array([1.0, 1.0, 15e-6, 25e-3])
     value = (upper_limit + lower_limit) / 2
-
+    machup = np.array([0.14, 0.14, 6.8e-6, 21e-3-6.8e-6/0.01])
     rng = np.random.default_rng()
 
     @classmethod
@@ -178,16 +179,24 @@ class cost_function:
         )
 
     
-class optimizer:
-    """Optimize the model parameters by minimizing the cost function."""
+class optimization_plot:
+    """Display the live spectrum and summary for an optimization run."""
 
-    best = None
-    best_history = []
-    cost_history = []
     figure = None
     spectrum_axis = None
     summary_axis = None
-    start_time = None
+
+    @staticmethod
+    def wrap_table_text(value, width):
+        """Wrap table labels at spaces and underscores."""
+        wrappable = str(value).replace("_", "_ ")
+        lines = textwrap.wrap(
+            wrappable,
+            width=width,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        return "\n".join(lines).replace("_ ", "_")
 
     @classmethod
     def format_spectrum_axis(cls):
@@ -203,15 +212,21 @@ class optimizer:
         cls.spectrum_axis.yaxis.set_minor_locator(
             LogLocator(base=10, subs=np.arange(2, 10) * 0.1)
         )
+        cls.spectrum_axis.yaxis.set_major_formatter(
+            FuncFormatter(
+                lambda value, _: np.format_float_positional(value, trim="-")
+            )
+        )
         cls.spectrum_axis.xaxis.set_minor_formatter(NullFormatter())
         cls.spectrum_axis.yaxis.set_minor_formatter(NullFormatter())
+        cls.spectrum_axis.margins(x=0.02)
         cls.spectrum_axis.grid(True, which="major", alpha=0.35)
         cls.spectrum_axis.grid(
             True, which="minor", linestyle=":", linewidth=0.6, alpha=0.3
         )
 
     @classmethod
-    def initialize_plot(cls):
+    def initialize(cls):
         """Create the live spectrum and optimization-summary display."""
         if cls.figure is not None and plt.fignum_exists(cls.figure.number):
             plt.close(cls.figure)
@@ -255,19 +270,19 @@ class optimizer:
         cls.figure.canvas.flush_events()
 
     @classmethod
-    def update_plot(cls):
+    def update(cls, optimization):
         """Refresh the figure after one cost-function evaluation."""
         if cls.figure is None or not plt.fignum_exists(cls.figure.number):
-            cls.initialize_plot()
+            cls.initialize()
 
         cls.spectrum_axis.clear()
-        for number, previous_best in enumerate(cls.best_history[:-1]):
+        for number, previous_best in enumerate(optimization.best_history[:-1]):
             cls.spectrum_axis.plot(
                 cost_function.wavelengths,
                 previous_best.modeled,
                 "o-",
-                color="0.75",
-                alpha=0.9,
+                color="0.85",
+                alpha=0.8,
                 label="Previous best" if number == 0 else None,
             )
         cls.spectrum_axis.plot(
@@ -278,7 +293,7 @@ class optimizer:
         )
         cls.spectrum_axis.plot(
             cost_function.wavelengths,
-            cls.best.modeled,
+            optimization.best.modeled,
             "o-",
             label="Current best",
         )
@@ -296,30 +311,55 @@ class optimizer:
         cls.summary_axis.set_title("Current best parameters")
         cls.summary_axis.axis("off")
         rows = [
-            [name, f"{lower:#.1e}", f"{value:#.1e}", f"{upper:#.1e}"]
-            for name, lower, value, upper in zip(
+            [
+                cls.wrap_table_text(name, 12),
+                f"{lower:#.1e}",
+                f"{value:#.1e}",
+                f"{upper:#.1e}",
+                f"{value / machup:#.2g}" if np.isfinite(machup) and machup != 0 else "N/A",
+            ]
+            for name, lower, value, upper, machup in zip(
                 parameter.name,
                 parameter.lower_limit,
-                cls.best.parameter.value,
+                optimization.best.parameter.value,
                 parameter.upper_limit,
+                parameter.machup,
             )
         ]
         table = cls.summary_axis.table(
             cellText=rows,
-            colLabels=["Parameter", "Lower limit", "Best value", "Upper limit"],
+            colLabels=[
+                cls.wrap_table_text(label, 10)
+                for label in (
+                    "Parameter",
+                    "Lower limit",
+                    "Best value",
+                    "Upper limit",
+                    "Best / matchup",
+                )
+            ],
             cellLoc="center",
             colLoc="center",
             loc="center",
         )
         table.auto_set_font_size(False)
         table.set_fontsize(9)
-        table.scale(0.9, 1.5)
+        table.scale(0.9, 1.4)
+        for row in range(len(rows) + 1):
+            line_count = max(
+                table[row, column].get_text().get_text().count("\n") + 1
+                for column in range(5)
+            )
+            for column in range(5):
+                cell = table[row, column]
+                cell.set_height(cell.get_height() * line_count)
         cls.summary_axis.text(
             0.5,
             0.12,
             (
-                f"Best cost-function value: {cls.best.value:#.1e}\n"
-                f"Total time used: {perf_counter() - cls.start_time:#.1e} s"
+                f"Best cost-function value: {optimization.best.value:#.1e}\n"
+                f"Iterations completed: {len(optimization.cost_history)}\n"
+                f"Total time used: {perf_counter() - optimization.start_time:#.1e} s"
             ),
             ha="center",
             va="center",
@@ -332,6 +372,16 @@ class optimizer:
         cls.figure.canvas.flush_events()
         plt.pause(0.001)
 
+
+class optimizer:
+    """Optimize the model parameters by minimizing the cost function."""
+
+    best = None
+    best_history = []
+    cost_history = []
+    start_time = None
+    plot = optimization_plot
+
     @classmethod
     def store_if_best(cls, candidate):
         if cls.best is None or candidate.value < cls.best.value:
@@ -339,18 +389,18 @@ class optimizer:
             cls.best_history.append(cls.best)
     
     @classmethod
-    def initialize_optimization(cls):
+    def initialize(cls):
         cls.best = None
         cls.best_history = []
         cls.cost_history = []
         cls.start_time = perf_counter()
-        cls.initialize_plot()
+        cls.plot.initialize()
         
     @classmethod
-    def update_optimization(cls, evaluated):
+    def update(cls, evaluated):
         cls.cost_history.append(evaluated.value)
         cls.store_if_best(evaluated)
-        cls.update_plot()
+        cls.plot.update(cls)
         
     @classmethod
     def lucky_guess(cls, n_iterations=10):
@@ -367,16 +417,16 @@ class optimizer:
         with finite-difference derivatives, Powell's method, L-BFGS-B,
         or another suitable optimization method.
         """
-        cls.initialize_optimization()
+        cls.initialize()
         for _ in range(n_iterations):
             candidate = parameter.set_random()
             evaluated = cost_function.simple_least_square(candidate)
-            cls.update_optimization(evaluated)
+            cls.update(evaluated)
         return cls.best
 
     @classmethod
-    def my_serious_version_not_based_on_luck(cls):
-        cls.initialize_optimization()
+    def my_version_not_based_on_luck(cls):
+        cls.initialize()
         tolerance = 1; # find suitable value from cost function
         happy = False
         while not happy:
@@ -385,7 +435,7 @@ class optimizer:
             candidate = find_parameters_in_a_clever_way()
             """
             evaluated = cost_function.my_super_version(candidate)
-            cls.update_optimization(evaluated)
+            cls.update(evaluated)
             if cls.best.value < tolerance:
                 happy = True
         return cls.best
@@ -398,7 +448,7 @@ if __name__ == "__main__":
     p = best.parameter.value
     output = np.column_stack((np.arange(1, len(p) + 1), p))
     flick.save_two_columns(output, "best_parameter_values.txt")
-    optimizer.figure.savefig("output/optimization_result.png", dpi=300)
+    optimizer.plot.figure.savefig("output/optimization_result.png", dpi=300)
 
     plt.ioff()
     plt.show()
