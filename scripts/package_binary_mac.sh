@@ -36,8 +36,17 @@ mapping=$(mktemp "${TMPDIR:-/tmp}/flick-libraries.XXXXXX")
 trap 'rm -f "$mapping"' EXIT
 
 rm -rf "$stage"
-mkdir -p "$stage/bin" "$stage/lib" "$stage/resources/external" "$dist_dir"
+mkdir -p "$stage/bin" "$stage/lib" "$stage/python-package/python_script" \
+    "$stage/resources/external" "$dist_dir"
 cp "$executable" "$stage/bin/flick-bin"
+
+# Bundle the lightweight Python interface so the binary installer can make
+# `import flick` available without requiring a Flick source checkout.
+cp "$project_dir/pyproject.toml" "$project_dir/README.md" \
+    "$stage/python-package/"
+cp "$project_dir/python_script/flick.py" \
+    "$project_dir/python_script/snow_optics.py" \
+    "$stage/python-package/python_script/"
 
 # Retain the complete project data set.  Source and build-only files are
 # excluded, except for the explicitly requested Eigen and AccuRT trees.
@@ -141,6 +150,8 @@ usage() {
 Usage: ./install.sh [--prefix DIRECTORY] [--force]
 
 Install Flick for the current user (default prefix: $HOME/.local).
+The Flick Python interface and its dependencies are installed with
+"python3 -m pip install --user".
 Use --force to replace an existing installation at the selected prefix.
 EOF
 }
@@ -180,6 +191,15 @@ install_dir="$prefix/share/flick"
 bin_dir="$prefix/bin"
 launcher="$bin_dir/flick"
 
+command -v python3 >/dev/null 2>&1 || {
+    echo "python3 is required to install the Flick Python interface." >&2
+    exit 1
+}
+python3 -m pip --version >/dev/null 2>&1 || {
+    echo "pip for python3 is required to install the Flick Python interface." >&2
+    exit 1
+}
+
 if [ "$source_dir" = "$install_dir" ]; then
     echo "Flick is already installed in $install_dir"
     exit 0
@@ -198,14 +218,16 @@ fi
 mkdir -p "$prefix/share" "$bin_dir"
 temporary="$prefix/share/.flick-install.$$"
 backup="$prefix/share/.flick-backup.$$"
+installed_new=0
 cleanup() {
     rm -rf "$temporary"
+    if [ "$installed_new" -eq 1 ] && [ -e "$install_dir" ]; then
+        rm -rf "$install_dir"
+    fi
     if [ -e "$backup" ]; then
-        if [ ! -e "$install_dir" ]; then
-            mv "$backup" "$install_dir"
-        else
-            rm -rf "$backup"
-        fi
+        mv "$backup" "$install_dir"
+    elif [ -L "$launcher" ] && [ "$(readlink "$launcher")" = "$install_dir/flick" ]; then
+        rm "$launcher"
     fi
 }
 trap cleanup EXIT
@@ -215,12 +237,15 @@ if [ -e "$install_dir" ]; then
     mv "$install_dir" "$backup"
 fi
 mv "$temporary" "$install_dir"
+installed_new=1
 ln -sfn "$install_dir/flick" "$launcher"
+python3 -m pip install --user "$install_dir/python-package"
 rm -rf "$backup"
 trap - EXIT
 
 echo "Installed Flick in $install_dir"
 echo "Created $launcher"
+echo "Installed the Flick Python interface for $(python3 -c 'import sys; print(sys.executable)')"
 
 case ":${PATH:-}:" in
     *:"$bin_dir":*) ;;
@@ -282,6 +307,11 @@ elif [ -e "$launcher" ] || [ -L "$launcher" ]; then
 fi
 
 if [ -d "$install_dir" ]; then
+    if command -v python3 >/dev/null 2>&1 && python3 -m pip --version >/dev/null 2>&1; then
+        python3 -m pip uninstall -y uiboptics-flick
+    else
+        echo "Warning: python3/pip was not found; the Flick Python interface was not removed." >&2
+    fi
     rm -rf "$install_dir"
     echo "Removed $install_dir"
 else
@@ -301,6 +331,12 @@ Install for the current user so that it can be run from any directory:
 
     ./install.sh
 
+The installer also uses python3 and pip to install the lightweight Flick
+Python interface, NumPy, SciPy, and Matplotlib for the current user. After
+installation, the bundled examples can be run directly, for example:
+
+    python3 resources/Example/python_plots/cie_chromaticity.py
+
 If ~/.local/bin is not already in PATH, the installer prints the line to add
 to your shell profile. To select another location, use for example:
 
@@ -310,8 +346,10 @@ Remove that installation with:
 
     ./uninstall.sh
 
-This package is self-contained and does not require compilation. It is built
-for $arch Macs and may require a macOS version at least as new as the build Mac.
+The Flick binary is self-contained and does not require compilation. Installing
+the Python interface may use the network if its Python dependencies are not
+already installed. The binary is built for $arch Macs and may require a macOS
+version at least as new as the build Mac.
 The AccuRT kernel is distributed under its license in:
 
     resources/external/accurt-kernel/AccuRT-license-NC-v2.pdf

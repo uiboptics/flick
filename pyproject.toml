@@ -9,6 +9,7 @@ description = "Python wrapper for the Flick radiative transfer framework"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "matplotlib",
     "numpy",
     "scipy",
 ]
