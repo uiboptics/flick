@@ -349,7 +349,7 @@ time and location.
   private:
     basic_configuration c_;
     std::shared_ptr<material::base> material_;
-    const std::string tmpdir_ = c_.get<std::string>("flick_tmp_directory_name"); 
+    const std::string tmpdir_ = c_.get<std::string>("flick_tmp_directory_name");
     const std::string output_ = tmpdir_+"/accurtOutput";
     size_t n_detector_;
     size_t n_reference_;
@@ -1151,7 +1151,7 @@ time and location.
 
   namespace configuration_template {
     class basic_accurt : public basic_configuration {
-      const size_t precision_ = 12;
+      const size_t precision_ = 17;
     protected:
       const double toa_height_ = 120e3;
     public:

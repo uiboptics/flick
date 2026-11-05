@@ -143,7 +143,7 @@ namespace flick {
 	}
       }
     private:
-	std::string stream_radiation(const std::string config) {
+      std::string stream_radiation(const std::string config) {
 	auto c0 = read<configuration_template::basic_accurt>(config);
 	std::string name = c0.get<std::string>("material_name");
 	std::shared_ptr<material::base> m;

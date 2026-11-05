@@ -48,8 +48,8 @@ cp "$project_dir/python_script/flick.py" \
     "$project_dir/python_script/snow_optics.py" \
     "$stage/python-package/python_script/"
 
-# Retain the complete project data set.  Source and build-only files are
-# excluded, except for the explicitly requested Eigen and AccuRT trees.
+# Retain the project data needed at run time. Source and build-only files are
+# excluded; Eigen and the AccuRT Fortran source are build-time inputs only.
 for item in astronomy coating component environment geometry material mie model numeric polarization radiator transporter main/commands Example; do
     if [ -e "$project_dir/$item" ]; then
         mkdir -p "$stage/resources/$(dirname "$item")"
@@ -57,9 +57,20 @@ for item in astronomy coating component environment geometry material mie model 
             "$project_dir/$item" "$stage/resources/$(dirname "$item")/"
     fi
 done
-rsync -a --exclude='.git' "$project_dir/external/eigen" "$stage/resources/external/"
-rsync -a --exclude='.git' "$project_dir/external/accurt-kernel" "$stage/resources/external/"
+mkdir -p "$stage/resources/external/accurt-kernel"
+cp "$project_dir/external/accurt-kernel/AccuRT-license-NC-v2.pdf" \
+    "$stage/resources/external/accurt-kernel/"
 cp "$project_dir/README.md" "$stage/resources/"
+
+# Fail closed if either build-time source tree is accidentally staged later.
+[ ! -e "$stage/resources/external/eigen" ] || {
+    echo "Refusing to package the Eigen source tree." >&2
+    exit 1
+}
+[ ! -e "$stage/resources/external/accurt-kernel/kernel.f95" ] || {
+    echo "Refusing to package the AccuRT kernel source." >&2
+    exit 1
+}
 
 # Copy every non-Apple dynamic dependency. Repeat because libraries can depend
 # on further Homebrew/GCC libraries of their own.

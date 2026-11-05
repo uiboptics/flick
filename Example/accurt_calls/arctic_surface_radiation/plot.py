@@ -1,7 +1,7 @@
 """
 This script only works if `compute_radiation.py` has been run first.
 
-See also README.txt
+See also README.md
 """
 
 import numpy as np

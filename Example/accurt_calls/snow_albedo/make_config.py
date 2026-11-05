@@ -1,7 +1,7 @@
 """
 Generate flick_tmp/config
 
-See also README.txt
+See also README.md
 """
 
 import os

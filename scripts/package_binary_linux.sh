@@ -50,9 +50,22 @@ for item in astronomy coating component environment geometry material mie model 
             "$project_dir/$item" "$stage/resources/$(dirname "$item")/"
     fi
 done
-rsync -a --exclude='.git' "$project_dir/external/eigen" "$stage/resources/external/"
-rsync -a --exclude='.git' "$project_dir/external/accurt-kernel" "$stage/resources/external/"
+# Eigen and the AccuRT Fortran source are build-time inputs and must not be
+# distributed. Keep the AccuRT license alongside the compiled-in kernel.
+mkdir -p "$stage/resources/external/accurt-kernel"
+cp "$project_dir/external/accurt-kernel/AccuRT-license-NC-v2.pdf" \
+    "$stage/resources/external/accurt-kernel/"
 cp "$project_dir/README.md" "$stage/resources/"
+
+# Fail closed if either build-time source tree is accidentally staged later.
+[ ! -e "$stage/resources/external/eigen" ] || {
+    echo "Refusing to package the Eigen source tree." >&2
+    exit 1
+}
+[ ! -e "$stage/resources/external/accurt-kernel/kernel.f95" ] || {
+    echo "Refusing to package the AccuRT kernel source." >&2
+    exit 1
+}
 
 # Bundle compiler and third-party libraries, but leave glibc and the dynamic
 # loader to the target system. LD_LIBRARY_PATH in the launcher also lets these

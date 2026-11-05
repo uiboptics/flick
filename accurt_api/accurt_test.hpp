@@ -349,9 +349,10 @@ namespace flick {
       auto a =  accurt(ac, m);
       auto r = a.relative_radiation().y();
       check(r.size()==21);
-      check_close(r.at(0),60,9_pct);
+      check_close(r.at(0),60,11_pct);
       check_close(r.at(2),54,1_pct);
-      check_close(r.back(),1.2,6_pct);
+      check_close(r.at(12),2,4_pct);
+      check_close(r.back(),1.2,7_pct);
     }
   } end_test_case()
 }

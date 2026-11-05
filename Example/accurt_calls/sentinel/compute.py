@@ -2,7 +2,7 @@
 Compute top-of-atmosphere (TOA) radiances at 21 spectral bands as measured
 by the OLCI radiometer onboard the Sentinel-3 satellite.
 
-See also README.txt
+See also README.md
 
 Unless otherwise specified, SI base units are used, with angles given in
 degrees.
@@ -84,6 +84,7 @@ def set_fixed_parameter():
     c.set('ozone',0.003)
     c.set('toa_solar_multiplication',time_pos+[0])
     c.set('detector_sentinel3_override',[n_wls,obs_ang[0],obs_ang[1]])
+    c.set("gas_spectral_region", "uv_vis_toa")
     c.set_streams(12)
 
 class parameter:
@@ -92,8 +93,8 @@ class parameter:
     name = ["aerosol_od","cdom_440","chl_concentration","nap_concentration"]
     lower_limit = np.array([0.02, 0.02, 0.1e-6, 0.2e-3])
     upper_limit = np.array([1.0, 1.0, 15e-6, 25e-3])
-    value = (upper_limit + lower_limit) / 2
-    machup = np.array([0.14, 0.14, 6.8e-6, 21e-3-6.8e-6/0.01])
+    value = None
+    matchup = np.array([0.14, 0.14, 6.8e-6, 21e-3-6.8e-6/0.01])
     rng = np.random.default_rng()
 
     @classmethod
@@ -104,6 +105,10 @@ class parameter:
     @classmethod
     def clip(cls, n, value):
         return np.clip(value,cls.lower_limit[n],cls.upper_limit[n])
+
+    @classmethod
+    def midtpoint(cls):
+        return (cls.upper_limit + cls.lower_limit) / 2
 
     @classmethod
     def set_value(cls, new_value):
@@ -316,14 +321,14 @@ class optimization_plot:
                 f"{lower:#.1e}",
                 f"{value:#.1e}",
                 f"{upper:#.1e}",
-                f"{value / machup:#.2g}" if np.isfinite(machup) and machup != 0 else "N/A",
+                f"{value / matchup:#.2g}" if np.isfinite(matchup) and matchup != 0 else "N/A",
             ]
-            for name, lower, value, upper, machup in zip(
+            for name, lower, value, upper, matchup in zip(
                 parameter.name,
                 parameter.lower_limit,
                 optimization.best.parameter.value,
                 parameter.upper_limit,
-                parameter.machup,
+                parameter.matchup,
             )
         ]
         table = cls.summary_axis.table(
@@ -380,6 +385,7 @@ class optimizer:
     best_history = []
     cost_history = []
     start_time = None
+    max_iterations = 10
     plot = optimization_plot
 
     @classmethod
@@ -403,7 +409,7 @@ class optimizer:
         cls.plot.update(cls)
         
     @classmethod
-    def lucky_guess(cls, n_iterations=10):
+    def lucky_guess(cls, n_iterations=8):
         """Perform a simple random-search inversion.
 
         This is probably the simplest and slowest optimization algorithm.
@@ -412,38 +418,50 @@ class optimizer:
 
         Possible project extensions:
 
-        Could the optimization be performed more efficiently using a more
-        sophisticated method? Possibilities include steepest descent
-        with finite-difference derivatives, Powell's method, L-BFGS-B,
-        or another suitable optimization method.
+        Could the optimization be performed more efficiently using a
+        more sophisticated method? Possibilities include steepest
+        descent with finite-difference derivatives, Powell's method,
+        L-BFGS-B, or another suitable optimization method. You may use
+        Python minimize packages.
+
         """
         cls.initialize()
+        candidate = parameter.set_value(parameter.midtpoint())
         for _ in range(n_iterations):
-            candidate = parameter.set_random()
             evaluated = cost_function.simple_least_square(candidate)
             cls.update(evaluated)
+            candidate = parameter.set_random()
         return cls.best
 
     @classmethod
     def my_version_not_based_on_luck(cls):
         cls.initialize()
         tolerance = 1; # find suitable value from cost function
-        happy = False
-        while not happy:
-            """
-            better optimization ideas could be implemented here. AI could help.
-            candidate = find_parameters_in_a_clever_way()
-            """
+        candidate = parameter.set_value(parameter.midtpoint())
+        for _ in range(cls.max_iterations):
             evaluated = cost_function.my_super_version(candidate)
             cls.update(evaluated)
             if cls.best.value < tolerance:
-                happy = True
+                break
+            """
+            better optimization ideas could be implemented here. AI could help.
+            candidate = find_new_parameters_in_a_clever_way()
+            """
+        return cls.best
+
+    @classmethod
+    def my_version_with_python_package(cls):
+        cls.initialize()
+        tolerance = 1; # find suitable value from cost function
+        candidate = parameter.set_value(parameter.midtpoint())
+        """ Python package may be called here """
+        #cls.update(evaluated)
         return cls.best
     
 
 if __name__ == "__main__":
     set_fixed_parameter()
-    best = optimizer.lucky_guess(8)
+    best = optimizer.lucky_guess(1)
 
     p = best.parameter.value
     output = np.column_stack((np.arange(1, len(p) + 1), p))

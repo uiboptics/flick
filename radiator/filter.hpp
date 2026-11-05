@@ -217,7 +217,7 @@ namespace flick {
     {
       pl_function centers_;
       std::vector<pl_function> srf_;
-      std::vector<double> fwhm_;      
+      std::vector<double> channel_fwhm_;
     public:
       sentinel3() : band_filter() {
 	std::string p = path()+"/radiator/filter_data/sentinel3/srf";
@@ -229,8 +229,9 @@ namespace flick {
 	  f.normalize();
 	  f.add_zero_extrapolation();
 	  srf_.push_back(f);
-	  fwhm_.push_back(2.35482 * sqrt(second_moment(f)));
+	  channel_fwhm_.push_back(2.35482 * sqrt(second_moment(f)));
 	}
+	center_wavelength(centers_.x().front());
       }
       const std::vector<double>& center_wavelengths() const {
 	return centers_.x();
@@ -250,8 +251,12 @@ namespace flick {
 	return importance_sampled(f,n_total,move_ends).x();
       }
       double transmittance(double wavelength) const override {
-	size_t n = closest_srf(wavelength);
+	size_t n = closest_srf(wl0_);
 	return srf_[n].value(wavelength);
+      }
+      void center_wavelength(double wavelength) {
+	wl0_ = wavelength;
+	fwhm_ = channel_fwhm_.at(closest_srf(wavelength));
       }
       size_t closest_srf(double wavelength) const {
 	double n = centers_.value(wavelength);

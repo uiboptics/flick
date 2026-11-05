@@ -1,7 +1,7 @@
 """
 This script only works if `compute.py` has been run first.
 
-See also README.txt
+See also README.md
 """
 import matplotlib.pyplot as plt
 from matplotlib.ticker import LogLocator, ScalarFormatter

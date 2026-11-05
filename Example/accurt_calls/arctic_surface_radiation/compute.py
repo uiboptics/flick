@@ -3,7 +3,7 @@ Compute scalar irradiance, plane irradiance, and nadir radiance as
 measured by three different Ramses sensors, all oriented vertically
 upwards above snow-covered sea ice.
 
-See also README.txt
+See also README.md
 
 Unless otherwise specified, SI (MKS) base units are used, with angles given in
 degrees.

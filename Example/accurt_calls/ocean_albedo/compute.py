@@ -2,7 +2,7 @@
 Compute the spectrally integrated surface albedo of the ocean for
 varying volume fractions of nano bubbles.
 
-See also README.txt
+See also README.md
 
 Unless otherwise specified, SI (MKS) base units are used, with angles given in
 degrees.

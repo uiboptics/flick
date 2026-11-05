@@ -26,6 +26,13 @@ namespace flick {
     check(filter::sentinel3().closest_srf(1090e-9)==20);
     check(filter::sentinel3().closest_srf(938e-9)==19);
     check_close(filter::sentinel3().importance_sampled_wavelengths(1)[1], 412e-9,1_pct);
+
+    filter::sentinel3 olci;
+    olci.center_wavelength(762e-9);
+    check(olci.closest_srf(762e-9)==12);
+    check_close(olci.fwhm(),2.37e-9,1_pct);
+    check(olci.transmittance(762e-9) > 1e7);
+    check_small(olci.transmittance(754e-9));
  } end_test_case()
     
   begin_test_case(filter_test_C) {

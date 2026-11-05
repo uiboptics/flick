@@ -2,7 +2,7 @@
 Compute the spectral albedo including the configuration parameters set in
 make_config.py.
 
-See also README.txt
+See also README.md
 
 Unless otherwise specified, SI (MKS) base units are used, with angles given in
 degrees.

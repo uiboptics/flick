@@ -3,7 +3,7 @@ Calculate and plot the downward UV irradiance spectrum at the
 surface for a specified spectral bandwidth. The simulation does not
 include an ocean.
 
-See also `README.txt`.
+See also `README.md`.
 
 """
 import numpy as np

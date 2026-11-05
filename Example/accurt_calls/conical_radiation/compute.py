@@ -2,7 +2,7 @@
 Compute conical irradiance for a detector with varying acceptance
 half-angles and polar orientation angles relative to the Sun.
 
-See also README.txt
+See also README.md
 
 Unless otherwise specified, SI (MKS) base units are used, with angles given in
 degrees.

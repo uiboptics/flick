@@ -157,14 +157,15 @@ update-accurt-kernel:
 	fi
 
 # Build a relocatable macOS archive containing Flick, its run-time input data,
-# Eigen, the AccuRT kernel sources, and all non-system dynamic libraries used by
-# the executable.  The resulting archive is written below dist/.
+# the AccuRT license, and all non-system dynamic libraries used by the
+# executable. Eigen and the AccuRT source are not distributed. The resulting
+# archive is written below dist/.
 binary-mac: install-eigen install-accurt-kernel build
 	@./scripts/package_binary_mac.sh
 
 # Build a relocatable Linux archive containing Flick, its run-time input data,
-# Eigen, the AccuRT kernel sources, and its non-glibc shared libraries.  The
-# resulting archive is written below dist/.
+# the AccuRT license, and its non-glibc shared libraries. Eigen and the AccuRT
+# source are not distributed. The resulting archive is written below dist/.
 binary-linux: install-eigen install-accurt-kernel build
 	@./scripts/package_binary_linux.sh
 
