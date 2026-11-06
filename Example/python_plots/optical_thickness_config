@@ -56,7 +56,7 @@ radius is exp(mu), where mu is the mean of the natural logarithm of the radius
 distribution.
 */
 
-bubble_radius = 1e-05 
+bubble_radius = 1.0000000000000001e-05 
 
 /*
 Size-distribution sigma. Sigma is the standard deviation of the
@@ -82,7 +82,7 @@ Slope of the CDOM absorption spectrum 1/nm. Note that
 this unit is an exception to the SI mks unit convention.
 */
 
-cdom_slope = 0.017 
+cdom_slope = 0.017000000000000001 
 
 /*
 Chlorophyll concentration in the water column [kg/m^3], used by the
@@ -287,7 +287,7 @@ configuration variables:
 
 1) `detector_wavelengths`, which is set to wavelengths
    importance-sampled according to the OLCI spectral response
-   functions and the top-of-atmosphere solar spectrum.
+   functions.
 
 2) `detector_height`, which is set to the model top of the atmosphere
    at 120e3 m.
@@ -321,7 +321,7 @@ that a wavelength (e.g., 400 nm) may be written as 400e-9 m for
 clarity.  
 */
 
-detector_wavelengths = 4e-07 5e-07 
+detector_wavelengths = 3.9999999999999998e-07 4.9999999999999998e-07 
 
 /*
 Specifies the directory where the Flick and AccuRT configuration files,
@@ -365,7 +365,7 @@ ice_brine_fraction = 0.02 0.02
 Radius of sea ice brine pocket inclusions [m].
 */
 
-ice_brine_radius = 0.0005 
+ice_brine_radius = 0.00050000000000000001 
 
 /*
 Space-separated list of the volume fraction of bubble inclusions in
@@ -379,7 +379,7 @@ ice_bubble_fraction = 0.01 0.01
 Radius of sea ice bubble inclusions [m].
 */
 
-ice_bubble_radius = 0.0002 
+ice_bubble_radius = 0.00020000000000000001 
 
 /*
 Number of depths, defined by the concentration_relative_depths
@@ -482,7 +482,7 @@ pressure (STP: T = 273.15 K, P = 1e5 Pa). A column of 100 Dobson units
 
 */
 
-ozone = 0.003 
+ozone = 0.0030000000000000001 
 
 /*
 Atmosphere ground pressure [Pa].
@@ -598,7 +598,7 @@ subtract_specular_radiance = false
 Atmosphere ground temperature [K].
 */
 
-temperature = 293.15 
+temperature = 293.14999999999998 
 
 /*
 Space-separated list of names of general tabulated iops materials. See

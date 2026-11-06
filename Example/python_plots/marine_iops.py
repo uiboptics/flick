@@ -9,15 +9,12 @@ import flick
 flick.setup_script(__file__)
 
 
-station = "ECOSENS_HF22_D1"
-user_path = "../accurt_calls/atmosphere_ocean/input"
+station = "ECOSENS_HF22_D2"
 from_wl = 300e-9
 to_wl = 1050e-9
-meta_path = "../../material/marine_particles/iop_tables"
-if user_path != "":
-    meta_path = user_path
-meta = flick.ocean_meta(meta_path+"/"+station+"_meta.txt")
-iops = flick.marine_iops(user_path+"/"+station,meta.spm,from_wl,to_wl,900)
+data_path = "marine_iops_data"
+meta = flick.ocean_meta(data_path+"/"+station+"_meta.txt")
+iops = flick.marine_iops(data_path+"/"+station,meta.spm,from_wl,to_wl,900)
 iops.set_b_scaling_factor(1)
 a_w = iops.a_water()
 a_spm = iops.a_spm()

@@ -34,4 +34,4 @@ ax.set_ylabel('Surface irradiance [W m$^{-2}$ nm$^{-1}$]')
 ax.grid()
 
 if __name__ == "__main__":
-plt.show()
+    plt.show()

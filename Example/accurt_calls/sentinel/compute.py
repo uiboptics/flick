@@ -461,7 +461,7 @@ class optimizer:
 
 if __name__ == "__main__":
     set_fixed_parameter()
-    best = optimizer.lucky_guess(1)
+    best = optimizer.lucky_guess(8)
 
     p = best.parameter.value
     output = np.column_stack((np.arange(1, len(p) + 1), p))
