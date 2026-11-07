@@ -50,7 +50,7 @@ cp "$project_dir/python_script/flick.py" \
 
 # Retain the project data needed at run time. Source and build-only files are
 # excluded; Eigen and the AccuRT Fortran source are build-time inputs only.
-for item in astronomy coating component environment geometry material mie model numeric polarization radiator transporter main/commands Example; do
+for item in astronomy coating component environment geometry material mie model numeric polarization radiator transporter accurt_api main/commands Example; do
     if [ -e "$project_dir/$item" ]; then
         mkdir -p "$stage/resources/$(dirname "$item")"
         rsync -a --exclude='*.o' --exclude='*.d' --exclude='test_all' --exclude='flick' \

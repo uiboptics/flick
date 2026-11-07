@@ -43,7 +43,7 @@ cp "$project_dir/python_script/flick.py" \
     "$project_dir/python_script/snow_optics.py" \
     "$stage/python-package/python_script/"
 
-for item in astronomy coating component environment geometry material mie model numeric polarization radiator transporter main/commands Example; do
+for item in astronomy coating component environment geometry material mie model numeric polarization radiator transporter accurt_api main/commands Example; do
     if [ -e "$project_dir/$item" ]; then
         mkdir -p "$stage/resources/$(dirname "$item")"
         rsync -a --exclude='*.o' --exclude='*.d' --exclude='test_all' --exclude='flick' \
