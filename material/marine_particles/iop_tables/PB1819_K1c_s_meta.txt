@@ -1,0 +1,48 @@
+/*
+Additional data, when available, for samples in IOP database Mass
+concentrations of dry Suspended Particulate Matter (SPM),
+Chlorophyll-a (Chla), and Particulate Organic Carbon (POC) retained on
+25 mm diameter glass fiber filters Whatman Grade GF/F
+
+SPM was determined following a gravimetric method using pre-washed and
+pre-weighted filters with a 1 µg resolution scale (van der Linde,
+1998)
+
+POC was determined on precombusted filters with a standard CHN
+analysis involving high temperature combustion of sample filters
+(Parsons et al., 1984) Chla was determined with in situ ECO-Triplet
+fluorometer divided by 2 from Roesler et al. (2017)
+
+Temperature and Salinity were determined in situ with CTD 
+LISST-VSF in situ 
+
+Created by Daniel Koestner on 21-Jan-2024 22:51:59
+Data Version: V4_10-Nov-2023
+
+Publication:
+Koestner, D., Foster, R., El-Habashi, A., Cheatham, S., Stramski,
+D. and Reynolds, R., 2024. Measurements of the inherent optical
+properties of aqueous suspensions of microplastics and contrasting
+seawater samples. French Research Institute for Exploitation of the
+Sea Data Set, p.1541.
+
+Row 1: Latitude 
+Row 2: Longitude 
+Row 3: Serial Date Number (since 1-Jan-0000) [UTC] 
+Row 4: Depth [m] 
+Row 5: Temperature [ºC] 
+Row 6: Salinity [psu] 
+Row 7: SPM [g m-3] 
+Row 8: Chla [mg m-3] 
+Row 9: POC [mg m-3] 
+*/
+
+  70.596
+-149.036
+737648.05
+2.2706298
+ 4.78405
+27.957957
+2.0562005
+  0.2911
+156.38259

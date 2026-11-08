@@ -11,6 +11,9 @@ POC/SPM = -999
 
 Created by Elinor Tessin on 22-Apr-2024 00:10:26
 Data Version: V1_22-Apr-2024
+Reference: Kristoffersen, Arne S., et al. "Optical properties of Norwegian fjords
+influenced by glacial meltwater and a coccolithophore bloom." Progress in
+Oceanography (2026): 103727.
 
 Column 1: Angle[deg]
 Column 2: 10th Percentile Data

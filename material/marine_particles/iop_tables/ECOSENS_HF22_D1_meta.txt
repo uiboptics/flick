@@ -8,6 +8,10 @@ Exciation/Emission: 436/680 nm
 
 Time point (Row 3) and Number of days (Row 4) are times of Ramses TriOS radiance and irradiance measurements.
 
+Reference: Kristoffersen, Arne S., et al. "Optical properties of Norwegian fjords
+influenced by glacial meltwater and a coccolithophore bloom." Progress in
+Oceanography (2026): 103727.
+
 Row 1:  Latitude [°]
 Row 2:  Longitude [°]
 Row 3:  Time point YYYYMMDDHHMM [UTC]

@@ -1,6 +1,10 @@
 /*
   Top-of atmosphere radiance in  Sentinel-3A  3x3 pixel matchup window.
   
+Reference: Kristoffersen, Arne S., et al. "Optical properties of Norwegian fjords
+influenced by glacial meltwater and a coccolithophore bloom." Progress in
+Oceanography (2026): 103727.
+
   Column 1: OLCI Band wavelength centre [nm]
   Column 2: Geometric mean OLCI Top-of-atmosphere radiance [mW m-2 sr-1 nm-1]
   Column 3: Geometric standard deviation of OLCI Top-of-atmosphere radiance

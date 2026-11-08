@@ -15,6 +15,10 @@ Scattering spectra power-function exponent (400-700 nm) =  1.779
 
 Created by Elinor Tessin on  22-Apr-2024 00:36:44 
 Data Version:  V1_22-Apr-2024 
+Reference: Kristoffersen, Arne S., et al. "Optical properties of Norwegian fjords
+influenced by glacial meltwater and a coccolithophore bloom." Progress in
+Oceanography (2026): 103727.
+
 Column 1: wavelength [nm]
 Column 2: a_p [m^2/g]
 Column 3: a_d [m^2/g]
