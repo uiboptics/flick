@@ -190,6 +190,7 @@ class optimization_plot:
     figure = None
     spectrum_axis = None
     summary_axis = None
+    display_handle = None
 
     @staticmethod
     def wrap_table_text(value, width):
@@ -273,6 +274,17 @@ class optimization_plot:
         cls.figure.tight_layout()
         cls.figure.canvas.draw()
         cls.figure.canvas.flush_events()
+        if "inline" in plt.get_backend().lower():
+            # A display handle replaces one notebook output in place. This is
+            # reliable even while a long-running cell keeps the kernel busy.
+            from IPython.display import display
+
+            cls.display_handle = display(cls.figure, display_id=True)
+        else:
+            cls.display_handle = None
+            # Display the canvas once. Subsequent iterations redraw this same
+            # canvas instead of asking the backend to show it again.
+            plt.show(block=False)
 
     @classmethod
     def update(cls, optimization):
@@ -373,9 +385,17 @@ class optimization_plot:
         )
 
         cls.figure.tight_layout()
-        cls.figure.canvas.draw_idle()
+        # Redraw the existing canvas directly.  Calling ``plt.pause`` here
+        # makes notebook backends display the same figure again on every
+        # iteration, producing a long stack of figure outputs.
+        cls.figure.canvas.draw()
         cls.figure.canvas.flush_events()
-        plt.pause(0.001)
+        if cls.display_handle is not None:
+            cls.display_handle.update(cls.figure)
+        else:
+            # Give interactive desktop backends a brief opportunity to paint
+            # the redraw before the next expensive evaluation.
+            cls.figure.canvas.start_event_loop(0.01)
 
 
 class optimizer:
@@ -469,4 +489,9 @@ if __name__ == "__main__":
     optimizer.plot.figure.savefig("output/optimization_result.png", dpi=300)
 
     plt.ioff()
-    plt.show()
+    # Inline notebooks already display and update the figure through one
+    # display handle. Close it to prevent an automatic duplicate at cell end.
+    if "inline" in plt.get_backend().lower():
+        plt.close(optimizer.plot.figure)
+    else:
+        plt.show()
