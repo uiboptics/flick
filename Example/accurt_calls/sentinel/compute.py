@@ -92,7 +92,7 @@ class parameter:
 
     name = ["aerosol_od","cdom_440","chl_concentration","nap_concentration"]
     lower_limit = np.array([0.02, 0.02, 0.1e-6, 0.2e-3])
-    upper_limit = np.array([1.0, 1.0, 15e-6, 25e-3])
+    upper_limit = np.array([1.0, 1.0, 20e-6, 25e-3])
     value = None
     matchup = np.array([0.14, 0.14, 6.8e-6, 21e-3-6.8e-6/0.01])
     rng = np.random.default_rng()
