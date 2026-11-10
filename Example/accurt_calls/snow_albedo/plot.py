@@ -18,13 +18,15 @@ if os.path.exists(tilted_path):
 tilted_path = 'output/albedo_tilted.txt'
 if os.path.exists(tilted_path):
     a_tilted = np.loadtxt(tilted_path, ndmin=2)
-    ax.plot(a_tilted[:,0], a_tilted[:,1],'-o', label='Tilted')
+    ax.plot(a_tilted[:,0], a_tilted[:,1],'-', label='Tilted')
     ax.legend()
 
 ax.grid()
 ax.set_xlabel('Wavelength [nm]')
 ax.set_ylabel(r'Snow albedo')
-ax.set_ylim([0.5,1.1])
+#ax.set_ylim([0.5,1.1])
+ax.set_ylim([0.4,1.15])
+ax.set_xlim([315,850])
 fig.savefig('output/albedo.pdf')
 
 if __name__ == "__main__":

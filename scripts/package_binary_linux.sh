@@ -127,6 +127,7 @@ case "$prefix" in /*) ;; *) prefix=$(cd -P -- "$(dirname -- "$prefix")" && pwd -
 source_dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 install_dir="$prefix/share/flick"
 launcher="$prefix/bin/flick"
+bin_dir="$prefix/bin"
 [ ! -e "$install_dir" ] || [ "$force" -eq 1 ] || { echo "Flick is already installed in $install_dir (use --force to replace it)." >&2; exit 1; }
 if { [ -e "$launcher" ] || [ -L "$launcher" ]; } && { [ ! -L "$launcher" ] || [ "$(readlink "$launcher")" != "$install_dir/flick" ]; }; then
     echo "Refusing to replace $launcher because it does not belong to this installation." >&2; exit 1
@@ -143,6 +144,15 @@ python3 -m pip install --user "$install_dir/python-package"
 trap - EXIT
 echo "Installed Flick in $install_dir"
 echo "Created $launcher"
+
+case ":${PATH:-}:" in
+    *:"$bin_dir":*) ;;
+    *)
+        echo
+        echo "$bin_dir is not currently in PATH. Add this line to your shell profile:"
+        echo "  export PATH=\"$bin_dir:\$PATH\""
+        ;;
+esac
 INSTALLER
 chmod +x "$stage/install.sh"
 
@@ -165,13 +175,36 @@ chmod +x "$stage/uninstall.sh"
 cat > "$stage/README.txt" <<EOF
 Flick for Linux ($arch)
 
-Run ./flick help, or run ./install.sh to install for the current user.
-Use ./install.sh --prefix /usr/local to select another prefix and
-./uninstall.sh to remove the installation.
+Run from a terminal:
+
+    ./flick help
+
+Install for the current user so that it can be run from any directory:
+
+    ./install.sh
+
+The installer also uses python3 and pip to install the lightweight Flick
+Python interface, NumPy, SciPy, and Matplotlib for the current user. After
+installation, the bundled examples can be run directly, for example:
+
+    python3 resources/Example/python_plots/cie_chromaticity.py
+
+If ~/.local/bin is not already in PATH, the installer prints the line to add
+to your shell profile. To select another location, use for example:
+
+    ./install.sh --prefix /usr/local
+
+Remove that installation with:
+
+    ./uninstall.sh
 
 The binary is built for $arch Linux systems using a glibc version at least as
-new as the build system. The installer requires python3 and pip for the Flick
-Python interface.
+new as the build system. The Flick binary does not require compilation, but
+installing the Python interface may use the network if its Python dependencies
+are not already installed.
+The AccuRT kernel is distributed under its license in:
+
+    resources/external/accurt-kernel/AccuRT-license-NC-v2.pdf
 EOF
 
 for script in "$stage/flick" "$stage/install.sh" "$stage/uninstall.sh"; do bash -n "$script"; done
