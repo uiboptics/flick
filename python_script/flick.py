@@ -307,7 +307,7 @@ class toa_meta:
 def _run_os(command):
     c = subprocess.run(command, stdout=subprocess.PIPE, shell=True, check=True)
     return c
-
+    
 def _to_matrix(flick_output):
     try:
         lines = flick_output.stdout.decode('utf-8').splitlines()

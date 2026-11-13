@@ -12,34 +12,33 @@ from matplotlib.colors import LightSource
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Ellipse
 from matplotlib.textpath import TextPath
+from matplotlib.transforms import Bbox
 import flick
 flick.setup_script(__file__)
 
 from pathlib import Path
 
-black_background = True
+black_background = False
 n_polar = 90
 n_azimuth = 150
 wl = 300e-9
 
-def make_logo(recalculate=True):
-    if recalculate:
-        c = flick.accurt_config()
-        c.set_streams(32)
-        c.set("n_heights", 8)
-        c.set("detector_height", -10)
-        c.set("source_zenith_angle", 60)
-        c.set("aerosol_od", 0.1)
-        c.set("cloud_liquid", 0)
-        c.set("nap_concentration", 0)
-        c.set("chl_concentration", 0)
-        c.set("cdom_440", 0)
-        c.set("wavelengths", wl)
-        c.set("detector_radiance_distribution_override", [n_polar, n_azimuth])
-        r = flick.run(f"accurt {c.filename}")
-        np.save("flick_tmp/logo", r)
-    else:
-        r = np.load("flick_tmp/logo.npy")
+
+def make_logo():
+    c = flick.accurt_config()
+    c.set_streams(32)
+    c.set("n_heights", 8)
+    c.set("detector_height", -10)
+    c.set("source_zenith_angle", 60)
+    c.set("aerosol_od", 0.1)
+    c.set("cloud_liquid", 0)
+    c.set("nap_concentration", 0)
+    c.set("chl_concentration", 0)
+    c.set("cdom_440", 0)
+    c.set("wavelengths", wl)
+    c.set("detector_radiance_distribution_override", [n_polar, n_azimuth])
+    r = flick.run(f"accurt {c.filename}")
+    np.save("flick_tmp/logo", r)
 
     theta = np.linspace(0, np.pi, n_polar)
     phi = np.linspace(-np.pi, np.pi, n_azimuth)
@@ -55,13 +54,13 @@ def make_logo(recalculate=True):
     rgb = ls.shade(r, cmap=cm.hot, vert_exag=0, blend_mode='soft')
     fig = plt.figure(figsize=(9, 3.5))
     # Keep the radiance figure in its own area so it cannot overlap the name.
-    ax = fig.add_axes([0.02, 0.05, 0.34, 0.9], projection='3d')
+    ax = fig.add_axes([0.045, 0.05, 0.34, 0.9], projection='3d')
     ax.plot_surface(x, y, z, rstride=1, cstride=1, facecolors=rgb,
                     linewidth=0, antialiased=False, shade=False, alpha=1)
 
     font_size = 150
     font = FontProperties(family='Arial', weight='heavy')
-    text_x, text_y = 0.3, 0.29
+    text_x, text_y = 0.325, 0.29
     fig.text(text_x, text_y, "flick", fontsize=font_size,
              fontproperties=font, color='white' if black_background else 'black')
 
@@ -84,12 +83,21 @@ def make_logo(recalculate=True):
     ax.set_axis_off()
     return fig
 
+def save_logo(fig, filename, dpi=500):
+    trim_left = 0.8 
+    trim_right = 1.4 
+    trim_vertical = 0.5
+    width, height = fig.get_size_inches()
+    bbox = Bbox.from_bounds(trim_left, trim_vertical, width - trim_left - trim_right,
+                            height-2*trim_vertical)
+    fig.savefig(filename, dpi=dpi, bbox_inches=bbox, pad_inches=0)
+
 if __name__ == "__main__":
     fig = make_logo()
     if black_background:
-        fig.savefig("logo_black.png",dpi=500)
-        fig.savefig("logo_black.jpg",dpi=500)
+        save_logo(fig, "logo_black.png")
+        save_logo(fig, "logo_black.jpg")
     else:
-        fig.savefig("logo_white.png",dpi=500)
-        fig.savefig("logo_white.jpg",dpi=500)
+        save_logo(fig, "logo_white.png")
+        save_logo(fig, "logo_white.jpg")
     plt.show()

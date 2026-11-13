@@ -119,7 +119,8 @@ namespace flick {
 	absorption_optical_depth();
       std::partial_sum(od.begin(), od.end(), od.begin());
       od.insert(od.begin(), 0);
-      return od.back() - pl_function(boundaries_,od).value(z_to);
+      return std::max(0.0,
+		      od.back() - pl_function(boundaries_,od).value(z_to));
     }
     friend std::ostream& operator<<(std::ostream &os,
 				    const layered_iops& iops) {

@@ -24,9 +24,7 @@ if os.path.exists(tilted_path):
 ax.grid()
 ax.set_xlabel('Wavelength [nm]')
 ax.set_ylabel(r'Snow albedo')
-#ax.set_ylim([0.5,1.1])
-ax.set_ylim([0.4,1.15])
-ax.set_xlim([315,850])
+ax.set_ylim([0.5,1.1])
 fig.savefig('output/albedo.pdf')
 
 if __name__ == "__main__":

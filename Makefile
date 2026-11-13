@@ -88,7 +88,7 @@ test-python:
 	cd Example/accurt_calls/surface_reference; python3 test_all.py
 	cd Example/accurt_calls/conical_radiation; python3 test_all.py
 	cd Example/accurt_calls/surface_irradiance; python3 test_all.py
-
+	cd Example/accurt_calls/ocean_radiance; python3 test_all.py	
 install:
 	@if [ ! -x "$(CURDIR)/main/flick" ]; then \
 		echo "Flick has not been built. Run 'make build' before installing." >&2; \

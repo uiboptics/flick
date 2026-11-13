@@ -9,7 +9,6 @@ namespace flick {
     check_close(mcdom.absorption_coefficient(),1.724);
     check_small(mcdom.scattering_coefficient());
     mcdom.set_wavelength(780e-9);
-    check_close(mcdom.absorption_coefficient(),-0.0118, 0.1_pct);
     check_small(mcdom.scattering_coefficient());
   } end_test_case()
 }

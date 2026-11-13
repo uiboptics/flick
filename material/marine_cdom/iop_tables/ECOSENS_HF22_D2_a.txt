@@ -14,6 +14,10 @@ the water through an additional 0.22 micrometer syringe filter.
 4. Reduce noise by adjusting values gradually closer to a fitted
 linear curve in log-log space for wavelengths longer than 550 nm.
 
+Reference: Kristoffersen, Arne S., et al. "Optical properties of
+Norwegian fjords influenced by glacial meltwater and a coccolithophore
+bloom." Progress in Oceanography (2026): 103727.
+
 Column 1: Wavelength [nm]
 Column 2: Absorption coefficient [m^{-1}]
 */
